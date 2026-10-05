@@ -45,7 +45,7 @@ enum class UpdateInterval(
             value: String,
         ) = entries.firstOrNull {
             it.id == value
-        } ?: INTERVAL_1_30
+        } ?: INTERVAL_1_00
     }
 
     override val valueArrayId = R.array.automatic_refresh_rate_values

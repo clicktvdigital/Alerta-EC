@@ -161,7 +161,7 @@ class SettingsManager private constructor(
         }
         get() = UpdateInterval.getInstance(
             config.getString("refresh_rate", null)
-                ?: (if (BreezyWeather.instance.debugMode) "never" else "1:30")
+                ?: (if (BreezyWeather.instance.debugMode) "never" else "1:00")
         )
 
     var ignoreUpdatesWhenBatteryLow: Boolean
