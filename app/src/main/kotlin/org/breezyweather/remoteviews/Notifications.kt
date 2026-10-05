@@ -72,6 +72,7 @@ object Notifications {
     const val ID_UPDATING_WIDGET = 6
 
     const val CHANNEL_BACKGROUND = "background"
+    const val CHANNEL_ACTIVE_LOCATION = "active_location"
     const val ID_RUNNING_IN_BACKGROUND = 5
     const val ID_UPDATING_AWAKE = 9
     const val ID_WEATHER_PROGRESS = -101
@@ -127,6 +128,11 @@ object Notifications {
                 },
                 buildNotificationChannel(CHANNEL_WIDGET, IMPORTANCE_DEFAULT) {
                     setName(context.getString(R.string.notification_channel_widget))
+                    setGroup(GROUP_BREEZY_WEATHER)
+                    setShowBadge(false)
+                },
+                buildNotificationChannel(CHANNEL_ACTIVE_LOCATION, IMPORTANCE_LOW) {
+                    setName(context.getString(R.string.notification_channel_active_location))
                     setGroup(GROUP_BREEZY_WEATHER)
                     setShowBadge(false)
                 },

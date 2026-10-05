@@ -897,6 +897,7 @@
     <string name="notification_channel_forecast">Forecast</string>
     <string name="notification_channel_widget">Widget</string>
     <string name="notification_channel_background_services">Background services</string>
+    <string name="notification_channel_active_location">Active location</string>
     <string name="notification_channel_crash_logs">Crash logs</string>
     <string name="notification_channel_app_updates">App updates</string>
     <string name="notification_running_in_background">Running in background to keep updating</string>
