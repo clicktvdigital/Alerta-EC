@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ಹವಾಮಾನ</string>
+    <string name="app_name">Alerta EC</string>
     <string name="forecast">ಮುನ್ಸೂಚನೆ</string>
     <string name="daily_forecast">ದೈನಂದಿನ ಮುನ್ಸೂಚನೆ</string>
     <string name="hourly_forecast">ಗಂಟೆವಾರು ಮುನ್ಸೂಚನೆ</string>

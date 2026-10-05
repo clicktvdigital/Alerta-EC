@@ -20,10 +20,10 @@ plugins {
 val supportedAbi = setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
 
 configure<ApplicationExtension> {
-    namespace = "org.breezyweather"
+    namespace = "com.clicktvdigital.alertaec"
 
     defaultConfig {
-        applicationId = "org.breezyweather"
+        applicationId = "com.clicktvdigital.alertaec"
         versionCode = 60203
         versionName = "6.2.3"
 

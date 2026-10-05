@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Laikapstākļi</string>
+    <string name="app_name">Alerta EC</string>
     <string name="daily_forecast">Dienu prognoze</string>
     <string name="hourly_forecast">Ik stundu</string>
     <string name="air_quality">Gaisa kvalitāte</string>

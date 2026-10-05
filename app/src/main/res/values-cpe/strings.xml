@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">How Stay Da Kine</string>
+    <string name="app_name">Alerta EC</string>
     <string name="forecast">Da kine telling how stay</string>
     <string name="daily_forecast">Da kine updates for every single day</string>
     <string name="hourly_forecast">How stay every hour</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">موسم</string>
+    <string name="app_name">Alerta EC</string>
     <string name="forecast">موسمی پیشگوئی</string>
     <string name="daily_forecast">یومیہ پیشگوئی</string>
     <string name="hourly_forecast">گھنٹہ وار پیشگوئی</string>
