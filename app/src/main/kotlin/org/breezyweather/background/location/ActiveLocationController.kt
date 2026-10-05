@@ -29,10 +29,7 @@ object ActiveLocationController {
     }
 
     fun stop(context: Context) {
-        val intent = Intent(context, ActiveLocationService::class.java).apply {
-            action = ActiveLocationService.ACTION_STOP
-        }
-        context.startService(intent)
+        context.stopService(Intent(context, ActiveLocationService::class.java))
     }
 
     fun getLatest(context: Context): ActiveLocationSnapshot? {
