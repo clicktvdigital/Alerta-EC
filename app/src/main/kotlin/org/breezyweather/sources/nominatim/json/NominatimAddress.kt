@@ -57,6 +57,11 @@ data class NominatimAddress(
     val allotments: String?,
     val quarter: String?,
 
+    // Detailed address data used by Alerta EC when available
+    val road: String? = null,
+    @SerialName("house_number") val houseNumber: String? = null,
+    val postcode: String? = null,
+
     // ISO levels
     @SerialName("ISO3166-2-lvl3") val isoLvl3: String?,
     @SerialName("ISO3166-2-lvl4") val isoLvl4: String?,
