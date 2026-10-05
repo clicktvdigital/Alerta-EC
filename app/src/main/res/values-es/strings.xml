@@ -450,6 +450,9 @@
     <string name="about_matrix">Sala en Matrix</string>
     <string name="notification_channel_background_services">Servicios en segundo plano</string>
     <string name="notification_channel_active_location">Ubicación activa</string>
+    <string name="active_location_notification_title">Alerta EC · Ubicación activa</string>
+    <string name="active_location_notification_text">Compartiendo ubicación autorizada</string>
+    <string name="active_location_notification_stop">Detener</string>
     <string name="common_weather_text_snow_showers">Nevada intensa</string>
     <string name="settings_debug_dump_crash_logs_saved">Registros de fallos guardados</string>
     <string name="common_weather_text_rain_snow_mixed_showers_light">Chubascos ligeros de aguanieve</string>

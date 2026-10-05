@@ -313,6 +313,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Alerta EC active location: SOS and authorized location sharing -->
+        <service
+            android:name=".background.location.ActiveLocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <!-- service -->
         <service
             android:name=".background.interfaces.TileService"
