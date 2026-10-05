@@ -20,4 +20,6 @@ package org.breezyweather.common.source
 data class LocationPositionWrapper(
     val latitude: Double,
     val longitude: Double,
+    val altitude: Double? = null,
+    val accuracy: Float? = null,
 )

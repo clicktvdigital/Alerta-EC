@@ -73,7 +73,7 @@ class AndroidLocationService @Inject constructor() : LocationSource {
         return rxObservable {
             locationListener = LocationListenerCompat {
                 clearLocationUpdates(locationListener)
-                val result = trySend(LocationPositionWrapper(longitude = it.longitude, latitude = it.latitude))
+                val result = trySend(LocationPositionWrapper(longitude = it.longitude, latitude = it.latitude, altitude = if (it.hasAltitude()) it.altitude else null, accuracy = if (it.hasAccuracy()) it.accuracy else null))
                 if (!result.isSuccess) {
                     close(LocationException())
                 }
@@ -93,7 +93,7 @@ class AndroidLocationService @Inject constructor() : LocationSource {
             // Fall back to the last known location if it failed to find the location in the given time frame
             clearLocationUpdates(locationListener)
             getLastKnownLocation(locationManager)?.let {
-                send(LocationPositionWrapper(it.latitude, it.longitude))
+                send(LocationPositionWrapper(latitude = it.latitude, longitude = it.longitude, altitude = if (it.hasAltitude()) it.altitude else null, accuracy = if (it.hasAccuracy()) it.accuracy else null))
             } ?: run {
                 // Actually it’s a timeout, but it is more reasonable to say it failed to find location
                 throw LocationException()
