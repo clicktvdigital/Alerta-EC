@@ -50,12 +50,28 @@ configure<ApplicationExtension> {
         }
     }
 
+
+    val localProperties = Properties()
+    if (project.rootProject.file("local.properties").canRead()) {
+        localProperties.load(project.rootProject.file("local.properties").inputStream())
+    }
+
+    signingConfigs {
+        create("alertaEcRelease") {
+            storeFile = file(localProperties.getProperty("alertaec.storeFile"))
+            storePassword = localProperties.getProperty("alertaec.storePassword")
+            keyAlias = localProperties.getProperty("alertaec.keyAlias")
+            keyPassword = localProperties.getProperty("alertaec.keyPassword")
+        }
+    }
+
     buildTypes {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-r${getCommitCount()}"
         }
         named("release") {
+            signingConfig = signingConfigs.getByName("alertaEcRelease")
             isShrinkResources = true
             isMinifyEnabled = true
             isDebuggable = false
@@ -64,10 +80,6 @@ configure<ApplicationExtension> {
         }
     }
 
-    val localProperties = Properties()
-    if (project.rootProject.file("local.properties").canRead()) {
-        localProperties.load(project.rootProject.file("local.properties").inputStream())
-    }
     val globalProperties = Properties()
     if (project.rootProject.file("gradle.properties").canRead()) {
         globalProperties.load(project.rootProject.file("gradle.properties").inputStream())

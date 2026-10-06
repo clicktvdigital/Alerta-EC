@@ -24,6 +24,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import breezyweather.domain.location.model.Location
 import org.breezyweather.R
+import org.breezyweather.common.extensions.currentLocale
+import org.breezyweather.common.extensions.formatPercent
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
 import org.breezyweather.common.extensions.getHour
@@ -35,7 +37,9 @@ import org.breezyweather.common.options.appearance.CalendarHelper
 import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
+import org.breezyweather.domain.weather.model.getIndex
 import org.breezyweather.domain.weather.model.getName
+import org.breezyweather.domain.weather.model.getShortDescription
 import org.breezyweather.domain.weather.model.getStrength
 import org.breezyweather.domain.weather.model.getTrendFeelsLikeTemperature
 import org.breezyweather.domain.weather.model.getTrendTemperature
@@ -46,6 +50,7 @@ import org.breezyweather.remoteviews.presenters.AbstractRemoteViewsPresenter
 import org.breezyweather.ui.theme.resource.ResourceHelper
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
+import org.breezyweather.unit.formatting.format
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.TemperatureUnit
 import java.util.Date
@@ -256,6 +261,63 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             dayTime,
             isWidgetNotificationUsingFeelsLike
         )
+        weather.current?.temperature?.feelsLikeTemperature?.let { feelsLike ->
+            views.setTextViewText(
+                R.id.notification_big_feels_like,
+                "Sensación: " + feelsLike.formatMeasure(
+                    context,
+                    temperatureUnit,
+                    valueWidth = UnitWidth.NARROW,
+                    unitWidth = UnitWidth.NARROW
+                )
+            )
+            views.setViewVisibility(R.id.notification_big_feels_like, android.view.View.VISIBLE)
+        } ?: views.setViewVisibility(R.id.notification_big_feels_like, android.view.View.GONE)
+
+        val conditionParts = mutableListOf<String>()
+        weather.current?.relativeHumidity?.let {
+            conditionParts.add("Humedad: " + it.formatPercent(context, UnitWidth.NARROW))
+        }
+        weather.nextHourlyForecast.firstOrNull()?.precipitationProbability?.total?.let {
+            conditionParts.add("Lluvia: " + it.formatPercent(context, UnitWidth.NARROW))
+        }
+        if (conditionParts.isNotEmpty()) {
+            views.setTextViewText(R.id.notification_big_conditions, conditionParts.joinToString(" · "))
+            views.setViewVisibility(R.id.notification_big_conditions, android.view.View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.notification_big_conditions, android.view.View.GONE)
+        }
+
+        val windUvParts = mutableListOf<String>()
+        weather.current?.wind?.getShortDescription(context)?.let {
+            windUvParts.add("Viento: " + it)
+        }
+        weather.current?.uV?.getShortDescription(context)?.let {
+            windUvParts.add("UV: " + it)
+        }
+        if (windUvParts.isNotEmpty()) {
+            views.setTextViewText(R.id.notification_big_wind_uv, windUvParts.joinToString(" · "))
+            views.setViewVisibility(R.id.notification_big_wind_uv, android.view.View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.notification_big_wind_uv, android.view.View.GONE)
+        }
+
+        val airQuality = weather.current?.airQuality
+        val airQualityIndex = airQuality?.getIndex()
+        val airQualityName = airQuality?.getName(context)
+        if (airQualityIndex != null || airQualityName != null) {
+            val airQualityParts = mutableListOf<String>()
+            airQualityName?.let { airQualityParts.add("Aire: " + it) }
+            airQualityIndex?.let { airQualityParts.add("AQI " + it.format(decimals = 0, context.currentLocale)) }
+            views.setTextViewText(
+                R.id.notification_big_air_quality,
+                airQualityParts.joinToString(" · ")
+            )
+            views.setViewVisibility(R.id.notification_big_air_quality, android.view.View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.notification_big_air_quality, android.view.View.GONE)
+        }
+
         val viewIds = arrayOf(
             Triple(R.id.notification_big_week_1, R.id.notification_big_temp_1, R.id.notification_big_icon_1),
             Triple(R.id.notification_big_week_2, R.id.notification_big_temp_2, R.id.notification_big_icon_2),
