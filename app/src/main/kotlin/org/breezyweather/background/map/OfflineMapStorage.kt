@@ -33,6 +33,11 @@ object OfflineMapStorage {
         return File(destination.parentFile, destination.name + ".download")
     }
 
+    fun temporarySizeBytes(context: Context, regionId: String): Long {
+        val file = temporaryFile(context, regionId)
+        return file.takeIf { it.isFile }?.length() ?: 0L
+    }
+
     fun installDownloadedFile(context: Context, regionId: String): Boolean {
         val temporary = temporaryFile(context, regionId)
         val destination = pmTilesFile(context, regionId)
