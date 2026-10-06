@@ -48,6 +48,20 @@ class OfflineMapDownloader @Inject constructor(
 
                 val body = response.body
                 val totalBytes = body.contentLength().takeIf { it >= 0L }
+
+                if (totalBytes != null) {
+                    val safetyReserveBytes = 100L * 1024L * 1024L
+                    val availableBytes = temporary.parentFile?.usableSpace ?: 0L
+                    val requiredBytes = totalBytes + safetyReserveBytes
+
+                    if (availableBytes < requiredBytes) {
+                        throw IOException(
+                            "Espacio insuficiente: se requieren al menos $requiredBytes bytes " +
+                                "y hay $availableBytes bytes disponibles.",
+                        )
+                    }
+                }
+
                 var downloadedBytes = 0L
 
                 body.byteStream().use { input ->
