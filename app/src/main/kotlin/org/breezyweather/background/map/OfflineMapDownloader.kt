@@ -6,6 +6,11 @@
 package org.breezyweather.background.map
 
 import android.content.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import org.breezyweather.common.extensions.withIOContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -41,7 +46,18 @@ class OfflineMapDownloader @Inject constructor(
                 .get()
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            val call = client.newCall(request)
+            val coroutineJob = currentCoroutineContext().job
+            val cancellationHandle = coroutineJob.invokeOnCompletion { cause ->
+                if (cause is CancellationException) {
+                    call.cancel()
+                }
+            }
+
+            currentCoroutineContext().ensureActive()
+
+            try {
+                call.execute().use { response ->
                 if (!response.isSuccessful) {
                     throw IOException("HTTP ${response.code}")
                 }
@@ -71,6 +87,8 @@ class OfflineMapDownloader @Inject constructor(
                         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
                         while (true) {
+                            currentCoroutineContext().ensureActive()
+
                             val count = input.read(buffer)
                             if (count < 0) break
 
@@ -116,7 +134,13 @@ class OfflineMapDownloader @Inject constructor(
                 OfflineMapDownloadState.Completed(
                     bytesDownloaded = downloadedBytes,
                 ).also(onState)
+                }
+            } finally {
+                cancellationHandle.dispose()
             }
+        } catch (e: CancellationException) {
+            OfflineMapStorage.discardTemporaryFile(context, regionId)
+            throw e
         } catch (e: Exception) {
             OfflineMapStorage.discardTemporaryFile(context, regionId)
 
