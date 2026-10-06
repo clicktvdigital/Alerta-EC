@@ -28,6 +28,43 @@ object OfflineMapStorage {
         return File(directory(context), "$safeRegionId.pmtiles")
     }
 
+    fun temporaryFile(context: Context, regionId: String): File {
+        val destination = pmTilesFile(context, regionId)
+        return File(destination.parentFile, destination.name + ".download")
+    }
+
+    fun installDownloadedFile(context: Context, regionId: String): Boolean {
+        val temporary = temporaryFile(context, regionId)
+        val destination = pmTilesFile(context, regionId)
+
+        if (!temporary.isFile || temporary.length() == 0L) {
+            return false
+        }
+
+        val backup = File(destination.parentFile, destination.name + ".backup")
+        backup.delete()
+
+        if (destination.exists() && !destination.renameTo(backup)) {
+            return false
+        }
+
+        if (temporary.renameTo(destination)) {
+            backup.delete()
+            return true
+        }
+
+        if (backup.exists()) {
+            backup.renameTo(destination)
+        }
+
+        return false
+    }
+
+    fun discardTemporaryFile(context: Context, regionId: String): Boolean {
+        val file = temporaryFile(context, regionId)
+        return !file.exists() || file.delete()
+    }
+
     fun exists(context: Context, regionId: String): Boolean {
         val file = pmTilesFile(context, regionId)
         return file.isFile && file.length() > 0L
