@@ -464,6 +464,7 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
     implementation(libs.material)
+    implementation(libs.maplibre.android)
     implementation(libs.core.splashscreen)
 
     implementation(libs.cardview)
