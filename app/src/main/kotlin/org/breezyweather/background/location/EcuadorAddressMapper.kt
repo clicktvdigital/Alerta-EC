@@ -1,38 +1,38 @@
 package org.breezyweather.background.location
 
-import org.breezyweather.sources.nominatim.json.NominatimAddress
+import breezyweather.domain.location.model.LocationAddressInfo
 
 object EcuadorAddressMapper {
 
-    fun fromNominatim(address: NominatimAddress): DetailedLocationAddress {
-        val isEcuador = address.countryCode.equals("ec", ignoreCase = true)
+    fun fromAddressInfo(address: LocationAddressInfo): DetailedLocationAddress {
+        val isEcuador = address.countryCode.equals("EC", ignoreCase = true)
 
         val neighborhood = firstNonBlank(
-            address.neighbourhood,
+            address.neighborhood,
             address.quarter,
-            address.suburb,
-            address.hamlet,
+            address.district,
         )
 
         val canton = if (isEcuador) {
             firstNonBlank(
                 address.city,
-                address.municipality,
-                address.county,
+                address.admin3,
+                address.admin2,
             )
         } else {
-            firstNonBlank(address.city, address.town, address.county)
+            firstNonBlank(address.city, address.admin2)
         }
 
         return DetailedLocationAddress(
             road = address.road,
             houseNumber = address.houseNumber,
-            reference = address.amenity,
+            crossStreet = null,
+            reference = address.reference,
             neighborhood = neighborhood,
             parish = null,
             canton = canton,
-            province = address.state,
-            postalCode = address.postcode,
+            province = address.admin1,
+            postalCode = address.postalCode,
             country = address.country,
             countryCode = address.countryCode,
         )

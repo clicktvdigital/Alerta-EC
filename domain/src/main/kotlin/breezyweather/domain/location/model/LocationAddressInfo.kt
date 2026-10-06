@@ -86,4 +86,16 @@ data class LocationAddressInfo(
 
     /** Postal code returned by the source, when available. */
     val postalCode: String? = null,
+
+    /** Nearby or resolved point of interest, when provided by the source. */
+    val reference: String? = null,
+
+    /** Neighborhood returned by the reverse-geocoding source. */
+    val neighborhood: String? = null,
+
+    /** Quarter or local sector returned by the reverse-geocoding source. */
+    val quarter: String? = null,
+
+    /** Urban/administrative district returned by the reverse-geocoding source. */
+    val cityDistrict: String? = null,
 )

@@ -144,6 +144,10 @@ class NominatimService @Inject constructor(
                 road = locationResult.address.road,
                 houseNumber = locationResult.address.houseNumber,
                 postalCode = locationResult.address.postcode,
+                reference = locationResult.address.amenity,
+                neighborhood = locationResult.address.neighbourhood,
+                quarter = locationResult.address.quarter,
+                cityDistrict = locationResult.address.cityDistrict,
                 cityCode = locationResult.placeId?.toString()
             )
         }
