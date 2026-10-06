@@ -63,6 +63,8 @@ class OfflineMapDownloader @Inject constructor(
                 }
 
                 var downloadedBytes = 0L
+                var nextStorageCheckBytes = 8L * 1024L * 1024L
+                val minimumFreeSpaceBytes = 100L * 1024L * 1024L
 
                 body.byteStream().use { input ->
                     temporary.outputStream().buffered().use { output ->
@@ -74,6 +76,16 @@ class OfflineMapDownloader @Inject constructor(
 
                             output.write(buffer, 0, count)
                             downloadedBytes += count
+
+                            if (downloadedBytes >= nextStorageCheckBytes) {
+                                val freeBytes = temporary.parentFile?.usableSpace ?: 0L
+                                if (freeBytes < minimumFreeSpaceBytes) {
+                                    throw IOException(
+                                        "Descarga detenida para conservar espacio libre en el dispositivo.",
+                                    )
+                                }
+                                nextStorageCheckBytes = downloadedBytes + 8L * 1024L * 1024L
+                            }
 
                             onState(
                                 OfflineMapDownloadState.Downloading(
