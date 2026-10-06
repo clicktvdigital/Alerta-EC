@@ -77,4 +77,13 @@ data class LocationAddressInfo(
     val city: String? = null,
     val cityCode: String? = null,
     val district: String? = null,
+
+    /** Street or road returned by the reverse-geocoding source, when available. */
+    val road: String? = null,
+
+    /** House or building number returned by the source, when available. */
+    val houseNumber: String? = null,
+
+    /** Postal code returned by the source, when available. */
+    val postalCode: String? = null,
 )
