@@ -64,6 +64,17 @@ class HttpModule {
 
     @Provides
     @Singleton
+    @Named("MapDownloadClient")
+    fun provideMapDownloadClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .writeTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
     fun provideRxJava3CallAdapterFactory(): RxJava3CallAdapterFactory {
         return RxJava3CallAdapterFactory.create()
     }
