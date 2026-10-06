@@ -14,12 +14,15 @@ import kotlinx.coroutines.ensureActive
 import org.breezyweather.common.extensions.withIOContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.FileOutputStream
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
+private class InvalidPartialDownloadException(message: String) : IOException(message)
+
 class OfflineMapDownloader @Inject constructor(
     @Named("MapDownloadClient")
     private val client: OkHttpClient,
@@ -38,13 +41,18 @@ class OfflineMapDownloader @Inject constructor(
         }
 
         val temporary = OfflineMapStorage.temporaryFile(context, regionId)
-        OfflineMapStorage.discardTemporaryFile(context, regionId)
+        val partialBytes = OfflineMapStorage.temporarySizeBytes(context, regionId)
 
         try {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
                 .get()
-                .build()
+
+            if (partialBytes > 0L) {
+                requestBuilder.header("Range", "bytes=$partialBytes-")
+            }
+
+            val request = requestBuilder.build()
 
             val call = client.newCall(request)
             val coroutineJob = currentCoroutineContext().job
@@ -63,27 +71,59 @@ class OfflineMapDownloader @Inject constructor(
                 }
 
                 val body = response.body
-                val totalBytes = body.contentLength().takeIf { it >= 0L }
+                val contentRange = response.header("Content-Range")
+                val contentRangeMatch = contentRange
+                    ?.let { Regex("""bytes\s+(\d+)-(\d+)/(\d+|\*)""").matchEntire(it) }
+                val contentRangeStart = contentRangeMatch?.groupValues?.get(1)?.toLongOrNull()
+                val contentRangeEnd = contentRangeMatch?.groupValues?.get(2)?.toLongOrNull()
+                val contentRangeTotal = contentRangeMatch?.groupValues?.get(3)
+                    ?.takeUnless { it == "*" }
+                    ?.toLongOrNull()
 
-                if (totalBytes != null) {
+                val responseBytes = body.contentLength().takeIf { it >= 0L }
+                val rangeLengthMatches = contentRangeStart != null &&
+                    contentRangeEnd != null &&
+                    contentRangeEnd >= contentRangeStart &&
+                    (responseBytes == null || responseBytes == contentRangeEnd - contentRangeStart + 1L)
+
+                val isValidResume = partialBytes > 0L &&
+                    response.code == 206 &&
+                    contentRangeStart == partialBytes &&
+                    rangeLengthMatches &&
+                    (contentRangeTotal == null || contentRangeEnd!! < contentRangeTotal)
+
+                if (partialBytes > 0L && response.code == 206 && !isValidResume) {
+                    throw InvalidPartialDownloadException(
+                        "El servidor respondió con un rango incompatible: $contentRange",
+                    )
+                }
+
+                val totalBytes = if (isValidResume) {
+                    contentRangeTotal ?: responseBytes?.let { partialBytes + it }
+                } else {
+                    responseBytes
+                }
+
+                if (responseBytes != null) {
                     val safetyReserveBytes = 100L * 1024L * 1024L
                     val availableBytes = temporary.parentFile?.usableSpace ?: 0L
-                    val requiredBytes = totalBytes + safetyReserveBytes
+                    val requiredAdditionalBytes = responseBytes + safetyReserveBytes
 
-                    if (availableBytes < requiredBytes) {
+                    if (availableBytes < requiredAdditionalBytes) {
                         throw IOException(
-                            "Espacio insuficiente: se requieren al menos $requiredBytes bytes " +
+                            "Espacio insuficiente: se requieren al menos $requiredAdditionalBytes bytes adicionales " +
                                 "y hay $availableBytes bytes disponibles.",
                         )
                     }
                 }
 
-                var downloadedBytes = 0L
-                var nextStorageCheckBytes = 8L * 1024L * 1024L
+                val resumedBytes = if (isValidResume) partialBytes else 0L
+                var downloadedBytes = resumedBytes
+                var nextStorageCheckBytes = downloadedBytes + 8L * 1024L * 1024L
                 val minimumFreeSpaceBytes = 100L * 1024L * 1024L
 
                 body.byteStream().use { input ->
-                    temporary.outputStream().buffered().use { output ->
+                    FileOutputStream(temporary, isValidResume).buffered().use { output ->
                         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
                         while (true) {
@@ -124,7 +164,7 @@ class OfflineMapDownloader @Inject constructor(
                 }
 
                 if (!PmTilesValidator.isValidVersion3(temporary)) {
-                    throw IOException("El archivo descargado no es PMTiles v3 válido.")
+                    throw InvalidPartialDownloadException("El archivo descargado no es PMTiles v3 válido.")
                 }
 
                 if (!OfflineMapStorage.installDownloadedFile(context, regionId)) {
@@ -139,11 +179,17 @@ class OfflineMapDownloader @Inject constructor(
                 cancellationHandle.dispose()
             }
         } catch (e: CancellationException) {
-            OfflineMapStorage.discardTemporaryFile(context, regionId)
+            // Keep the partial PMTiles file so a later request can resume it.
             throw e
-        } catch (e: Exception) {
+        } catch (e: InvalidPartialDownloadException) {
+            // Never resume a partial file whose range or PMTiles structure is invalid.
             OfflineMapStorage.discardTemporaryFile(context, regionId)
 
+            OfflineMapDownloadState.Failed(
+                message = e.message ?: "La descarga parcial no es válida.",
+            ).also(onState)
+        } catch (e: Exception) {
+            // Keep recoverable partial downloads (for example, a temporary network failure).
             OfflineMapDownloadState.Failed(
                 message = e.message ?: "Error desconocido al descargar el mapa.",
             ).also(onState)
