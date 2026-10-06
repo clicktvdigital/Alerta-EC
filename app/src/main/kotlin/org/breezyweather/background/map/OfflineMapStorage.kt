@@ -41,6 +41,10 @@ object OfflineMapStorage {
             return false
         }
 
+        if (!PmTilesValidator.isValidVersion3(temporary)) {
+            return false
+        }
+
         val backup = File(destination.parentFile, destination.name + ".backup")
         backup.delete()
 
