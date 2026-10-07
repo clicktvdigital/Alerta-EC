@@ -51,6 +51,17 @@
         android:src="@drawable/alerta_ec_water_hazard" />
 
     <ImageView
+        android:id="@+id/alerta_ec_intro_landslide"
+        android:layout_width="200dp"
+        android:layout_height="134dp"
+        android:layout_gravity="center"
+        android:translationY="45dp"
+        android:alpha="0"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/alerta_ec_landslide" />
+
+    <ImageView
         android:id="@+id/alerta_ec_intro_storm"
         android:layout_width="300dp"
         android:layout_height="300dp"

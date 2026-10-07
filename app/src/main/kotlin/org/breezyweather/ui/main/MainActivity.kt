@@ -244,6 +244,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                 findViewById(R.id.alerta_ec_intro_volcano),
                 findViewById(R.id.alerta_ec_intro_wildfire),
                 findViewById(R.id.alerta_ec_intro_water_hazard),
+                findViewById(R.id.alerta_ec_intro_landslide),
                 findViewById(R.id.alerta_ec_intro_storm),
                 findViewById(R.id.alerta_ec_intro_seismic_ring),
                 findViewById(R.id.alerta_ec_intro_flash),
