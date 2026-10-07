@@ -83,6 +83,7 @@ import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.common.utils.helpers.LogHelper
 import org.breezyweather.common.utils.helpers.SnackbarHelper
 import org.breezyweather.databinding.ActivityMainBinding
+import org.breezyweather.ui.main.intro.AlertaEcIntroController
 import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.sources.SourceManager
 import org.breezyweather.ui.common.composables.AlertDialogConfirmOnly
@@ -235,6 +236,17 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         binding = ActivityMainBinding.inflate(layoutInflater)
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentsLifecycleCallback, false)
         setContentView(binding.root)
+
+        if (isLaunch) {
+            AlertaEcIntroController.play(
+                findViewById(R.id.alerta_ec_intro_layer),
+                findViewById(R.id.alerta_ec_intro_logo),
+                findViewById(R.id.alerta_ec_intro_title),
+                findViewById(R.id.alerta_ec_intro_brand)
+            )
+        } else {
+            findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE
+        }
 
         initModel(savedInstanceState == null)
         initView()

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/alerta_ec_intro"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#07131F"
+    android:clickable="true"
+    android:elevation="30dp">
+
+    <ImageView
+        android:id="@+id/alerta_ec_intro_logo"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_gravity="center"
+        android:contentDescription="@null"
+        android:src="@drawable/alerta_ec_intro_logo" />
+
+    <TextView
+        android:id="@+id/alerta_ec_intro_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="76dp"
+        android:text="ALERTA EC"
+        android:textColor="#FFFFFF"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/alerta_ec_intro_brand"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="50dp"
+        android:text="by CLICK TV DIGITAL"
+        android:textColor="#B8D8EA"
+        android:textSize="13sp" />
+
+</FrameLayout>
