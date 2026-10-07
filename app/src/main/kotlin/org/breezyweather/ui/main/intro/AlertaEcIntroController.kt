@@ -7,7 +7,7 @@ object AlertaEcIntroController {
 
     private const val INTRO_DURATION = 5000L
 
-    fun play(root: View, terrain: View, volcano: View, wildfire: View, storm: View, seismicRing: View, flash: View, condor: View, logo: View, title: View, brand: View) {
+    fun play(root: View, terrain: View, volcano: View, wildfire: View, waterHazard: View, storm: View, seismicRing: View, flash: View, condor: View, logo: View, title: View, brand: View) {
         root.visibility = View.VISIBLE
         root.alpha = 1f
 
@@ -30,6 +30,12 @@ object AlertaEcIntroController {
         wildfire.scaleX = 0.62f
         wildfire.scaleY = 0.62f
         wildfire.translationY = 65f
+
+        waterHazard.alpha = 0f
+        waterHazard.scaleX = 0.72f
+        waterHazard.scaleY = 0.72f
+        waterHazard.translationX = -240f
+        waterHazard.translationY = 75f
 
         storm.alpha = 0f
         storm.scaleX = 0.82f
@@ -101,6 +107,25 @@ object AlertaEcIntroController {
                     .scaleX(1.12f)
                     .scaleY(1.12f)
                     .setDuration(700L)
+                    .start()
+            }.start()
+
+        waterHazard.animate()
+            .alpha(0.84f)
+            .translationX(25f)
+            .translationY(48f)
+            .scaleX(1.08f)
+            .scaleY(1.08f)
+            .setStartDelay(3150L)
+            .setDuration(650L)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                waterHazard.animate()
+                    .alpha(0.12f)
+                    .translationX(110f)
+                    .scaleX(1.16f)
+                    .scaleY(1.16f)
+                    .setDuration(600L)
                     .start()
             }.start()
 
