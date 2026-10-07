@@ -240,6 +240,8 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         if (isLaunch) {
             AlertaEcIntroController.play(
                 findViewById(R.id.alerta_ec_intro_layer),
+                findViewById(R.id.alerta_ec_intro_storm),
+                findViewById(R.id.alerta_ec_intro_flash),
                 findViewById(R.id.alerta_ec_intro_logo),
                 findViewById(R.id.alerta_ec_intro_title),
                 findViewById(R.id.alerta_ec_intro_brand)

@@ -8,6 +8,23 @@
     android:elevation="30dp">
 
     <ImageView
+        android:id="@+id/alerta_ec_intro_storm"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:alpha="0.22"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/alerta_ec_intro_storm" />
+
+    <View
+        android:id="@+id/alerta_ec_intro_flash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@drawable/alerta_ec_intro_flash" />
+
+    <ImageView
         android:id="@+id/alerta_ec_intro_logo"
         android:layout_width="260dp"
         android:layout_height="260dp"
