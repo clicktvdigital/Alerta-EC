@@ -537,7 +537,10 @@ class SourceManager @Inject constructor(
             location.needsGeocodeRefresh
         ) {
             getBestSourceForFeature(location, feature)
-                ?: getDefaultSourceForFeature(location, feature)
+                ?: getDefaultSourceForFeature(location, feature)?.takeIf {
+                    (it !is ConfigurableSource || (it.isConfigured && !it.isRestricted)) &&
+                        (BuildConfig.FLAVOR != "freenet" || it !is NonFreeNetSource)
+                }
         } else {
             null
         }
