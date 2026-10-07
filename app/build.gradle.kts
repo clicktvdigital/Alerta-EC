@@ -56,12 +56,21 @@ configure<ApplicationExtension> {
         localProperties.load(project.rootProject.file("local.properties").inputStream())
     }
 
-    signingConfigs {
-        create("alertaEcRelease") {
-            storeFile = file(localProperties.getProperty("alertaec.storeFile"))
-            storePassword = localProperties.getProperty("alertaec.storePassword")
-            keyAlias = localProperties.getProperty("alertaec.keyAlias")
-            keyPassword = localProperties.getProperty("alertaec.keyPassword")
+    val hasAlertaEcSigning = listOf(
+        "alertaec.storeFile",
+        "alertaec.storePassword",
+        "alertaec.keyAlias",
+        "alertaec.keyPassword"
+    ).all { !localProperties.getProperty(it).isNullOrBlank() }
+
+    if (hasAlertaEcSigning) {
+        signingConfigs {
+            create("alertaEcRelease") {
+                storeFile = file(localProperties.getProperty("alertaec.storeFile"))
+                storePassword = localProperties.getProperty("alertaec.storePassword")
+                keyAlias = localProperties.getProperty("alertaec.keyAlias")
+                keyPassword = localProperties.getProperty("alertaec.keyPassword")
+            }
         }
     }
 
@@ -71,7 +80,11 @@ configure<ApplicationExtension> {
             versionNameSuffix = "-r${getCommitCount()}"
         }
         named("release") {
-            signingConfig = signingConfigs.getByName("alertaEcRelease")
+            if (hasAlertaEcSigning) {
+                signingConfig = signingConfigs.getByName("alertaEcRelease")
+            } else {
+                signingConfig = null
+            }
             isShrinkResources = true
             isMinifyEnabled = true
             isDebuggable = false
