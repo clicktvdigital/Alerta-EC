@@ -29,6 +29,17 @@
         android:src="@drawable/alerta_ec_volcano" />
 
     <ImageView
+        android:id="@+id/alerta_ec_intro_wildfire"
+        android:layout_width="190dp"
+        android:layout_height="125dp"
+        android:layout_gravity="center"
+        android:translationY="55dp"
+        android:alpha="0"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/alerta_ec_wildfire" />
+
+    <ImageView
         android:id="@+id/alerta_ec_intro_storm"
         android:layout_width="300dp"
         android:layout_height="300dp"
