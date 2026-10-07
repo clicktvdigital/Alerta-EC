@@ -241,6 +241,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             AlertaEcIntroController.play(
                 findViewById(R.id.alerta_ec_intro_layer),
                 findViewById(R.id.alerta_ec_intro_terrain),
+                findViewById(R.id.alerta_ec_intro_volcano),
                 findViewById(R.id.alerta_ec_intro_storm),
                 findViewById(R.id.alerta_ec_intro_seismic_ring),
                 findViewById(R.id.alerta_ec_intro_flash),
