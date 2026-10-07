@@ -7,7 +7,7 @@ object AlertaEcIntroController {
 
     private const val INTRO_DURATION = 5000L
 
-    fun play(root: View, storm: View, seismicRing: View, flash: View, logo: View, title: View, brand: View) {
+    fun play(root: View, storm: View, seismicRing: View, flash: View, condor: View, logo: View, title: View, brand: View) {
         root.visibility = View.VISIBLE
         root.alpha = 1f
 
@@ -19,9 +19,12 @@ object AlertaEcIntroController {
         storm.scaleX = 0.82f
         storm.scaleY = 0.82f
 
-        storm.alpha = 0f
-        storm.scaleX = 0.82f
-        storm.scaleY = 0.82f
+        condor.alpha = 0f
+        condor.translationX = -700f
+        condor.translationY = -180f
+        condor.scaleX = 0.55f
+        condor.scaleY = 0.55f
+        condor.rotation = -7f
 
         logo.alpha = 0f
         logo.scaleX = 0.72f
@@ -60,6 +63,20 @@ object AlertaEcIntroController {
                         flash.animate().alpha(0f).setDuration(180L).start()
                     }.start()
                 }.start()
+            }.start()
+
+        condor.animate()
+            .alpha(0.92f)
+            .translationX(720f)
+            .translationY(70f)
+            .scaleX(1.18f)
+            .scaleY(1.18f)
+            .rotation(4f)
+            .setStartDelay(550L)
+            .setDuration(2800L)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                condor.animate().alpha(0f).setDuration(450L).start()
             }.start()
 
         logo.animate()

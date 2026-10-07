@@ -33,6 +33,16 @@
         android:background="@drawable/alerta_ec_intro_flash" />
 
     <ImageView
+        android:id="@+id/alerta_ec_intro_condor"
+        android:layout_width="210dp"
+        android:layout_height="105dp"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/alerta_ec_condor" />
+
+    <ImageView
         android:id="@+id/alerta_ec_intro_logo"
         android:layout_width="260dp"
         android:layout_height="260dp"
