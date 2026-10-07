@@ -18,6 +18,14 @@
         android:src="@drawable/alerta_ec_intro_storm" />
 
     <View
+        android:id="@+id/alerta_ec_intro_seismic_ring"
+        android:layout_width="190dp"
+        android:layout_height="190dp"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:background="@drawable/alerta_ec_intro_seismic_ring" />
+
+    <View
         android:id="@+id/alerta_ec_intro_flash"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

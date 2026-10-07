@@ -7,9 +7,13 @@ object AlertaEcIntroController {
 
     private const val INTRO_DURATION = 5000L
 
-    fun play(root: View, storm: View, flash: View, logo: View, title: View, brand: View) {
+    fun play(root: View, storm: View, seismicRing: View, flash: View, logo: View, title: View, brand: View) {
         root.visibility = View.VISIBLE
         root.alpha = 1f
+
+        seismicRing.alpha = 0f
+        seismicRing.scaleX = 0.35f
+        seismicRing.scaleY = 0.35f
 
         storm.alpha = 0f
         storm.scaleX = 0.82f
@@ -24,6 +28,17 @@ object AlertaEcIntroController {
         logo.scaleY = 0.72f
         title.alpha = 0f
         brand.alpha = 0f
+
+        seismicRing.animate()
+            .alpha(0.75f)
+            .scaleX(1.65f)
+            .scaleY(1.65f)
+            .setStartDelay(300L)
+            .setDuration(900L)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                seismicRing.animate().alpha(0f).setDuration(350L).start()
+            }.start()
 
         storm.animate()
             .alpha(0.38f)
