@@ -197,12 +197,14 @@ object AlertaEcIntroController {
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(900L)
+            .setStartDelay(3650L)
+            .setDuration(650L)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
 
-        title.animate().alpha(1f).setStartDelay(650L).setDuration(700L).start()
-        brand.animate().alpha(1f).setStartDelay(1050L).setDuration(700L).start()
+        title.animate().alpha(1f).setStartDelay(3850L).setDuration(500L).start()
+
+        brand.animate().alpha(1f).setStartDelay(4050L).setDuration(400L).start()
 
         root.animate()
             .alpha(0f)
