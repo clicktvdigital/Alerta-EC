@@ -43,3 +43,7 @@ bin/
 /currentPosition.properties
 /captures
 /local.properties
+
+# Archivos temporales Python del panel
+__pycache__/
+*.py[cod]

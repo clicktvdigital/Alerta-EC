@@ -375,3 +375,12 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Mantener la regla: una validacion no puede imprimirse como OK si el comando anterior fallo.
 - Despues de este commit: comprobar panel HTTP/API y estado de GitHub Actions.
 - La siguiente Release candidata sigue siendo 0.1.4, unicamente despues de CI verde y pruebas funcionales.
+
+<!-- ALERTA_EC_CI_PANEL_OK_20261008 -->
+## CI y panel confirmados — 8 de octubre de 2026
+- GitHub Actions run 37851821147 finalizo completed/success para el commit be4851f04.
+- El panel local responde correctamente en 127.0.0.1:8765.
+- /api/proyecto y /api/gps responden HTTP 200.
+- Se excluyen __pycache__ y archivos *.pyc del repositorio.
+- Siguiente validacion: GPS real + Nominatim y comprobar jerarquia Atucucho / Cochapamba / Quito / Pichincha.
+- No publicar 0.1.4 hasta completar esta validacion.
