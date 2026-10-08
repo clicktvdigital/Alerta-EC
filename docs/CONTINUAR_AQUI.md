@@ -396,3 +396,15 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Municipio de Quito ubica Atucucho, parroquia Cochapamba, dentro de la Administracion Zonal Eugenio Espejo.
 - 0.1.4 sera prerelease de prueba para validar la jerarquia de ubicacion en la APK instalada.
 - Antes de declarar estable el codigo postal se debe implementar validacion postal multifuente/geoespacial.
+
+<!-- ALERTA_EC_RELEASE_014_CONFIRMADA -->
+## Release 0.1.4 confirmada — 8 de octubre de 2026
+- Version 0.1.4 / versionCode 104.
+- CI previa del commit de Release termino completed/success.
+- Tag v0.1.4 existe localmente y en GitHub y apunta al commit f3d2f7a15.
+- GitHub Actions run 37853710866 de Release firmada termino completed/success.
+- GitHub Release v0.1.4 fue verificada y contiene al menos una APK valida.
+- Esta version es una prerelease de prueba para validar en el telefono la nueva jerarquia de geocodificacion de Ecuador.
+- Caso de validacion esperado: Atucucho, Cochapamba como titulo; San Jose separado como sector; Quito y Pichincha en sus niveles administrativos.
+- Mantener 170528 como referencia postal validada para Cochapamba/17D05 y 170318 como discrepancia devuelta por Nominatim/OpenStreetMap hasta implementar validacion postal multifuente.
+- Siguiente paso: actualizar Alerta EC con Obtainium y verificar version instalada, certificado, direccion mostrada, GPS, clima, minutely y FPAS.
