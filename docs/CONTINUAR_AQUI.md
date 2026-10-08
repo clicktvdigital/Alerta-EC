@@ -32,8 +32,9 @@
 
 ### DISTRIBUCION Y POCO ALMACENAMIENTO DEL TELEFONO
 - applicationId Release: com.clicktvdigital.alertaec.
-- Version actual: 0.1.1 / versionCode 101.
-- Proxima version prevista: 0.1.2 / versionCode 102.
+- Version preparada: 0.1.2 / versionCode 102.
+- Workflow preparado para crear GitHub Release v0.1.2 como prerelease.
+- Pendiente ejecutar GitHub Actions y verificar compilacion/firma antes de distribuir.
 - GitHub Actions debe realizar preferentemente las compilaciones pesadas.
 - El workflow actual compila una Release firmada pero solamente conserva Artifact 30 dias.
 - Convertirlo para publicar APK firmada en GitHub Releases.
@@ -43,10 +44,10 @@
 - No acumular APK, builds y logs innecesarios en el telefono.
 
 ### SIGUIENTE ACCION EXACTA
-1. Modificar alerta-ec-release.yml para crear GitHub Release real.
-2. Subir version a 0.1.2 / 102.
-3. Commit y push.
-4. Ejecutar GitHub Actions, no compilar primero en el telefono.
+1. COMPLETADO: preparar workflow para GitHub Release.
+2. COMPLETADO: preparar version 0.1.2 / 102.
+3. COMPLETADO al confirmar el siguiente commit/push.
+4. SIGUIENTE: ejecutar GitHub Actions, no compilar en el telefono.
 5. Confirmar que Release firmada compila correctamente.
 6. Verificar APK y certificado.
 7. Publicar/confirmar GitHub Release.
