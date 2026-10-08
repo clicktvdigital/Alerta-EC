@@ -36,7 +36,9 @@ class ReleaseService @Inject constructor(
             .baseUrl("https://api.github.com/")
             .build()
             .create(GithubApi::class.java)
-            .getLatest(org, repository)
-            .let(releaseMapper)
+            .getReleases(org, repository)
+            .firstOrNull { !it.draft }
+            ?.let(releaseMapper)
+            ?: error("No hay publicaciones disponibles en GitHub")
     }
 }

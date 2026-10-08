@@ -36,6 +36,8 @@ data class GithubRelease(
     @SerialName("body") val info: String,
     @SerialName("html_url") val releaseLink: String,
     @SerialName("assets") val assets: List<GitHubAssets>,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
 )
 
 /**
