@@ -1,5 +1,85 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+<!-- ALERTA_EC_ESTADO_OPERATIVO_INICIO -->
+## ESTADO OPERATIVO — LEER PRIMERO
+
+### REGLA DE CONTINUIDAD
+- Este archivo es la fuente maestra de continuidad de Alerta EC.
+- Al reanudar el proyecto, LEER ESTE BLOQUE ANTES DE MODIFICAR CODIGO.
+- No depender de la memoria del usuario ni de una conversacion.
+- GitHub `origin/alerta-ec` es el respaldo principal; el telefono es solamente entorno temporal.
+- Despues de cada avance importante: actualizar este estado, commit y push a GitHub.
+- Evitar compilaciones pesadas en el telefono cuando GitHub Actions pueda realizarlas.
+- Salidas grandes: guardarlas temporalmente en Descargas y subir el archivo.
+- Nunca subir claves JKS, passwords, tokens, local.properties ni informacion privada.
+
+### ULTIMO ESTADO CONFIRMADO
+- Rama: alerta-ec.
+- Respaldo confirmado en GitHub: ba61c479b.
+- Reparada deteccion de red con NET_CAPABILITY_INTERNET + NET_CAPABILITY_VALIDATED.
+- No forzar IPv4 ni IPv6.
+- Mantener compatibilidad IPv4, IPv6 y dual-stack.
+- Open-Meteo respondio HTTP 200 mediante IPv4 durante las pruebas.
+- Cambios pendientes anteriores de Notifications.kt y activity_main.xml fueron incluidos en ba61c479b.
+- Falta comprobar la reparacion dentro de una nueva APK Release.
+
+### RED Y REPETIDOR
+- Router/repetidor deben estudiarse tambien como posible origen del problema.
+- Repetidor/AP funciona como puente, DHCP deshabilitado y administracion 192.168.100.2.
+- Revisar DHCPv4, IPv6 RA/SLAAC, DNS y rutas cuando se pruebe desde el repetidor.
+- No desactivar IPv6 como solucion.
+- Una red IPv6-only necesita compatibilidad de red para destinos IPv4, por ejemplo NAT64/DNS64/464XLAT cuando corresponda.
+
+### DISTRIBUCION Y POCO ALMACENAMIENTO DEL TELEFONO
+- applicationId Release: com.clicktvdigital.alertaec.
+- Version actual: 0.1.1 / versionCode 101.
+- Proxima version prevista: 0.1.2 / versionCode 102.
+- GitHub Actions debe realizar preferentemente las compilaciones pesadas.
+- El workflow actual compila una Release firmada pero solamente conserva Artifact 30 dias.
+- Convertirlo para publicar APK firmada en GitHub Releases.
+- GitHub Releases sera la fuente permanente de APK.
+- Obtainium debe enlazarse a las Releases oficiales de clicktvdigital/Alerta-EC.
+- Mantener siempre el mismo certificado de firma para actualizaciones.
+- No acumular APK, builds y logs innecesarios en el telefono.
+
+### SIGUIENTE ACCION EXACTA
+1. Modificar alerta-ec-release.yml para crear GitHub Release real.
+2. Subir version a 0.1.2 / 102.
+3. Commit y push.
+4. Ejecutar GitHub Actions, no compilar primero en el telefono.
+5. Confirmar que Release firmada compila correctamente.
+6. Verificar APK y certificado.
+7. Publicar/confirmar GitHub Release.
+8. Configurar Obtainium con el repositorio oficial.
+9. Instalar 0.1.2 sobre 0.1.1.
+10. Probar Open-Meteo, tiempo actual, minutely y FPAS.
+11. Probar router principal.
+12. Probar repetidor/AP.
+13. Probar datos moviles.
+14. Si aparece Red no disponible, capturar excepcion real.
+
+### PRIORIDADES QUE NO SE PUEDEN OLVIDAR
+- GPS real y seguro.
+- Lluvia hiperlocal y cuenta regresiva cuando los datos tengan precision suficiente.
+- Movimiento/direccion de lluvia solamente con radar o campo espacial valido.
+- Alertas Ecuador/Quito con fuentes verificables.
+- Accesibilidad: texto grande, voz, sonidos, vibracion y alto contraste.
+- Mapas offline.
+- SOS: distinguir guardado, transmitido, recibido y confirmado.
+- Bluetooth y Wi-Fi P2P para contingencia.
+- LoRa/Meshtastic solamente con hardware compatible.
+- Satelite/Starlink solamente con hardware y servicio compatibles.
+- Historial, privacidad y moderacion de incidentes.
+- No afirmar integracion oficial con ECU 911 sin que exista.
+
+### DEFINICION DE TERMINADO
+Una funcion no esta terminada solo porque exista codigo.
+Cuando corresponda debe quedar:
+IMPLEMENTADA -> COMPILADA -> PROBADA -> DOCUMENTADA -> COMMIT -> PUSH GITHUB.
+Si se distribuye: RELEASE VERIFICADA.
+<!-- ALERTA_EC_ESTADO_OPERATIVO_FIN -->
+
+
 ## Identificación
 - Proyecto: Alerta EC, aplicación Android de alertas para Ecuador.
 - Repositorio: https://github.com/clicktvdigital/Alerta-EC
