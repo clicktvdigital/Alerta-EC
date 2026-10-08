@@ -312,3 +312,15 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Para Ecuador/español, usar sistema métrico como predeterminado: temperatura en grados Celsius (°C) antes que Fahrenheit (°F), viento en km/h, distancias en km/m, lluvia en mm, presión en hPa y horario de 24 horas. Fahrenheit y otras unidades seguirán disponibles como opciones manuales.
 - En modo Fácil priorizar frases comprensibles como: Lluvia ligera, Viento de 12 km/h y Posible lluvia en 15 minutos, evitando tecnicismos innecesarios.
 - Este requisito debe conservarse en futuras versiones y documentarse antes de la versión estable.
+
+<!-- ALERTA_EC_FUENTES_Y_404_GITHUB -->
+## Fuentes por perfil y diagnóstico HTTP 404
+- Mantener tres perfiles seleccionables: Novato/Fácil, Estándar y Avanzado, conservando en todos configuraciones predeterminadas recomendadas y seguras.
+- Novato/Fácil: mostrar principalmente fuentes recomendadas y explicaciones sencillas; evitar configuraciones técnicas innecesarias.
+- Estándar: permitir elegir fuentes adicionales con una descripción clara de qué información aporta cada una.
+- Avanzado: permitir selección y configuración detallada de fuentes, endpoints y parámetros técnicos cuando corresponda.
+- Cada fuente debe poder mostrar descripción y estado comprensible: Disponible, Sin conexión, No disponible para Ecuador, Requiere configuración u otro estado verificable.
+- El fallo de una fuente individual no debe presentarse como si toda la aplicación o toda la conexión a Internet estuviera caída. Mantener fuentes predeterminadas y permitir alternativas cuando sean compatibles.
+- Diagnóstico 2026-10-08: Open-Meteo forecast respondió HTTP 200; FPAS area respondió HTTP 200 y sus alertas CAP/INAMHI para Ecuador terminaron en HTTP 200 después de redirección.
+- El HTTP 404 observado en logcat quedó identificado con alta probabilidad como el comprobador de actualizaciones: GitHub API /repos/clicktvdigital/Alerta-EC/releases/latest devuelve HTTP 404 mientras v0.1.2 sea prerelease; /releases/tags/v0.1.2 devuelve HTTP 200. No confundir este 404 con un fallo meteorológico.
+- Pendiente: corregir el manejo del comprobador de actualizaciones/prereleases y continuar validando por separado clima actual, pronóstico, precipitación de 15 minutos y alertas FPAS antes de declarar estable la versión.
