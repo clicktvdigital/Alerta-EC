@@ -384,3 +384,15 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Se excluyen __pycache__ y archivos *.pyc del repositorio.
 - Siguiente validacion: GPS real + Nominatim y comprobar jerarquia Atucucho / Cochapamba / Quito / Pichincha.
 - No publicar 0.1.4 hasta completar esta validacion.
+
+<!-- ALERTA_EC_GPS_VALIDADO_014 -->
+## GPS/geocodificacion validada y candidata 0.1.4 — 8 de octubre de 2026
+- Panel local operativo y arbol Git limpio.
+- GPS real y Nominatim validaron para el caso de prueba: calle Angel Araujo; village/barrio Atucucho; quarter/sector San Jose; city_district/parroquia Cochapamba; county Distrito Metropolitano de Quito; provincia Pichincha.
+- La jerarquia nueva produce como titulo esperado: Atucucho, Cochapamba.
+- El Vademecum oficial del sector postal de MINTEL incluye Quito | 17D05 | 170528 | Cochapamba; tambien existen 170529 y 170530 dentro de Cochapamba.
+- 170528 queda registrado como referencia postal validada por el usuario y respaldada por fuentes postales; no hardcodearlo para todos los usuarios.
+- Nominatim/OpenStreetMap devolvio 170318 para el punto GPS y se mantiene registrado como discrepancia de fuente.
+- Municipio de Quito ubica Atucucho, parroquia Cochapamba, dentro de la Administracion Zonal Eugenio Espejo.
+- 0.1.4 sera prerelease de prueba para validar la jerarquia de ubicacion en la APK instalada.
+- Antes de declarar estable el codigo postal se debe implementar validacion postal multifuente/geoespacial.
