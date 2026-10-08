@@ -47,7 +47,8 @@
 1. COMPLETADO: preparar workflow para GitHub Release.
 2. COMPLETADO: preparar version 0.1.2 / 102.
 3. COMPLETADO al confirmar el siguiente commit/push.
-4. SIGUIENTE: ejecutar GitHub Actions, no compilar en el telefono.
+4. COMPLETADO: GitHub Actions compilo correctamente 0.1.2 desde commit 1ca52c24d.
+5. SIGUIENTE: verificar GitHub prerelease v0.1.2, APK y certificado antes de instalar/distribuir.
 5. Confirmar que Release firmada compila correctamente.
 6. Verificar APK y certificado.
 7. Publicar/confirmar GitHub Release.
@@ -240,3 +241,62 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Prioridades conservadas: GPS real y seguro; lluvia hiperlocal y cuenta regresiva; alertas Ecuador/Quito; mapas offline; SOS con estados guardado/transmitido/recibido/confirmado; Bluetooth/Wi-Fi P2P; LoRa solo con hardware; satélite solo con hardware/servicio compatible; historial de incidentes y privacidad.
 - No afirmar dirección de lluvia sin radar/campo espacial suficiente.
 - Próximo paso después del build: instalar y probar actualización meteorológica real.
+
+<!-- ALERTA_EC_LLUVIAS_Y_ACCESIBILIDAD -->
+## Lluvia hiperlocal, historial y accesibilidad — requisito funcional
+
+### Caso real de prueba — 8 de octubre de 2026
+- Zona de prueba: ubicacion GPS actual del usuario en Quito; NO publicar coordenadas precisas en GitHub.
+- Primeras gotas observadas por el usuario: 13:40 hora local.
+- Lluvia claramente observada: aproximadamente 13:45.
+- Intensidad observada por el usuario: muy leve, descrita como tipo rocio.
+- Alerta EC no genero una advertencia previa util para este evento.
+- Este evento debe conservarse como caso de validacion para futuras versiones.
+
+### Objetivo de alerta hiperlocal
+Cuando las fuentes tengan resolucion suficiente, Alerta EC debe mostrar:
+- precipitacion aproximandose al punto GPS;
+- direccion cardinal de procedencia y desplazamiento;
+- barrio/sector aproximado desde donde se acerca, solo cuando pueda determinarse con datos geoespaciales confiables;
+- intensidad estimada;
+- viento: direccion y velocidad;
+- ETA aproximada hasta el punto GPS;
+- cuenta regresiva actualizable;
+- nivel de confianza/incertidumbre;
+- fuente y hora de actualizacion;
+- resumen de la situacion;
+- recomendaciones preventivas apropiadas al evento.
+
+### Regla de precision
+- No inferir direccion/origen de lluvia a partir de un unico pronostico puntual.
+- Para trayectoria/origen utilizar radar, satelite o campos espaciales suficientemente densos cuando esten disponibles.
+- Si no existen datos suficientes, mostrar claramente que direccion/ETA no estan disponibles o que son estimaciones de baja confianza.
+- No presentar predicciones como observaciones fisicas confirmadas.
+
+### Historial de precipitacion
+Registrar localmente, respetando privacidad:
+- hora de emision de alerta;
+- ETA pronosticada;
+- intensidad prevista;
+- direccion/origen estimados;
+- viento;
+- fuente utilizada;
+- nivel de confianza;
+- hora prevista de llegada;
+- hora de primeras gotas confirmada por el usuario cuando exista;
+- hora de lluvia observada;
+- diferencia/error en minutos entre ETA y observacion;
+- resultado del evento.
+Las coordenadas GPS precisas no deben publicarse en GitHub.
+
+### Accesibilidad y alerta vocal
+- Integrar Android Text-to-Speech para lectura vocal de alertas.
+- Compatibilidad con TalkBack y servicios de accesibilidad de Android.
+- Notificacion visual + sonido + vibracion + opcion de voz.
+- Mensaje hablado debe incluir peligro, ubicacion/sector cuando corresponda, direccion, intensidad, ETA y recomendacion.
+- Permitir activar/desactivar voz y configurar repeticion/prioridad sin depender de audio pregrabado.
+- Diseñar tambien para personas ciegas, baja vision y usuarios que no puedan mirar la pantalla.
+
+### Recomendaciones
+La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo real, evitando alarmismo. Para amenazas oficiales o emergencias, priorizar informacion de fuentes oficiales verificadas cuando este disponible.
+
