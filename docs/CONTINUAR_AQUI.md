@@ -123,3 +123,14 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Paso 112: consolidar este plan maestro.
 - Siguiente trabajo tecnico: verificar destino y contenido de notificaciones meteorologicas.
 - Priorizar lluvia, alertas accesibles, ubicacion e intro antes de publicar Release.
+
+### Sistema de actualizaciones
+- Publicar APK Release firmadas y verificadas en GitHub Releases.
+- Mantener compatibilidad con Obtainium para comprobaciones periodicas en segundo plano.
+- Evaluar un actualizador integrado en Alerta EC para no exigir una segunda aplicacion.
+- Permitir buscar actualizaciones manualmente y consultar la version instalada.
+- Descargar actualizaciones desde fuentes oficiales mediante conexiones seguras.
+- Respetar permisos de instalacion, restricciones de Android y preferencias del usuario.
+- Conservar datos y configuraciones al actualizar; verificar versionCode y certificado de firma.
+- No prometer instalaciones silenciosas ni comprobaciones continuas sin restricciones.
+- Probar la primera Release antes de habilitar actualizaciones para usuarios finales.
