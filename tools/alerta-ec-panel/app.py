@@ -88,26 +88,39 @@ def gps():
         )
 
     priority = {"gps": 0, "fused": 1, "network": 2}
-    candidates.sort(key=lambda item: (priority.get(item["provider"], 9), item["accuracyMeters"]))
-    return jsonify(ok=True, locations=candidates[:6], best=candidates[0] if candidates else None)
+    candidates.sort(
+        key=lambda item: (
+            priority.get(item["provider"], 9),
+            item["accuracyMeters"],
+        )
+    )
+
+    return jsonify(
+        ok=True,
+        locations=candidates[:6],
+        best=candidates[0] if candidates else None,
+    )
 
 
 @app.get("/api/continuidad")
 def continuidad():
     path = PROJECT / "docs" / "CONTINUAR_AQUI.md"
-    text = path.read_text(encoding="utf-8", errors="replace")
-    lines = text.splitlines()
+    content = path.read_text(encoding="utf-8", errors="replace")
+    lines = content.splitlines()
+
     return jsonify(
         path=str(path),
         totalLineas=len(lines),
-        final="
-".join(lines[-80:]),
+        final="\n".join(lines[-80:]),
     )
 
 
 @app.get("/api/sesiones")
 def sesiones():
-    result = run(["tmux", "list-sessions", "-F", "#{session_name}"], timeout=5)
+    result = run(
+        ["tmux", "list-sessions", "-F", "#{session_name}"],
+        timeout=5,
+    )
     if not result["ok"]:
         return jsonify(sesiones=[])
     return jsonify(sesiones=result["stdout"].splitlines())

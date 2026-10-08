@@ -365,3 +365,13 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Mantener flujo: cambios -> validaciones -> commit/push -> CI GitHub -> prueba funcional -> Release firmada -> Obtainium.
 - No crear una Release nueva hasta confirmar CI verde y probar la geocodificacion corregida.
 - Mantener 170528 como referencia postal validada independientemente por el usuario; Nominatim/OSM devolvio 170318 y debe conservarse como discrepancia de fuente hasta resolverla con estrategia multifuente.
+
+<!-- ALERTA_EC_PANEL_FIX_DEFINITIVO_20261008 -->
+## Panel local reparado — 8 de octubre de 2026
+- El intento anterior de reparar app.py mediante sustitucion Perl no corrigio la cadena partida en la ruta /api/continuidad.
+- Se reescribio el app.py canonico completo y se valido con python -m py_compile antes de commit/push.
+- La CI ya exige validar la sintaxis de tools/alerta-ec-panel/app.py antes de la compilacion Kotlin Release.
+- La copia de ejecucion local se sincroniza desde tools/alerta-ec-panel y se mantiene limitada a 127.0.0.1:8765.
+- Mantener la regla: una validacion no puede imprimirse como OK si el comando anterior fallo.
+- Despues de este commit: comprobar panel HTTP/API y estado de GitHub Actions.
+- La siguiente Release candidata sigue siendo 0.1.4, unicamente despues de CI verde y pruebas funcionales.
