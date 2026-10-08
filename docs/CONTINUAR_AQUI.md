@@ -300,3 +300,15 @@ Las coordenadas GPS precisas no deben publicarse en GitHub.
 ### Recomendaciones
 La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo real, evitando alarmismo. Para amenazas oficiales o emergencias, priorizar informacion de fuentes oficiales verificadas cuando este disponible.
 
+
+<!-- ALERTA_EC_PERFILES_ACCESIBILIDAD_UNIDADES -->
+## Perfiles de uso, tercera edad y unidades predeterminadas
+- Alerta EC debe ser intuitiva para adultos mayores, personas con poca experiencia tecnológica y usuarios con discapacidad visual.
+- Incorporar perfiles seleccionables: Novato/Fácil, Estándar y Avanzado. Deben funcionar como preajustes y el usuario podrá cambiar de perfil o modificar opciones individualmente.
+- Novato/Fácil: interfaz simplificada, botones y texto grandes, lenguaje cotidiano, alertas prioritarias visibles, sonido, vibración, voz/TTS opcional y compatibilidad con TalkBack.
+- Estándar: equilibrio entre simplicidad e información meteorológica y de emergencias.
+- Avanzado: acceso a fuentes, precisión GPS, intervalos, datos técnicos y configuraciones detalladas.
+- Las funciones esenciales de seguridad deben venir razonablemente configuradas desde la instalación y no depender de que un adulto mayor comprenda ajustes técnicos.
+- Para Ecuador/español, usar sistema métrico como predeterminado: temperatura en grados Celsius (°C) antes que Fahrenheit (°F), viento en km/h, distancias en km/m, lluvia en mm, presión en hPa y horario de 24 horas. Fahrenheit y otras unidades seguirán disponibles como opciones manuales.
+- En modo Fácil priorizar frases comprensibles como: Lluvia ligera, Viento de 12 km/h y Posible lluvia en 15 minutos, evitando tecnicismos innecesarios.
+- Este requisito debe conservarse en futuras versiones y documentarse antes de la versión estable.
