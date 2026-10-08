@@ -134,3 +134,14 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Conservar datos y configuraciones al actualizar; verificar versionCode y certificado de firma.
 - No prometer instalaciones silenciosas ni comprobaciones continuas sin restricciones.
 - Probar la primera Release antes de habilitar actualizaciones para usuarios finales.
+
+## Avance del 8 de octubre de 2026 — GitHub Sponsors
+
+- Cuenta Stripe Connect creada con Banco Pichincha; verificacion de pagos pendiente.
+- Perfil GitHub Sponsors de clicktvdigital enviado para aprobacion.
+- Tres aportes unicos publicados: $1 cafecito, $3 tamalito lojano con cafe y $5 encebollado.
+- Tres patrocinios mensuales publicados: $2 Amigo, $5 Protector y $10 Aliado de Alerta EC.
+- Se agrego al README.md la seccion de patrocinio voluntario.
+- Enlace: https://github.com/sponsors/clicktvdigital
+- Pendiente: aprobacion de GitHub, verificar cobros y preparar el boton de apoyo en la aplicacion.
+- Mantener gratuitas las alertas y las futuras funciones SOS.

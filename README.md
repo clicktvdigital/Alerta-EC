@@ -207,3 +207,22 @@ Otherwise, remember to:
   - Change the app name in [`res_fork/values/strings.xml`](https://github.com/breezy-weather/breezy-weather/blob/main/app/src/res_fork/values/strings.xml)
   - Change the app icons in the [`res_fork`](https://github.com/breezy-weather/breezy-weather/blob/main/app/src/res_fork) folders
   - Avoid installation conflicts: change the `applicationId` in [`build.gradle.kts`](https://github.com/breezy-weather/breezy-weather/blob/main/app/build.gradle.kts#L25)
+
+## ❤️ Apoya Alerta EC 🇪🇨
+
+Alerta EC es un proyecto independiente y de código abierto que busca mejorar el acceso a información meteorológica y alertas para las comunidades del Ecuador.
+
+¡Ayúdanos a mantener encendida la alerta y caliente el cafecito!
+
+Puedes apoyar voluntariamente su desarrollo mediante [GitHub Sponsors](https://github.com/sponsors/clicktvdigital):
+
+- ☕ **Un cafecito:** $1, aporte único.
+- 🫔☕ **Tamalito lojano con café:** $3, aporte único.
+- 🥣 **Un encebollado:** $5, aporte único.
+- ❤️ **Patrocinio mensual:** desde $2.
+
+Las alertas meteorológicas y las futuras funciones SOS seguirán siendo gratuitas para todos. Las donaciones no otorgan prioridad en situaciones de emergencia.
+
+**Estado:** perfil de GitHub Sponsors pendiente de aprobación. Las contribuciones estarán disponibles cuando GitHub habilite el perfil.
+
+Alerta EC no está afiliada oficialmente a ECU 911 ni a instituciones gubernamentales.
