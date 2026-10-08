@@ -324,3 +324,26 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Diagnóstico 2026-10-08: Open-Meteo forecast respondió HTTP 200; FPAS area respondió HTTP 200 y sus alertas CAP/INAMHI para Ecuador terminaron en HTTP 200 después de redirección.
 - El HTTP 404 observado en logcat quedó identificado con alta probabilidad como el comprobador de actualizaciones: GitHub API /repos/clicktvdigital/Alerta-EC/releases/latest devuelve HTTP 404 mientras v0.1.2 sea prerelease; /releases/tags/v0.1.2 devuelve HTTP 200. No confundir este 404 con un fallo meteorológico.
 - Pendiente: corregir el manejo del comprobador de actualizaciones/prereleases y continuar validando por separado clima actual, pronóstico, precipitación de 15 minutos y alertas FPAS antes de declarar estable la versión.
+
+<!-- ALERTA_EC_MAPAS_REFERENCIAS_SOS -->
+## Mapas, referencias y futura integracion SOS
+- Mantener MapLibre y mapas offline como base abierta cuando sea conveniente.
+- Evaluar Google Maps y Street View como integraciones opcionales para cartografia, calles, POI, referencias visuales y apoyo al futuro boton de panico/SOS; revisar antes API, claves, costos, licencias, terminos y privacidad.
+- Google Maps/Street View no sustituyen ni aumentan por si mismos la precision GNSS: las coordenadas reales deben proceder del servicio de ubicacion de Android/GPS y mostrar precision, antiguedad y hora de medicion.
+- Mejorar la direccion dinamica separando calle/interseccion, barrio/sector, parroquia, ciudad, provincia, codigo postal y referencias cercanas; nunca concatenar dos barrios como si fueran un unico nombre.
+- Usar POI/cartografia verificable para referencias cercanas. Permitir en el futuro referencias privadas aportadas por el usuario cuando un comercio o punto local no figure en mapas, sin publicarlas en GitHub.
+- Para SOS, utilizar la posicion GPS real y permitir mapa, referencias cercanas y vista visual cuando esten disponibles, manteniendo los estados guardado/transmitido/recibido/confirmado.
+- Radar meteorologico, satelite o campos espaciales validos se utilizaran para trayectoria/origen de precipitacion; no inferir movimiento de lluvia desde un unico punto de pronostico.
+
+<!-- ALERTA_EC_SOS_DETECCION_RESCATE -->
+## SOS, deteccion de riesgo y rescate comunitario
+- El boton SOS debe iniciar una sesion de emergencia con GPS real, hora, precision, ultima ubicacion conocida y, cuando sea posible, actualizacion de posicion en tiempo real.
+- Si la persona deja de transmitir, conservar claramente la ultima ubicacion recibida y su antiguedad; nunca presentarla como ubicacion actual.
+- Evaluar deteccion automatica de posibles situaciones de riesgo mediante sensores y contexto disponibles en Android: impacto/caida, inmovilidad posterior, salida de una zona configurada o check-in vencido. Estas señales no prueban por si solas que ocurrio un accidente.
+- Ante una deteccion automatica, usar una cuenta regresiva/confirmacion tipo "¿Estas bien?" con sonido, vibracion y voz accesible; si no hay respuesta, escalar segun las reglas SOS configuradas y las capacidades reales de comunicacion.
+- Evitar falsos positivos por transporte, actividad normal, perdida temporal de GPS, bateria o falta de Internet.
+- Durante una emergencia se podra mostrar trayectoria reciente, direccion de desplazamiento cuando los datos lo permitan, ultima posicion, precision, hora y estado de transmision para facilitar el rescate.
+- No compartir por defecto la ubicacion GPS precisa con todos los usuarios de Alerta EC. Aplicar consentimiento, privacidad y roles; reservar la posicion precisa para contactos/rescatistas autorizados o sesiones SOS segun la configuracion y usar ubicacion aproximada en vistas comunitarias cuando corresponda.
+- Mantener estados inequívocos: guardado, transmitido, recibido y confirmado. Sin conectividad, almacenar/encolar el SOS y no afirmar que fue recibido.
+- Diseñar alternativas de comunicacion por Internet y, cuando sean tecnicamente posibles, Bluetooth/Wi-Fi P2P, LoRa con hardware externo y satelite solo con hardware/servicio compatible.
+- La futura vista de rescate debe combinar mapa, referencias cercanas verificables y capas pertinentes; radar meteorologico es una capa para peligros meteorologicos, no un mecanismo para localizar personas.
