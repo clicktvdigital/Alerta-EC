@@ -15,4 +15,5 @@
         android:icon="@drawable/ic_open_in_new"
         app:showAsAction="never" />
 
+    <item android:id="@+id/action_gps_security" android:title="GPS y seguridad" android:orderInCategory="200" app:showAsAction="never" />
 </menu>

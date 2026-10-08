@@ -145,3 +145,17 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Enlace: https://github.com/sponsors/clicktvdigital
 - Pendiente: aprobacion de GitHub, verificar cobros y preparar el boton de apoyo en la aplicacion.
 - Mantener gratuitas las alertas y las futuras funciones SOS.
+
+
+## Avance 8 de octubre de 2026 — conectividad IPv4/IPv6
+- Investigado error "Red no disponible" de Open-Meteo y FPAS.
+- OkHttp 5.5.0 y Retrofit 3.0.0 usan la red/DNS de Android; no se fuerza IPv4 ni IPv6.
+- Open-Meteo respondió HTTP 200 mediante IPv4 durante las pruebas.
+- Se corrigió isOnline() para usar NET_CAPABILITY_INTERNET + NET_CAPABILITY_VALIDATED en Android 10+.
+- Objetivo: compatibilidad Wi-Fi, datos móviles, VPN, IPv4, IPv6 y dual-stack sin forzar una familia IP.
+- Red IPv6-only: destinos IPv4 requieren compatibilidad de la propia red (NAT64/DNS64/464XLAT cuando corresponda).
+- Pendiente probar router principal, repetidor/AP puente y datos móviles.
+- Repetidor: DHCP deshabilitado y administrado dentro de la LAN; revisar posteriormente DHCPv4, RA/SLAAC, DNS y rutas sin alterar cámaras/dispositivos locales.
+- Prioridades conservadas: GPS real y seguro; lluvia hiperlocal y cuenta regresiva; alertas Ecuador/Quito; mapas offline; SOS con estados guardado/transmitido/recibido/confirmado; Bluetooth/Wi-Fi P2P; LoRa solo con hardware; satélite solo con hardware/servicio compatible; historial de incidentes y privacidad.
+- No afirmar dirección de lluvia sin radar/campo espacial suficiente.
+- Próximo paso después del build: instalar y probar actualización meteorológica real.

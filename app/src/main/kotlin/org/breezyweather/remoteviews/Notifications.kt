@@ -39,6 +39,7 @@ import org.breezyweather.R
 import org.breezyweather.common.extensions.buildNotificationChannel
 import org.breezyweather.common.extensions.buildNotificationChannelGroup
 import org.breezyweather.common.extensions.notificationBuilder
+import org.breezyweather.common.extensions.cancelNotification
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.domain.location.model.getPlace
@@ -322,13 +323,20 @@ object Notifications {
 
     // precipitation.
     fun checkAndSendPrecipitation(context: Context, location: Location) {
-        if (!SettingsManager.getInstance(context).isPrecipitationPushEnabled ||
-            location.weather?.minutelyForecast.isNullOrEmpty()
-        ) {
+        if (!SettingsManager.getInstance(context).isPrecipitationPushEnabled) {
+            context.cancelNotification(ID_PRECIPITATION)
+            return
+        }
+        if (location.weather?.minutelyForecast.isNullOrEmpty()) {
             return
         }
         // val config = ConfigStore(context, PREFERENCE_SHORT_TERM_PRECIPITATION_ALERT)
         // val timestamp = config.getLong(KEY_PRECIPITATION_DATE, 0)
+
+        if (!location.weather!!.hasMinutelyPrecipitation) {
+            context.cancelNotification(ID_PRECIPITATION)
+            return
+        }
 
         if (location.weather!!.hasMinutelyPrecipitation) {
             context.notify(
