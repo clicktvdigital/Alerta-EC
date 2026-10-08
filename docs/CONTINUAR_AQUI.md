@@ -4,24 +4,21 @@
 ## ESTADO OPERATIVO — LEER PRIMERO
 
 ### REGLA DE CONTINUIDAD
-- Este archivo es la fuente maestra de continuidad de Alerta EC.
-- Al reanudar el proyecto, LEER ESTE BLOQUE ANTES DE MODIFICAR CODIGO.
-- No depender de la memoria del usuario ni de una conversacion.
-- GitHub `origin/alerta-ec` es el respaldo principal; el telefono es solamente entorno temporal.
-- Despues de cada avance importante: actualizar este estado, commit y push a GitHub.
-- Evitar compilaciones pesadas en el telefono cuando GitHub Actions pueda realizarlas.
-- Salidas grandes: guardarlas temporalmente en Descargas y subir el archivo.
-- Nunca subir claves JKS, passwords, tokens, local.properties ni informacion privada.
+- Leer este archivo y README.md antes de cambiar codigo.
+- GitHub origin/alerta-ec es el respaldo principal.
+- Un comando Termux compatible con Fish por turno.
+- Guardar informes extensos en Descargas.
+- No publicar ubicaciones privadas, claves ni tokens.
+- Validar antes de commit y push.
+- Evitar compilaciones locales por almacenamiento limitado.
 
 ### ULTIMO ESTADO CONFIRMADO
-- Rama: alerta-ec.
-- Respaldo confirmado en GitHub: ba61c479b.
-- Reparada deteccion de red con NET_CAPABILITY_INTERNET + NET_CAPABILITY_VALIDATED.
-- No forzar IPv4 ni IPv6.
-- Mantener compatibilidad IPv4, IPv6 y dual-stack.
-- Open-Meteo respondio HTTP 200 mediante IPv4 durante las pruebas.
-- Cambios pendientes anteriores de Notifications.kt y activity_main.xml fueron incluidos en ba61c479b.
-- Falta comprobar la reparacion dentro de una nueva APK Release.
+- Release 0.1.4 / versionCode 104 publicada y firmada.
+- Rama alerta-ec; ultimo commit de referencia 7531845b4.
+- CI y panel local previamente verificados.
+- GPS y geocodificacion Ecuador tienen implementacion inicial.
+- Proxima prioridad: GPS 3D, direccion detallada y referencias comunitarias.
+- No publicar una nueva Release sin pruebas funcionales.
 
 ### RED Y REPETIDOR
 - Router/repetidor deben estudiarse tambien como posible origen del problema.
@@ -408,3 +405,48 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Caso de validacion esperado: Atucucho, Cochapamba como titulo; San Jose separado como sector; Quito y Pichincha en sus niveles administrativos.
 - Mantener 170528 como referencia postal validada para Cochapamba/17D05 y 170318 como discrepancia devuelta por Nominatim/OpenStreetMap hasta implementar validacion postal multifuente.
 - Siguiente paso: actualizar Alerta EC con Obtainium y verificar version instalada, certificado, direccion mostrada, GPS, clima, minutely y FPAS.
+
+## PLAN GPS 3D Y REFERENCIAS COMUNITARIAS — 2026-10-08
+
+### Objetivo
+- Mostrar latitud, longitud, precision horizontal, altitud cuando exista, precision vertical cuando exista, fecha y hora de medicion.
+- Distinguir altitud GNSS, elevacion ortometrica y elevacion del terreno; no confundir profundidad con altitud.
+- Incorporar coordenadas UTM, pendiente, orientacion de ladera y relieve 3D cuando existan fuentes verificadas.
+- Separar calle, interseccion, barrio, sector, parroquia, canton, provincia y codigo postal.
+- Conservar procedencia, confianza y antiguedad de cada dato.
+- No inventar coordenadas, distancias, alturas ni direcciones.
+
+### Sectores de validacion en Atucucho
+- Union La Paz, sector Escuela, El Cisne, Ladera del Cisne, Corazon de Jesus, Condor Mirador, La Campina y San Jacinto.
+- Son nombres comunitarios por verificar y delimitar mediante cartografia.
+- El sector debe determinarse dinamicamente; no fijar Union La Paz para todos.
+
+### Calles y referencias comunitarias por verificar
+- Angel Leonidas Araujo Chiriboga, tambien conocida como Angel Araujo.
+- Calle N56D y Zulema Julia Blacio Galarza: nombres y conexiones por contrastar.
+- Carpinteria Don Pedro Sarango: referencia aproximada a 10 metros.
+- Viveres Solange: referencia aproximada a 20 metros.
+- Mecanica de Edison Guallichico: hacia la parte alta.
+- Fundacion Pan de Vida: referencia por N56D.
+- Viveres Damasio: referencia hacia Zulema Blacio.
+- Faldas del Pichincha: referencia natural general.
+- Las distancias son reportes comunitarios, NO mediciones GPS verificadas.
+- No publicar puntos que permitan identificar un domicilio privado.
+
+### Arquitectura y recursos
+- GPS Android bajo demanda y actualizaciones adaptativas.
+- Geocodificacion inversa y catalogo comunitario opcional.
+- Datos locales pequenos; sin mapas 3D precargados.
+- MapLibre y capas de elevacion descargables opcionales.
+- Cache limitada y purga configurable.
+- Referencias privadas almacenadas localmente y compartidas solo con consentimiento.
+- No registrar seguimiento continuo sin activacion explicita.
+- En SOS distinguir posicion actual, ultima conocida y precision.
+
+### Siguiente trabajo tecnico
+1. Revisar AdvancedLocationProvider, DetailedLocationProvider, EcuadorAddressMapper y LocationHumanFormatter.
+2. Revisar modelos de altitud, sensores y mapa.
+3. Implementar cambios incrementales con pruebas.
+4. Ejecutar CI en GitHub, no compilaciones pesadas en el telefono.
+5. Validar GPS y direccion real en el dispositivo.
+6. Actualizar este documento y README.md despues de cada avance.

@@ -226,3 +226,7 @@ Las alertas meteorológicas y las futuras funciones SOS seguirán siendo gratuit
 **Estado:** perfil de GitHub Sponsors pendiente de aprobación. Las contribuciones estarán disponibles cuando GitHub habilite el perfil.
 
 Alerta EC no está afiliada oficialmente a ECU 911 ni a instituciones gubernamentales.
+
+## Ubicacion avanzada y referencias comunitarias
+
+Alerta EC prepara GPS detallado, altitud, relieve 3D y referencias comunitarias verificables para Ecuador. Atucucho es zona piloto; la ubicacion sera dinamica para todos los usuarios. Las coordenadas privadas y puntos de domicilio no se publicaran. Ver docs/CONTINUAR_AQUI.md para requisitos, estado y validaciones.
