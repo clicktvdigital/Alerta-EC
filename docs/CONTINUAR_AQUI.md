@@ -354,3 +354,14 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - No exponer un endpoint de ejecucion arbitraria de comandos ni abrir el servidor a 0.0.0.0.
 - Flujo recomendado: cambios locales pequenos -> commit/push -> CI automatica en GitHub -> pruebas -> Release firmada manual -> Obtainium.
 - Futuro: agregar acciones autenticadas y acotadas para diagnosticos, documentacion, CI y preparacion de Release, sin almacenar tokens en el panel.
+
+<!-- ALERTA_EC_PANEL_FIX_20261008 -->
+## Correccion del panel local y CI — 8 de octubre de 2026
+- Commit fba76e168 subio la mejora de geocodificacion Ecuador, el panel local y la CI inicial.
+- Se detecto un error de generacion en tools/alerta-ec-panel/app.py: la cadena usada para unir las ultimas lineas de CONTINUAR_AQUI.md quedo partida y produjo SyntaxError.
+- Corregir el panel y validar siempre su sintaxis con python -m py_compile.
+- La CI de GitHub debe validar tambien tools/alerta-ec-panel/app.py antes de compilar Kotlin Release.
+- El panel debe permanecer en 127.0.0.1:8765 y no exponerse a 0.0.0.0.
+- Mantener flujo: cambios -> validaciones -> commit/push -> CI GitHub -> prueba funcional -> Release firmada -> Obtainium.
+- No crear una Release nueva hasta confirmar CI verde y probar la geocodificacion corregida.
+- Mantener 170528 como referencia postal validada independientemente por el usuario; Nominatim/OSM devolvio 170318 y debe conservarse como discrepancia de fuente hasta resolverla con estrategia multifuente.
