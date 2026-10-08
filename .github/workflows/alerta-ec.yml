@@ -27,9 +27,6 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Preparar Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
 
