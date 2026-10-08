@@ -101,6 +101,7 @@
         android:layout_width="260dp"
         android:layout_height="260dp"
         android:layout_gravity="center"
+        android:alpha="0"
         android:contentDescription="@null"
         android:src="@drawable/alerta_ec_intro_logo" />
 
@@ -110,6 +111,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|bottom"
         android:layout_marginBottom="76dp"
+        android:alpha="0"
         android:text="ALERTA EC"
         android:textColor="#FFFFFF"
         android:textSize="26sp"
@@ -121,6 +123,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|bottom"
         android:layout_marginBottom="50dp"
+        android:alpha="0"
         android:text="by CLICK TV DIGITAL"
         android:textColor="#B8D8EA"
         android:textSize="13sp" />

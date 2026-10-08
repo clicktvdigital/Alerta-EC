@@ -143,7 +143,7 @@ object AlertaEcIntroController {
             .scaleX(1.08f)
             .scaleY(1.08f)
             .rotation(2f)
-            .setStartDelay(3700L)
+            .setStartDelay(3350L)
             .setDuration(500L)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction {
@@ -197,14 +197,14 @@ object AlertaEcIntroController {
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setStartDelay(3650L)
+            .setStartDelay(3900L)
             .setDuration(650L)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
 
-        title.animate().alpha(1f).setStartDelay(3850L).setDuration(500L).start()
+        title.animate().alpha(1f).setStartDelay(4050L).setDuration(500L).start()
 
-        brand.animate().alpha(1f).setStartDelay(4050L).setDuration(400L).start()
+        brand.animate().alpha(1f).setStartDelay(4200L).setDuration(250L).start()
 
         root.animate()
             .alpha(0f)
