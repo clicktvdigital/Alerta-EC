@@ -32,34 +32,25 @@
 
 ### DISTRIBUCION Y POCO ALMACENAMIENTO DEL TELEFONO
 - applicationId Release: com.clicktvdigital.alertaec.
-- Version preparada: 0.1.2 / versionCode 102.
-- Workflow preparado para crear GitHub Release v0.1.2 como prerelease.
-- Pendiente ejecutar GitHub Actions y verificar compilacion/firma antes de distribuir.
-- GitHub Actions debe realizar preferentemente las compilaciones pesadas.
-- El workflow actual compila una Release firmada pero solamente conserva Artifact 30 dias.
-- Convertirlo para publicar APK firmada en GitHub Releases.
-- GitHub Releases sera la fuente permanente de APK.
-- Obtainium debe enlazarse a las Releases oficiales de clicktvdigital/Alerta-EC.
-- Mantener siempre el mismo certificado de firma para actualizaciones.
+- Release instalada y comprobada en el telefono al iniciar este avance: 0.1.3 / versionCode 103, instalada por Obtainium.
+- GitHub Releases es la fuente permanente de APK firmadas.
+- Obtainium consume las Releases oficiales de clicktvdigital/Alerta-EC.
+- Mantener siempre el mismo certificado de firma para permitir actualizaciones.
+- Las compilaciones de verificacion pasan a GitHub Actions con un workflow CI en cada push a alerta-ec.
+- La Release firmada sigue siendo manual: no publicar una nueva version por cada cambio sin probar.
+- Proxima version candidata para distribuir estos cambios: 0.1.4, solo despues de CI verde y pruebas funcionales.
 - No acumular APK, builds y logs innecesarios en el telefono.
-
 ### SIGUIENTE ACCION EXACTA
-1. COMPLETADO: preparar workflow para GitHub Release.
-2. COMPLETADO: preparar version 0.1.2 / 102.
-3. COMPLETADO al confirmar el siguiente commit/push.
-4. COMPLETADO: GitHub Actions compilo correctamente 0.1.2 desde commit 1ca52c24d.
-5. SIGUIENTE: verificar GitHub prerelease v0.1.2, APK y certificado antes de instalar/distribuir.
-5. Confirmar que Release firmada compila correctamente.
-6. Verificar APK y certificado.
-7. Publicar/confirmar GitHub Release.
-8. Configurar Obtainium con el repositorio oficial.
-9. Instalar 0.1.2 sobre 0.1.1.
-10. Probar Open-Meteo, tiempo actual, minutely y FPAS.
-11. Probar router principal.
-12. Probar repetidor/AP.
-13. Probar datos moviles.
-14. Si aparece Red no disponible, capturar excepcion real.
-
+1. COMPLETADO: diagnostico integral de GPS, Nominatim, Release y panel local.
+2. COMPLETADO: identificar que Nominatim entrega para el punto de prueba road=Angel Araujo, quarter=San Jose, city_district=Cochapamba, village=Atucucho, county=Quito y state=Pichincha.
+3. EN ESTE CAMBIO: corregir la jerarquia de Ecuador para que quarter/sector no sustituya a la parroquia en el titulo principal.
+4. EN ESTE CAMBIO: mapear direccion detallada como barrio/sector/parroquia/canton/provincia sin mezclar niveles.
+5. EN ESTE CAMBIO: activar CI automatica de compilacion Kotlin Release en GitHub para cada push a alerta-ec.
+6. EN ESTE CAMBIO: guardar el panel local dentro del repositorio y mantener una copia de ejecucion en ~/alerta-ec-panel.
+7. SIGUIENTE: confirmar CI verde en GitHub.
+8. SIGUIENTE: probar que la app muestra Atucucho, Cochapamba y que la direccion detallada conserva San Jose solamente como sector si el proveedor lo devuelve.
+9. SIGUIENTE: resolver el codigo postal con estrategia multifuente; no sobreescribir 170528 por el 170318 de OSM sin validacion.
+10. SIGUIENTE: preparar 0.1.4 prerelease, instalar mediante Obtainium y validar GPS, clima, minutely y FPAS.
 ### PRIORIDADES QUE NO SE PUEDEN OLVIDAR
 - GPS real y seguro.
 - Lluvia hiperlocal y cuenta regresiva cuando los datos tengan precision suficiente.
@@ -164,11 +155,16 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Distinguir pronosticos de observaciones reales.
 
 ### Ubicacion
-- Revisar la etiqueta incorrecta Atucucho San Jose.
-- Mejorar geocodificacion de calles, cuando el proveedor tenga esos datos.
-- Referencia local aportada: sector Atucucho, calles Angel Araujo y N56D, codigo postal 170528.
-- No inventar direcciones ni confundir coordenadas GPS con nombres de calles.
-
+- Area de validacion: Atucucho, parroquia Cochapamba, Quito, Pichincha. No publicar coordenadas GPS precisas ni la interseccion exacta del domicilio en GitHub.
+- La clasificacion municipal vigente consultada en fuentes del Municipio de Quito ubica Atucucho y la parroquia Cochapamba en la Administracion Zonal Eugenio Espejo (Zona Norte), no en la Administracion Zonal La Delicia.
+- Zona de Planificacion 9 significa Distrito Metropolitano de Quito; no debe confundirse con una administracion zonal ni con un distrito de salud.
+- El MSP ubica Atucucho/Cochapamba en el Distrito de Salud 17D05, denominado La Concepcion a Zambiza.
+- El codigo postal 170528 es un codigo postal valido del Distrito Metropolitano de Quito. Su estructura normativa es 17-05-28: provincia Pichincha, distrito postal/administrativo 05, zona postal 28.
+- Referencia validada por el usuario en Google Maps y en una aplicacion de Codigo Postal Ecuador: 170528. Ademas existen referencias publicas de servicios y direcciones cercanas que usan 170528.
+- Nominatim/OpenStreetMap devolvio 170318 para la coordenada GPS de prueba, por lo que existe una discrepancia de fuente. No asumir que el codigo de OSM es correcto solo por venir del geocodificador.
+- Objetivo de presentacion para el caso de prueba: barrio Atucucho; sector San Jose si la fuente lo devuelve como quarter; parroquia Cochapamba; canton Quito; provincia Pichincha; calle segun el proveedor; codigo postal validado por una fuente postal independiente.
+- No hardcodear una direccion particular para todos los usuarios. La aplicacion debe resolver dinamicamente por GPS y conservar procedencia/confianza de cada dato.
+- Fuentes de verificacion: Municipio de Quito/Zonales (Atucucho y Cochapamba bajo Eugenio Espejo), MSP Distrito 17D05, y Norma Tecnica del Codigo Postal Ecuatoriano.
 ### Fases posteriores
 - Alertas verificadas de granizo, tormentas, rayos, deslizamientos, sismos, volcanes e incendios.
 - Integracion de organismos oficiales y canales de difusion, incluido X cuando sea pertinente.
@@ -347,3 +343,14 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Mantener estados inequívocos: guardado, transmitido, recibido y confirmado. Sin conectividad, almacenar/encolar el SOS y no afirmar que fue recibido.
 - Diseñar alternativas de comunicacion por Internet y, cuando sean tecnicamente posibles, Bluetooth/Wi-Fi P2P, LoRa con hardware externo y satelite solo con hardware/servicio compatible.
 - La futura vista de rescate debe combinar mapa, referencias cercanas verificables y capas pertinentes; radar meteorologico es una capa para peligros meteorologicos, no un mecanismo para localizar personas.
+
+<!-- ALERTA_EC_PANEL_DESARROLLO -->
+## Panel local de desarrollo
+- Codigo canonico del panel: tools/alerta-ec-panel dentro del repositorio.
+- Copia de ejecucion local: ~/alerta-ec-panel.
+- URL local: http://127.0.0.1:8765.
+- El panel queda limitado a localhost y en esta fase es solo de lectura.
+- Debe mostrar rama/commit/version, estado Git, GPS de Android, sesiones tmux y el final de CONTINUAR_AQUI.md.
+- No exponer un endpoint de ejecucion arbitraria de comandos ni abrir el servidor a 0.0.0.0.
+- Flujo recomendado: cambios locales pequenos -> commit/push -> CI automatica en GitHub -> pruebas -> Release firmada manual -> Obtainium.
+- Futuro: agregar acciones autenticadas y acotadas para diagnosticos, documentacion, CI y preparacion de Release, sin almacenar tokens en el panel.

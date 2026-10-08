@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alerta EC | Centro de Desarrollo</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#07131f;color:#eef7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;background:#10283e;padding:14px 18px;display:flex;gap:12px;align-items:center;z-index:2}
+button{background:#17466a;color:white;border:0;border-radius:12px;padding:12px 14px;font-size:14px;cursor:pointer}
+button:hover{filter:brightness(1.12)}
+nav{display:none;background:#0d2235;padding:12px}
+nav.abierto{display:flex;gap:8px;flex-wrap:wrap}
+main{max-width:980px;margin:auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+section{background:#122c42;border-radius:16px;padding:16px;min-height:120px}
+h2,h3{margin-top:0}
+small,.muted{color:#a8c4d6}
+.ok{color:#5ee0a3}
+.warn{color:#ffd479}
+pre{white-space:pre-wrap;word-break:break-word;background:#081a29;padding:12px;border-radius:12px;max-height:360px;overflow:auto}
+.valor{font-size:1.05rem;font-weight:650}
+</style>
+</head>
+<body>
+<header>
+<button id="menu">☰</button>
+<strong>🇪🇨 ALERTA EC · Centro de Desarrollo</strong>
+<button id="actualizar" style="margin-left:auto">↻ Actualizar</button>
+</header>
+<nav id="nav">
+<button data-go="proyecto">📱 Proyecto</button>
+<button data-go="gps">📍 GPS</button>
+<button data-go="continuidad">📚 Continuidad</button>
+<button data-go="sesiones">🖥️ Sesiones</button>
+</nav>
+<main>
+<p class="muted">Panel local en 127.0.0.1:8765 · lectura segura del estado del proyecto. Las compilaciones pesadas se delegan a GitHub Actions.</p>
+<div class="grid">
+<section id="proyecto">
+<h3>📱 Proyecto</h3>
+<div id="proyecto-contenido">Cargando…</div>
+</section>
+<section id="gps">
+<h3>📍 GPS Android</h3>
+<div id="gps-contenido">Cargando…</div>
+</section>
+<section id="sesiones">
+<h3>🖥️ Termux / tmux</h3>
+<div id="sesiones-contenido">Cargando…</div>
+</section>
+<section id="estado">
+<h3>☁️ Flujo de entrega</h3>
+<p>Push → CI automática en GitHub → pruebas → Release firmada manual → Obtainium.</p>
+<p class="warn">No se crea una Release por cada cambio sin probar.</p>
+</section>
+</div>
+<section id="continuidad" style="margin-top:14px">
+<h3>📚 CONTINUAR_AQUI.md</h3>
+<pre id="continuidad-contenido">Cargando…</pre>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+$("#menu").onclick=()=>$("#nav").classList.toggle("abierto");
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:"smooth"}));
+
+async function getJson(url){
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
+async function actualizar(){
+  $("#actualizar").disabled=true;
+  try{
+    const [p,g,s,c]=await Promise.all([
+      getJson("/api/proyecto"),
+      getJson("/api/gps"),
+      getJson("/api/sesiones"),
+      getJson("/api/continuidad")
+    ]);
+
+    $("#proyecto-contenido").innerHTML=
+      `<div class="valor">${p.versionName ?? "?"} · code ${p.versionCode ?? "?"}</div>`+
+      `<p>Rama: <b>${p.rama}</b><br>Commit: ${p.commit}</p>`+
+      `<p class="${p.limpio?"ok":"warn"}">${p.limpio?"✓ Árbol limpio":`⚠ ${p.cambios.length} cambio(s) local(es)`}</p>`;
+
+    if(g.best){
+      $("#gps-contenido").innerHTML=
+        `<div class="valor">${g.best.provider.toUpperCase()}</div>`+
+        `<p>${g.best.latitude.toFixed(6)}, ${g.best.longitude.toFixed(6)}</p>`+
+        `<p>Precisión: ${g.best.accuracyMeters.toFixed(1)} m`+
+        `${g.best.altitudeMeters!==null?`<br>Altitud: ${g.best.altitudeMeters.toFixed(1)} m`:""}</p>`;
+    }else{
+      $("#gps-contenido").innerHTML=`<p class="warn">Sin ubicación disponible en dumpsys.</p>`;
+    }
+
+    $("#sesiones-contenido").innerHTML=s.sesiones.length
+      ? `<p>${s.sesiones.map(x=>`• ${x}`).join("<br>")}</p>`
+      : `<p class="muted">No hay sesiones tmux activas.</p>`;
+
+    $("#continuidad-contenido").textContent=c.final;
+  }catch(e){
+    console.error(e);
+    $("#proyecto-contenido").innerHTML=`<p class="warn">Error: ${e.message}</p>`;
+  }finally{
+    $("#actualizar").disabled=false;
+  }
+}
+$("#actualizar").onclick=actualizar;
+actualizar();
+setInterval(actualizar,30000);
+</script>
+</body>
+</html>

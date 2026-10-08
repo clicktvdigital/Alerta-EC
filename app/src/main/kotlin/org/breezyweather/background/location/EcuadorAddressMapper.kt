@@ -7,17 +7,42 @@ object EcuadorAddressMapper {
     fun fromAddressInfo(address: LocationAddressInfo): DetailedLocationAddress {
         val isEcuador = address.countryCode.equals("EC", ignoreCase = true)
 
-        val neighborhood = firstNonBlank(
-            address.neighborhood,
-            address.quarter,
-            address.district,
-        )
+        val localCity = address.city?.takeUnless {
+            isEcuador && it.equals(address.admin2, ignoreCase = true)
+        }
+
+        val neighborhood = if (isEcuador) {
+            firstNonBlank(
+                address.neighborhood,
+                localCity,
+                address.quarter,
+                address.district,
+            )
+        } else {
+            firstNonBlank(
+                address.neighborhood,
+                address.quarter,
+                address.district,
+            )
+        }
+
+        val sector = if (isEcuador) {
+            firstNonBlank(address.quarter, address.district)
+        } else {
+            address.quarter
+        }
+
+        val parish = if (isEcuador) {
+            firstNonBlank(address.cityDistrict, address.admin3)
+        } else {
+            null
+        }
 
         val canton = if (isEcuador) {
             firstNonBlank(
-                address.city,
-                address.admin3,
                 address.admin2,
+                address.admin3,
+                address.city,
             )
         } else {
             firstNonBlank(address.city, address.admin2)
@@ -29,7 +54,8 @@ object EcuadorAddressMapper {
             crossStreet = null,
             reference = address.reference,
             neighborhood = neighborhood,
-            parish = null,
+            sector = sector,
+            parish = parish,
             canton = canton,
             province = address.admin1,
             postalCode = address.postalCode,

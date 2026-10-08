@@ -116,6 +116,35 @@ class NominatimService @Inject constructor(
             null
         } else {
             val countryCode = getNonAmbiguousCountryCode(locationResult.address)
+            val address = requireNotNull(locationResult.address)
+
+            // Ecuador: cityDistrict suele representar la parroquia urbana.
+            // No mezclar quarter/sector con la parroquia en el titulo principal.
+            val preferredDistrict = if (countryCode.equals("EC", ignoreCase = true)) {
+                address.cityDistrict
+                    ?: address.neighbourhood
+                    ?: address.quarter
+                    ?: address.district
+                    ?: address.borough
+                    ?: address.suburb
+                    ?: address.subdivision
+                    ?: address.allotments
+                    ?: address.hamlet
+                    ?: address.croft
+                    ?: address.isolatedDwelling
+            } else {
+                address.neighbourhood
+                    ?: address.allotments
+                    ?: address.quarter
+                    ?: address.hamlet
+                    ?: address.croft
+                    ?: address.isolatedDwelling
+                    ?: address.cityDistrict
+                    ?: address.district
+                    ?: address.borough
+                    ?: address.suburb
+                    ?: address.subdivision
+            }
 
             LocationAddressInfo(
                 latitude = locationResult.lat.toDoubleOrNull(),
@@ -130,17 +159,7 @@ class NominatimService @Inject constructor(
                 city = locationResult.address.village
                     ?: locationResult.address.town
                     ?: locationResult.address.city,
-                district = locationResult.address.neighbourhood
-                    ?: locationResult.address.allotments
-                    ?: locationResult.address.quarter
-                    ?: locationResult.address.hamlet
-                    ?: locationResult.address.croft
-                    ?: locationResult.address.isolatedDwelling
-                    ?: locationResult.address.cityDistrict
-                    ?: locationResult.address.district
-                    ?: locationResult.address.borough
-                    ?: locationResult.address.suburb
-                    ?: locationResult.address.subdivision,
+                district = preferredDistrict,
                 road = locationResult.address.road,
                 houseNumber = locationResult.address.houseNumber,
                 postalCode = locationResult.address.postcode,

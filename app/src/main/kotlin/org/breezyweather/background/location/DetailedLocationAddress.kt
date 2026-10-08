@@ -6,6 +6,7 @@ data class DetailedLocationAddress(
     val crossStreet: String? = null,
     val reference: String? = null,
     val neighborhood: String? = null,
+    val sector: String? = null,
     val parish: String? = null,
     val canton: String? = null,
     val province: String? = null,
@@ -14,8 +15,20 @@ data class DetailedLocationAddress(
     val countryCode: String? = null,
 ) {
     val streetLine: String?
-        get() = listOfNotNull(road?.takeIf { it.isNotBlank() }, houseNumber?.takeIf { it.isNotBlank() }).takeIf { it.isNotEmpty() }?.joinToString(" ")
+        get() = listOfNotNull(
+            road?.takeIf { it.isNotBlank() },
+            houseNumber?.takeIf { it.isNotBlank() },
+        ).takeIf { it.isNotEmpty() }?.joinToString(" ")
 
     val administrativeLine: String?
-        get() = listOfNotNull(neighborhood, parish, canton, province).filter { it.isNotBlank() }.distinct().takeIf { it.isNotEmpty() }?.joinToString(", ")
+        get() = listOfNotNull(
+            neighborhood,
+            sector,
+            parish,
+            canton,
+            province,
+        ).filter { it.isNotBlank() }
+            .distinct()
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(", ")
 }
