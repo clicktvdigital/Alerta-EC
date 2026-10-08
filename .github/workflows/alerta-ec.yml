@@ -1,28 +1,45 @@
-name: Alerta EC Build
+name: Alerta EC - APK Debug
 
 on:
+  push:
+    branches:
+      - alerta-ec
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alerta-ec-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
+    timeout-minutes: 60
     steps:
-      - name: Checkout
+      - name: Descargar codigo
         uses: actions/checkout@v4
-      - name: Set up Java 21
+
+      - name: Preparar Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-      - name: Set up Gradle
+
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Build Alerta EC Release
-        run: ./gradlew :app:assembleBasicRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
-      - name: Upload unsigned APKs
+
+      - name: Compilar APK Debug
+        run: ./gradlew :app:assembleBasicDebug --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Publicar APK descargable
         uses: actions/upload-artifact@v4
         with:
-          name: alerta-ec-release-unsigned
-          path: app/build/outputs/apk/basic/release/*.apk
+          name: Alerta-EC-Debug
+          path: app/build/outputs/apk/basic/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
