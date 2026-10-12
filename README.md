@@ -422,14 +422,15 @@ Estas funciones permanecen PLANIFICADAS hasta que exista codigo funcional, compi
 - Para busquedas de codigo usar grep -R -n -E, que ya esta disponible, o instalar ripgrep explicitamente antes de usar rg.
 
 ## Adaptador meteorológico Alerta EC
-- Estado: IMPLEMENTADO / PENDIENTE DE COMPILACION EN CI.
+- Estado: IMPLEMENTADO / COMPILADO EN CI.
 - Archivo: app/src/main/kotlin/org/breezyweather/alertaec/AlertaEcWeatherAdapter.kt
 - Convierte alertas oficiales Breezy Weather a AlertaEcEvent con estado OFFICIAL_EVENT.
 - Convierte precipitación minutely detectada por dBZ a evento FORECAST de lluvia.
 - Convierte códigos meteorológicos horarios compatibles a fenómenos Alerta EC.
 - Conserva fuente, ubicación, coordenadas, inicio/fin y severidad cuando existen.
 - Los eventos minutely son FORECAST y no deben presentarse como lluvia observada.
-- Pendiente: clasificación por intensidad, probabilidad, viento, deduplicación, notificaciones, sonido, vibración, TTS y pruebas funcionales.
+- CI verificada: commit e9f5791e6, APK Debug y Verificacion continua completaron SUCCESS.
+- Pendiente: pruebas funcionales en dispositivo, clasificación por intensidad, probabilidad, viento, deduplicación, notificaciones, sonido, vibración y TTS.
 - Modelos canónicos confirmados en módulo domain: Weather, Alert, Minutely y Location.
 - Regla de seguridad: Alerta EC ayuda a prevención, información y respuesta temprana; no afirmar que puede impedir desastres ni que un pronóstico es una observación.
 
