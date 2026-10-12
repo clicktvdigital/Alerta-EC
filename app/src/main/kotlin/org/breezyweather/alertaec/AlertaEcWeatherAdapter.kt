@@ -3,6 +3,9 @@ package org.breezyweather.alertaec
 import breezyweather.domain.location.model.Location
 import breezyweather.domain.weather.model.Alert
 import breezyweather.domain.weather.model.Minutely
+import breezyweather.domain.weather.model.Hourly
+import breezyweather.domain.weather.model.Precipitation
+import kotlin.math.roundToInt
 import breezyweather.domain.weather.reference.AlertSeverity
 import breezyweather.domain.weather.reference.WeatherCode
 
@@ -22,24 +25,8 @@ object AlertaEcWeatherAdapter {
             events += fromMinutelyRain(minute, location)
         }
 
-        weather.nextHourlyForecast.firstOrNull()?.weatherCode?.let { code ->
-            phenomenonFromWeatherCode(code)?.let { phenomenon ->
-                if (phenomenon != AlertaEcPhenomenon.RAIN) {
-                    val hour = weather.nextHourlyForecast.first()
-                    events += AlertaEcEvent(
-                        id = "forecast-${location.formattedId}-${phenomenon.name}-${hour.date.time}",
-                        phenomenon = phenomenon,
-                        state = AlertaEcEventState.FORECAST,
-                        severity = AlertaEcSeverity.ADVISORY,
-                        headline = hour.weatherText ?: phenomenon.spokenName,
-                        locationName = locationName(location),
-                        latitude = location.latitude,
-                        longitude = location.longitude,
-                        sourceName = location.forecastSource,
-                        startTimeMillis = hour.date.time
-                    )
-                }
-            }
+        weather.nextHourlyForecast.firstOrNull()?.let { hour ->
+            fromHourlyForecast(hour, location)?.let { events += it }
         }
 
         return events.distinctBy { it.id }
@@ -75,6 +62,55 @@ object AlertaEcWeatherAdapter {
         endTimeMillis = minute.endingDate.time,
         precipitationMmPerHour = minute.precipitationIntensity?.inMillimeters
     )
+
+    private fun fromHourlyForecast(hour: Hourly, location: Location): AlertaEcEvent? {
+        val precipitationMm = hour.precipitation?.total?.inMillimeters
+        val probability = hour.precipitationProbability?.total?.inPercent?.roundToInt()
+        val windKmh = hour.wind?.speed?.inKilometersPerHour
+        val gustKmh = hour.wind?.gusts?.inKilometersPerHour
+        val codePhenomenon = hour.weatherCode?.let(::phenomenonFromWeatherCode)
+
+        val phenomenon = when {
+            precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
+                AlertaEcPhenomenon.HEAVY_RAIN
+            codePhenomenon != null -> codePhenomenon
+            else -> return null
+        }
+
+        val severity = when {
+            precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_RAINSTORM ->
+                AlertaEcSeverity.WARNING
+            precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
+                AlertaEcSeverity.WATCH
+            else -> AlertaEcSeverity.ADVISORY
+        }
+
+        val headline = when (phenomenon) {
+            AlertaEcPhenomenon.HEAVY_RAIN -> "Lluvia fuerte prevista"
+            AlertaEcPhenomenon.RAIN -> "Lluvia prevista"
+            else -> hour.weatherText ?: phenomenon.spokenName
+        }
+
+        return AlertaEcEvent(
+            id = "forecast-${location.formattedId}-${phenomenon.name}-${hour.date.time}",
+            phenomenon = phenomenon,
+            state = AlertaEcEventState.FORECAST,
+            severity = severity,
+            headline = headline,
+            locationName = locationName(location),
+            latitude = location.latitude,
+            longitude = location.longitude,
+            sourceName = location.forecastSource,
+            startTimeMillis = hour.date.time,
+            precipitationMmPerHour = precipitationMm,
+            precipitationProbabilityPercent = probability,
+            windSpeedKmh = windKmh,
+            windGustKmh = gustKmh,
+            windDirectionDegrees = hour.wind?.degree?.takeIf { it >= 0.0 }?.roundToInt(),
+            humidityPercent = hour.relativeHumidity?.inPercent?.roundToInt(),
+            visibilityKm = hour.visibility?.inKilometers
+        )
+    }
 
     private fun severityFromAlert(severity: AlertSeverity) = when (severity) {
         AlertSeverity.EXTREME -> AlertaEcSeverity.EMERGENCY
