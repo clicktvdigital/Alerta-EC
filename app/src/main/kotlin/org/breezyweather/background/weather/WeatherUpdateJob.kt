@@ -323,6 +323,7 @@ class WeatherUpdateJob @AssistedInject constructor(
                     locationsToUpdate.firstOrNull { it.formattedId == location.formattedId }?.weather
                 )
                 Notifications.checkAndSendPrecipitation(applicationContext, location)
+                org.breezyweather.alertaec.AlertaEcNotifier.checkAndNotify(applicationContext, location)
             }
 
             refreshHelper.broadcastDataIfNecessary(
