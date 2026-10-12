@@ -198,3 +198,18 @@ Estas funciones permanecen PLANIFICADAS hasta que exista codigo funcional, compi
 - Pendiente: pruebas funcionales en dispositivo, clasificación por intensidad, probabilidad, viento, deduplicación, notificaciones, sonido, vibración y TTS.
 - Modelos canónicos confirmados en módulo domain: Weather, Alert, Minutely y Location.
 - Regla de seguridad: Alerta EC ayuda a prevención, información y respuesta temprana; no afirmar que puede impedir desastres ni que un pronóstico es una observación.
+
+## Politica de publicacion estable y Obtainium
+
+- Alerta EC NO debe publicar betas, APK Debug ni builds temporales como actualizacion publica.
+- La distribucion publica debe realizarse mediante GitHub Releases estables y ser compatible con Obtainium para todos los usuarios.
+- Mantener SIEMPRE el applicationId de produccion: com.clicktvdigital.alertaec.
+- Toda actualizacion publica debe estar firmada con EXACTAMENTE la misma clave/firma de produccion usada por la version actualmente instalada. Nunca generar o sustituir la clave de firma sin un proceso de migracion compatible.
+- Incrementar versionCode y versionName en cada nueva version publica.
+- Los APK Debug generados por CI sirven exclusivamente para comprobacion y pruebas; no son Releases publicas.
+- GitHub Actions debe realizar las compilaciones pesadas para evitar consumir almacenamiento y recursos del telefono de desarrollo.
+- Flujo obligatorio de una version publica: IMPLEMENTADO -> COMPILADO EN CI -> TESTEADO EN DISPOSITIVO -> DOCUMENTADO -> RELEASE ESTABLE.
+- Antes de RELEASE debe verificarse instalacion/actualizacion sobre la version publica anterior SIN desinstalar la aplicacion y conservando datos/configuracion cuando Android lo permita.
+- Obtainium debe poder detectar la nueva GitHub Release y descargar el artefacto estable correspondiente.
+- No marcar una version como RELEASE solamente porque compile.
+- Si la firma, applicationId, versionCode o mecanismo de Release no estan verificados, DETENER la publicacion.
