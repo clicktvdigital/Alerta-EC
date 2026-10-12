@@ -681,4 +681,17 @@ Estas funciones permanecen PLANIFICADAS hasta que exista codigo funcional, compi
 - No marcar una version como RELEASE solamente porque compile.
 - Si la firma, applicationId, versionCode o mecanismo de Release no estan verificados, DETENER la publicacion.
 
+### Adaptador meteorologico enriquecido
+
+Estado: IMPLEMENTADO / COMPILADO EN CI.
+
+- Commit verificado: e5d0a50e42bd39ad7847e0e85e4b525146fb4fbd.
+- GitHub Actions: Alerta EC - Verificacion continua = SUCCESS.
+- GitHub Actions: Alerta EC - APK Debug = SUCCESS.
+- El adaptador horario incorpora precipitacion en mm/h, probabilidad de precipitacion en porcentaje, velocidad y rafagas de viento en km/h, direccion del viento, humedad y visibilidad.
+- Clasifica lluvia fuerte utilizando los umbrales horarios existentes de Breezy Weather.
+- Los eventos generados desde pronostico permanecen etiquetados como FORECAST; no deben presentarse como observaciones reales ni alertas oficiales.
+- Pendiente: prueba funcional en dispositivo, deduplicacion, notificaciones Alerta EC, sonido, vibracion y TTS.
+- Este hito NO constituye una Release publica ni una actualizacion de Obtainium.
+
 <!-- ALERTA_EC_AUTO_END -->
