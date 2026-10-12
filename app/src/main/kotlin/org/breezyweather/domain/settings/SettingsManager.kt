@@ -154,6 +154,27 @@ class SettingsManager private constructor(
         }
         get() = config.getBoolean("precipitation_notification_switch", false)
 
+    var isAlertSoundEnabled: Boolean
+        set(value) {
+            config.edit().putBoolean("alert_sound_switch", value).apply()
+            notifySettingsChanged()
+        }
+        get() = config.getBoolean("alert_sound_switch", true)
+
+    var isAlertVibrationEnabled: Boolean
+        set(value) {
+            config.edit().putBoolean("alert_vibration_switch", value).apply()
+            notifySettingsChanged()
+        }
+        get() = config.getBoolean("alert_vibration_switch", true)
+
+    var isAlertVoiceEnabled: Boolean
+        set(value) {
+            config.edit().putBoolean("alert_voice_switch", value).apply()
+            notifySettingsChanged()
+        }
+        get() = config.getBoolean("alert_voice_switch", true)
+
     var updateInterval: UpdateInterval
         set(value) {
             config.edit().putString("refresh_rate", value.id).apply()

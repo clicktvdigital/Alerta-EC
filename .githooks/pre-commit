@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+echo "[Alerta EC] Sincronizando documentacion..."
+python3 scripts/sync_alerta_ec_docs.py
+
+echo "[Alerta EC] Verificando bloques automaticos..."
+README_COUNT=$(grep -c "ALERTA_EC_AUTO_START" README.md || true)
+CONTINUE_COUNT=$(grep -c "ALERTA_EC_AUTO_START" docs/CONTINUAR_AQUI.md || true)
+
+if [ "$README_COUNT" -ne 1 ] || [ "$CONTINUE_COUNT" -ne 1 ]; then
+    echo "ERROR: documentacion automatica ausente o duplicada."
+    exit 1
+fi
+
+echo "[Alerta EC] Ejecutando git diff --check..."
+git diff --check
+
+git add README.md docs/CONTINUAR_AQUI.md docs/ALERTA_EC_ESTADO.md scripts/sync_alerta_ec_docs.py
+
+echo "[Alerta EC] Documentacion sincronizada y validada."

@@ -328,6 +328,7 @@ object Notifications {
             return
         }
         if (location.weather?.minutelyForecast.isNullOrEmpty()) {
+            context.cancelNotification(ID_PRECIPITATION)
             return
         }
         // val config = ConfigStore(context, PREFERENCE_SHORT_TERM_PRECIPITATION_ALERT)

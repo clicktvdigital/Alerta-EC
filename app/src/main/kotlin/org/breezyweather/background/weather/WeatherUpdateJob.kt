@@ -279,6 +279,7 @@ class WeatherUpdateJob @AssistedInject constructor(
                         }
                     }
                 } catch (e: Throwable) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     e.printStackTrace()
                     val errorMessage = if (e.message.isNullOrEmpty()) {
                         context.getString(RefreshErrorType.DATA_REFRESH_FAILED.shortMessage)
