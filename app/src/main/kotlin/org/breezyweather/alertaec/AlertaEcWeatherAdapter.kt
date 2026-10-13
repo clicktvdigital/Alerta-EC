@@ -2,7 +2,6 @@ package org.breezyweather.alertaec
 
 import breezyweather.domain.location.model.Location
 import breezyweather.domain.weather.model.Alert
-import breezyweather.domain.weather.model.Minutely
 import breezyweather.domain.weather.model.Hourly
 import breezyweather.domain.weather.model.Precipitation
 import kotlin.math.roundToInt
@@ -19,11 +18,8 @@ object AlertaEcWeatherAdapter {
             events += fromOfficialAlert(alert, location)
         }
 
-        weather.minutelyForecast.firstOrNull {
-            (it.dbz ?: 0) > 0
-        }?.let { minute ->
-            events += fromMinutelyRain(minute, location)
-        }
+        // Minutely rain remains owned by Notifications.checkAndSendPrecipitation.
+        // Keep this Alerta EC route inactive to prevent duplicate notifications.
 
         weather.nextHourlyForecast.firstOrNull()?.let { hour ->
             fromHourlyForecast(hour, location)?.let { events += it }
@@ -46,21 +42,6 @@ object AlertaEcWeatherAdapter {
         startTimeMillis = alert.startDate?.time,
         endTimeMillis = alert.endDate?.time,
         details = alert.instruction?.let { mapOf("instruction" to it) } ?: emptyMap()
-    )
-
-    private fun fromMinutelyRain(minute: Minutely, location: Location) = AlertaEcEvent(
-        id = "rain-${location.formattedId}-${minute.date.time}",
-        phenomenon = AlertaEcPhenomenon.RAIN,
-        state = AlertaEcEventState.FORECAST,
-        severity = AlertaEcSeverity.ADVISORY,
-        headline = "Lluvia prevista",
-        locationName = locationName(location),
-        latitude = location.latitude,
-        longitude = location.longitude,
-        sourceName = location.minutelySource ?: location.forecastSource,
-        startTimeMillis = minute.date.time,
-        endTimeMillis = minute.endingDate.time,
-        precipitationMmPerHour = minute.precipitationIntensity?.inMillimeters
     )
 
     private fun fromHourlyForecast(hour: Hourly, location: Location): AlertaEcEvent? {

@@ -31,5 +31,8 @@ jobs:
       - name: Verificar sintaxis del panel local
         run: python -m py_compile tools/alerta-ec-panel/app.py
 
+      - name: Ejecutar pruebas unitarias Alerta EC
+        run: ./gradlew :app:testBasicDebugUnitTest --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
       - name: Verificar compilacion Kotlin Release
         run: ./gradlew :app:compileBasicReleaseKotlin --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"

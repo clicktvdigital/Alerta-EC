@@ -18,7 +18,7 @@ object AlertaEcEventDeduplicator {
             ?.toMutableSet()
             ?: mutableSetOf()
 
-        return events.filterNot { event -> event.id in remembered }
+        return AlertaEcNotificationPolicy.filterNewEvents(events, remembered)
     }
 
     fun markNotified(context: Context, event: AlertaEcEvent) {

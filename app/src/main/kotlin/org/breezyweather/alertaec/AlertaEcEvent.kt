@@ -33,3 +33,17 @@ data class AlertaEcEvent(
     val distanceKm: Double? = null,
     val details: Map<String, String> = emptyMap(),
 )
+
+internal object AlertaEcNotificationPolicy {
+    fun shouldNotify(state: AlertaEcEventState): Boolean =
+        state == AlertaEcEventState.FORECAST
+
+    fun filterNewEvents(events: List<AlertaEcEvent>, notifiedIds: Set<String>): List<AlertaEcEvent> =
+        events.distinctBy { it.id }.filterNot { it.id in notifiedIds }
+
+    fun stateLabel(state: AlertaEcEventState): String = when (state) {
+        AlertaEcEventState.FORECAST -> "PRONÓSTICO"
+        AlertaEcEventState.OBSERVED -> "OBSERVADO"
+        AlertaEcEventState.OFFICIAL_EVENT -> "ALERTA OFICIAL"
+    }
+}

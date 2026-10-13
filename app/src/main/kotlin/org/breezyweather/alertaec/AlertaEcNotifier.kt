@@ -12,6 +12,7 @@ import org.breezyweather.R
 import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.utils.helpers.IntentHelper
+import org.breezyweather.domain.settings.SettingsManager
 
 object AlertaEcNotifier {
 
@@ -20,13 +21,15 @@ object AlertaEcNotifier {
     private const val ID_RANGE = 1000
 
     fun checkAndNotify(context: Context, location: Location) {
+        if (!SettingsManager.getInstance(context).isAlertPushEnabled) return
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
 
+        // OFFICIAL_EVENT ya se envía desde remoteviews.Notifications.
         val events = AlertaEcWeatherAdapter.fromLocation(location)
-            .filter { it.state == AlertaEcEventState.FORECAST }
+            .filter { AlertaEcNotificationPolicy.shouldNotify(it.state) }
 
         val newEvents = AlertaEcEventDeduplicator.filterNewEvents(context, events)
         newEvents.forEach { event ->
@@ -37,11 +40,7 @@ object AlertaEcNotifier {
 
     private fun sendNotification(context: Context, location: Location, event: AlertaEcEvent) {
         val notificationId = ID_BASE + ((event.id.hashCode() and Int.MAX_VALUE) % ID_RANGE)
-        val stateLabel = when (event.state) {
-            AlertaEcEventState.FORECAST -> "PRONÓSTICO"
-            AlertaEcEventState.OBSERVED -> "OBSERVADO"
-            AlertaEcEventState.OFFICIAL_EVENT -> "ALERTA OFICIAL"
-        }
+        val stateLabel = AlertaEcNotificationPolicy.stateLabel(event.state)
 
         val details = buildList {
             event.locationName?.let { add(it) }

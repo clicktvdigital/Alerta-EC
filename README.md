@@ -231,6 +231,16 @@ Alerta EC no está afiliada oficialmente a ECU 911 ni a instituciones gubernamen
 
 Alerta EC prepara GPS detallado, altitud, relieve 3D y referencias comunitarias verificables para Ecuador. Atucucho es zona piloto; la ubicacion sera dinamica para todos los usuarios. Las coordenadas privadas y puntos de domicilio no se publicaran. Ver docs/CONTINUAR_AQUI.md para requisitos, estado y validaciones.
 
+
+
+### Notificaciones Alerta EC: clasificación y deduplicación
+
+- Las notificaciones de precipitación minutely siguen bajo `Notifications.checkAndSendPrecipitation`; Alerta EC no emite una segunda notificación para esos mismos datos.
+- La ruta minutely del adaptador Alerta EC está inactiva y documentada hasta contar con una estrategia que no duplique el aviso original.
+- `FORECAST` conserva la etiqueta de pronóstico. `OBSERVED` no se genera ni se notifica mientras no exista una fuente observacional real; `OFFICIAL_EVENT` se atiende únicamente desde `remoteviews.Notifications`.
+- La deduplicación filtra IDs ya notificados y eventos repetidos en una misma actualización.
+- GitHub Actions ejecutará `:app:testBasicDebugUnitTest` y la compilación Kotlin Release. No se ejecutó Gradle localmente en Termux.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

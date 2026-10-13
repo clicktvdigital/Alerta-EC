@@ -463,6 +463,16 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - No publicar una nueva Release hasta completar las pruebas funcionales.
 - Próximo bloque: precisión de lluvia/Open-Meteo, cuenta regresiva estimada, widget con prioridad horaria y accesibilidad mediante sonido, vibración y TTS.
 
+
+
+### Notificador propio: estados y precipitación (2026-10-13)
+
+- La precipitación minutely continúa usando `Notifications.checkAndSendPrecipitation`, sin notificación paralela de Alerta EC.
+- La conversión minutely en el adaptador Alerta EC queda inactiva y documentada; no se elimina ni se altera el mecanismo original.
+- `OBSERVED` permanece sin generación/notificación mientras no haya una fuente observacional real. Los pronósticos no se elevan a emergencias; las alertas oficiales siguen en `remoteviews.Notifications`.
+- La deduplicación elimina IDs ya notificados y repetidos dentro de una actualización; se añadieron pruebas para esos casos y para la política de estados.
+- El workflow existente `alerta-ec-ci.yml` ejecuta `:app:testBasicDebugUnitTest` y compila Kotlin Release. Pendiente resultado de GitHub Actions y validación funcional en dispositivo. No se ejecutó Gradle en Termux.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
