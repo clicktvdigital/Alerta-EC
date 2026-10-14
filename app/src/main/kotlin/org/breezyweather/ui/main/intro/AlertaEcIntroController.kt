@@ -1,11 +1,21 @@
 package org.breezyweather.ui.main.intro
 
+import android.content.Context
+import android.os.Build
+import android.provider.Settings
 import android.view.View
+import android.widget.TextView
 import android.view.animation.AccelerateDecelerateInterpolator
+import org.breezyweather.R
 
 object AlertaEcIntroController {
 
     private const val INTRO_DURATION = 5000L
+    private const val PREFS = "alerta_ec_intro"
+    private const val PREF_REDUCED_MOTION = "reduced_motion"
+    private const val PREF_SOUND_ENABLED = "sound_enabled"
+
+    fun stop() = IntroAudioPlayback.stop()
 
     fun play(
         root: View,
@@ -22,16 +32,99 @@ object AlertaEcIntroController {
         title: View,
         brand: View,
         skip: View,
+        reducedMotionControl: View,
+        soundControl: View,
     ) {
+        val preferences = root.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val systemAnimatorScale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            Settings.Global.getFloat(root.context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        } else {
+            1f
+        }
+        var reducedMotion = IntroPlaybackPolicy.shouldReduceMotion(
+            preferences.getBoolean(PREF_REDUCED_MOTION, false),
+            systemAnimatorScale
+        )
+        val layers = listOf(root, terrain, volcano, wildfire, waterHazard, landslide, storm, seismicRing, flash, condor, logo, title, brand)
+        var reducedMotionClose: Runnable? = null
+        fun updateControls() {
+            val motionLabel = root.context.getString(if (reducedMotion) R.string.alertaec_intro_motion_on else R.string.alertaec_intro_motion_off)
+            (reducedMotionControl as TextView).apply { text = motionLabel; contentDescription = motionLabel }
+            val soundLabel = root.context.getString(
+                if (preferences.getBoolean(PREF_SOUND_ENABLED, false)) R.string.alertaec_intro_sound_enabled_pending
+                else R.string.alertaec_intro_sound_disabled_pending
+            )
+            (soundControl as TextView).apply { text = soundLabel; contentDescription = soundLabel }
+        }
+        fun showReducedMotion() {
+            layers.forEach { it.animate().cancel() }
+            root.visibility = View.VISIBLE
+            root.alpha = 1f
+            terrain.alpha = 0.92f
+            terrain.scaleX = 1f
+            terrain.scaleY = 1f
+            terrain.translationX = 0f
+            terrain.translationY = 0f
+            terrain.rotationX = 0f
+            volcano.alpha = 0.62f
+            wildfire.alpha = 0.55f
+            waterHazard.alpha = 0.58f
+            landslide.alpha = 0.55f
+            storm.alpha = 0.22f
+            seismicRing.alpha = 0f
+            flash.alpha = 0f
+            condor.alpha = 0.85f
+            condor.translationX = 0f
+            condor.translationY = -70f
+            condor.rotation = 0f
+            logo.alpha = 1f
+            logo.scaleX = 1f
+            logo.scaleY = 1f
+            title.alpha = 1f
+            brand.alpha = 1f
+            reducedMotionClose?.let(root::removeCallbacks)
+            val closeAction = Runnable { if (root.visibility == View.VISIBLE) root.visibility = View.GONE }
+            reducedMotionClose = closeAction
+            root.postDelayed(closeAction, 2200L)
+        }
         skip.setOnClickListener {
-            listOf(
-                root, terrain, volcano, wildfire, waterHazard, landslide, storm,
-                seismicRing, flash, condor, logo, title, brand
-            ).forEach { it.animate().cancel() }
+            reducedMotionClose?.let(root::removeCallbacks)
+            IntroAudioPlayback.stop()
+            layers.forEach { it.animate().cancel() }
             root.visibility = View.GONE
         }
+        reducedMotionControl.setOnClickListener {
+            val requested = !preferences.getBoolean(PREF_REDUCED_MOTION, false)
+            preferences.edit().putBoolean(PREF_REDUCED_MOTION, requested).apply()
+            reducedMotion = IntroPlaybackPolicy.shouldReduceMotion(requested, systemAnimatorScale)
+            updateControls()
+            if (reducedMotion) {
+                showReducedMotion()
+            } else {
+                reducedMotionClose?.let(root::removeCallbacks)
+                play(root, terrain, volcano, wildfire, waterHazard, landslide, storm, seismicRing, flash, condor, logo, title, brand, skip, reducedMotionControl, soundControl)
+            }
+        }
+        soundControl.setOnClickListener {
+            val enabled = !preferences.getBoolean(PREF_SOUND_ENABLED, false)
+            preferences.edit().putBoolean(PREF_SOUND_ENABLED, enabled).apply()
+            if (!enabled) IntroAudioPlayback.stop()
+            updateControls()
+        }
+        updateControls()
         root.visibility = View.VISIBLE
         root.alpha = 1f
+        if (reducedMotion) {
+            IntroAudioPlayback.stop()
+            showReducedMotion()
+            return
+        }
+        reducedMotionClose?.let(root::removeCallbacks)
+        IntroAudioPlayback.start(
+            root.context,
+            rawResourceId = 0,
+            userEnabled = preferences.getBoolean(PREF_SOUND_ENABLED, false)
+        )
 
         terrain.alpha = 0f
         terrain.scaleX = 0.72f
@@ -188,18 +281,8 @@ object AlertaEcIntroController {
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
 
+        // Keep the flash layer fully transparent to avoid intense flashes.
         flash.alpha = 0f
-        flash.animate()
-            .alpha(0.42f)
-            .setStartDelay(850L)
-            .setDuration(70L)
-            .withEndAction {
-                flash.animate().alpha(0f).setDuration(90L).withEndAction {
-                    flash.animate().alpha(0.68f).setDuration(55L).withEndAction {
-                        flash.animate().alpha(0f).setDuration(180L).start()
-                    }.start()
-                }.start()
-            }.start()
 
         condor.animate()
             .alpha(0.92f)
@@ -232,7 +315,10 @@ object AlertaEcIntroController {
             .alpha(0f)
             .setStartDelay(INTRO_DURATION - 500L)
             .setDuration(500L)
-            .withEndAction { root.visibility = View.GONE }
+            .withEndAction {
+                IntroAudioPlayback.stop()
+                root.visibility = View.GONE
+            }
             .start()
     }
 }

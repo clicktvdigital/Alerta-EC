@@ -252,7 +252,9 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                 findViewById(R.id.alerta_ec_intro_logo),
                 findViewById(R.id.alerta_ec_intro_title),
                 findViewById(R.id.alerta_ec_intro_brand),
-                findViewById(R.id.alerta_ec_intro_skip)
+                findViewById(R.id.alerta_ec_intro_skip),
+                findViewById(R.id.alerta_ec_intro_motion),
+                findViewById(R.id.alerta_ec_intro_sound)
             )
         } else {
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE
@@ -328,7 +330,13 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         }
     }
 
+    override fun onPause() {
+        AlertaEcIntroController.stop()
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        AlertaEcIntroController.stop()
         super.onDestroy()
         supportFragmentManager.unregisterFragmentLifecycleCallbacks(fragmentsLifecycleCallback)
         EventBus.instance

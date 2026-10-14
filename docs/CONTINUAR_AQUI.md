@@ -532,6 +532,17 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 - Se agregó ese import. El error era de compilación compartido, no de XML ni de las pruebas; las pruebas unitarias no llegaron a ejecutarse.
 - Pendiente: confirmar compilación/pruebas en CI después del push y validar el widget en dispositivo. Gradle no se ejecuta en Termux.
 
+
+
+## Fase de intro cinematográfica — 2026-10-14
+
+- Se conservaron todas las escenas y marcas existentes. Se añadió una alternativa estática accesible de movimiento reducido, activable durante la intro y persistente entre lanzamientos; el destello intenso se eliminó en todos los modos; también sigue la escala de animación del sistema en cero.
+- Se añadieron controles accesibles de movimiento y sonido. La opción de sonido es opt-in y se muestra como pendiente mientras no haya una pista aprobada.
+- Infraestructura Android preparada con MediaPlayer/AudioFocus, volumen máximo moderado, fundido de entrada, respeto del modo de timbre silencioso/vibración y volumen multimedia cero, liberación al omitir, finalizar, pausar o destruir la actividad.
+- No se encontró audio en `res/raw` (solo datos JSON); no se descargó ni incorporó ningún efecto. La llamada entrega recurso cero, así que no hay reproducción, incluso si el usuario activa la preferencia. Sin TTS automático.
+- No se tocaron widgets, ubicaciones, datos de versión, applicationId, firma, secretos o workflows. Pruebas ligeras añadidas; no ejecutar Gradle localmente en Termux.
+- Siguiente paso: conseguir recursos propios o con licencia verificable para distribución pública, documentar autoría/licencias por archivo, sincronizar efectos a escenas y validar audio/CI/dispositivo.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
@@ -556,7 +567,7 @@ Sistema ecuatoriano de vigilancia meteorologica, emergencias naturales, segurida
 - Radar y seguimiento geografico: pendiente.
 - Notificaciones por voz y sonidos especificos: pendiente.
 - Widget meteorológico fase 1: código local implementado con condiciones actuales, lluvia minutely pronosticada, acumulación horaria, antigüedad y descripción accesible; CI/pruebas/dispositivo pendientes. Cuenta regresiva: pendiente.
-- Intro animada con sonido: pendiente.
+- Intro cinematográfica: composición existente conservada; modo de movimiento reducido y preferencia accesible de sonido agregados. La infraestructura MediaPlayer/AudioFocus está preparada, pero no hay pista local con procedencia y licencia pública verificables; los efectos reales siguen pendientes.
 - Resumen diario de las 09:00 dentro de Android: pendiente.
 
 ## FENOMENOS NATURALES
@@ -812,5 +823,20 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 - Causa raíz en ambos: `HourlyTrendWidgetIMP.kt:315` usaba `location.getPlace(context)` para la descripción accesible, pero faltaba importar la extensión `getPlace` del paquete `org.breezyweather.domain.location.model`; Kotlin informó `Unresolved reference`.
 - Corrección: añadir el import en `HourlyTrendWidgetIMP.kt`. No fue necesario modificar XML, pruebas, workflows, datos de versión o firma.
 - Las pruebas unitarias no llegaron a ejecutarse, pues falló antes la compilación Kotlin. Pendiente volver a comprobar ambas ejecuciones de CI y validar en dispositivo.
+
+
+## Intro cinematográfica — fase de accesibilidad y audio seguro (2026-10-14)
+
+Estado: infraestructura implementada; sonidos reales pendientes de recurso autorizado.
+
+- Se preservaron el logo, cóndor, terreno y escenas existentes de volcán, incendio, inundación, deslizamiento, tormenta y sismo. Se mantuvieron las animaciones cinematográficas originales para el modo normal.
+- La intro agrega un control accesible y persistente de movimiento reducido. Presenta las mismas escenas en una composición estática, reduce desplazamientos/zoom; los destellos intensos se eliminaron en todos los modos. También respeta la escala de animación del sistema cuando está en cero.
+- Se agregó una preferencia explícita de sonido. El reproductor usa MediaPlayer, atributos de uso multimedia, solicitud/liberación de audio focus, límite de volumen 0.22 y entrada gradual. No inicia en modo silencio/vibración ni con el volumen multimedia a cero.
+- Omisión, fin de la intro, pausa y destrucción de MainActivity detienen y liberan audio. No se genera voz TTS.
+- Inspección de `app/src/main/res/raw` y de recursos de audio: solo hay JSON/datos; no hay archivos de audio. No se descargó ni incorporó ningún sonido. No se identificó una pista propia ni licencia/publicación verificable compatible con distribución pública.
+- Por seguridad, el controlador se invoca sin recurso (`rawResourceId = 0`), por lo que incluso con la preferencia activada no reproduce audio. Efectos ambientales sincronizados y transiciones de audio permanecen pendientes hasta documentar autoría/licencia y añadir recursos aprobados.
+- Pruebas unitarias ligeras añadidas para consentimiento/estado silencioso/recurso disponible y política de movimiento. No se ejecutó Gradle en Termux.
+- No se alteraron widgets, ubicaciones, applicationId, versiones, firma, secretos ni workflows de Release. No se creó tag ni Release.
+- Pendiente: obtener y verificar recursos ambientales redistribuibles, registrar cada archivo y licencia, asignar audio por escena y validar escucha/transiciones/accesibilidad en dispositivo; compilar y ejecutar pruebas en CI.
 
 <!-- ALERTA_EC_AUTO_END -->
