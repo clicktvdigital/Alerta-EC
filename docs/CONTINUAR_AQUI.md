@@ -18,7 +18,8 @@
 - Evitar compilaciones locales por almacenamiento limitado.
 
 ### ULTIMO ESTADO CONFIRMADO
-- Release 0.1.4 / versionCode 104 publicada y firmada.
+- Instalación real verificada en el teléfono: 0.1.4 / versionCode 104, applicationId `com.clicktvdigital.alertaec`, certificado SHA-256 `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`.
+- 0.1.5 / versionCode 105 es únicamente una propuesta futura; la versión configurada sigue en 0.1.4 / 104.
 - Rama alerta-ec; ultimo commit de referencia 7531845b4.
 - CI y panel local previamente verificados.
 - GPS y geocodificacion Ecuador tienen implementacion inicial.
@@ -34,13 +35,13 @@
 
 ### DISTRIBUCION Y POCO ALMACENAMIENTO DEL TELEFONO
 - applicationId Release: com.clicktvdigital.alertaec.
-- Release instalada y comprobada en el telefono al iniciar este avance: 0.1.3 / versionCode 103, instalada por Obtainium.
+- Registro histórico supersedido: la verificación actual confirma instalada 0.1.4 / versionCode 104; certificado SHA-256 `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`.
 - GitHub Releases es la fuente permanente de APK firmadas.
 - Obtainium consume las Releases oficiales de clicktvdigital/Alerta-EC.
 - Mantener siempre el mismo certificado de firma para permitir actualizaciones.
 - Las compilaciones de verificacion pasan a GitHub Actions con un workflow CI en cada push a alerta-ec.
 - La Release firmada sigue siendo manual: no publicar una nueva version por cada cambio sin probar.
-- Proxima version candidata para distribuir estos cambios: 0.1.4, solo despues de CI verde y pruebas funcionales.
+- 0.1.5 / versionCode 105 es una propuesta futura solamente, no está configurada ni publicada.
 - No acumular APK, builds y logs innecesarios en el telefono.
 ### SIGUIENTE ACCION EXACTA
 1. COMPLETADO: diagnostico integral de GPS, Nominatim, Release y panel local.
@@ -52,7 +53,7 @@
 7. SIGUIENTE: confirmar CI verde en GitHub.
 8. SIGUIENTE: probar que la app muestra Atucucho, Cochapamba y que la direccion detallada conserva San Jose solamente como sector si el proveedor lo devuelve.
 9. SIGUIENTE: resolver el codigo postal con estrategia multifuente; no sobreescribir 170528 por el 170318 de OSM sin validacion.
-10. SIGUIENTE: preparar 0.1.4 prerelease, instalar mediante Obtainium y validar GPS, clima, minutely y FPAS.
+10. SIGUIENTE: validar en dispositivo GPS, clima, minutely y FPAS; no crear una Release hasta completar CI y pruebas funcionales.
 ### PRIORIDADES QUE NO SE PUEDEN OLVIDAR
 - GPS real y seguro.
 - Lluvia hiperlocal y cuenta regresiva cuando los datos tengan precision suficiente.
@@ -556,6 +557,16 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
 - Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
 
+
+
+
+## Infraestructura de publicación estable — 2026-10-13
+- Se eliminó el tag/versionado fijo y el disparador manual del workflow de Release: solo etiquetas explícitas `vMAJOR.MINOR.PATCH` pueden iniciar el flujo. La Release se publica estable después de validaciones de versión, paquete y firma.
+- Se verifican de forma estática los secretos requeridos sin mostrar sus valores, la firma APK con el certificado SHA-256 confirmado, el `applicationId`, `versionName` y `versionCode`; se publica el APK universal con archivo de checksum SHA-256.
+- Instalación real confirmada: Alerta EC 0.1.4 (104), paquete `com.clicktvdigital.alertaec`, certificado `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`. Propuesta futura únicamente: 0.1.5 (105).
+- Versiones de acciones verificadas contra revisiones ya usadas por los workflows existentes: checkout v7.0.1, setup-java v6.0.1, setup-gradle v5.0.2 y gh-release v3.0.3.
+- No se ejecutó Release ni Gradle en Termux; no se crearon tags/Releases ni se tocaron instalación, applicationId, keystore o secretos.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
@@ -823,8 +834,8 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 ### Release, firma y Obtainium
 - Inspección estática: `applicationId` configurado `com.clicktvdigital.alertaec`, `versionCode` 104 y `versionName` 0.1.4. No se modificaron esos valores ni la firma o secretos.
 - `.github/workflows/alerta-ec-ci.yml` corre en push/PR de `alerta-ec`, ejecuta pruebas unitarias y compilación Kotlin Release sin publicar.
-- `.github/workflows/alerta-ec-release.yml` compila Release firmada desde `workflow_dispatch` o el tag `v0.1.4`, usa secretos de firma y publica la Release con nombre/tag de versión fijados en el workflow. No se ejecutó ni se publicó nada. Para futuras versiones debe revisarse ese versionado fijo antes de activar el workflow; no usarlo como prueba de compatibilidad.
-- La documentación histórica registra una instalación Obtainium 0.1.3 / code 103 y una Release 0.1.4 / code 104. No se pudo consultar la APK instalada ni inspeccionar los secretos/certificado: la compatibilidad real de firma y actualización sigue sin verificar. Antes de distribuir hay que obtener de forma segura el SHA-256 del certificado de la APK instalada y compararlo con la Release firmada; comprobar mismo applicationId, `versionCode` superior, `versionName`, artefacto estable detectable por Obtainium e instalar encima sin desinstalar conservando datos cuando Android lo permita.
+- Nota histórica superada: el workflow antes admitía `workflow_dispatch` y tenía `v0.1.4` fijado. La infraestructura actualizada se documenta en la sección final de este archivo.
+- Nota histórica superada: este registro anterior indicaba que la instalación/certificado no se habían verificado; la verificación real actual confirma 0.1.4 / 104 y el SHA-256 registrado en la sección final.
 - No se cambió versión, firma, secretos, tags o releases.
 
 ### Verificaciones de este avance
@@ -862,5 +873,13 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - `IntroAudioPlayback` solicita Audio Focus transitorio y crea/reproduce/libera cada MediaPlayer por efecto. Límite por pista 0,12; no comienza sin activación explícita persistente, volumen multimedia disponible y modo de timbre normal. Omisión, movimiento reducido, pérdida de foco, pausa y destrucción cancelan tareas, detienen y liberan reproductores y abandonan foco. El sonido sigue apagado inicialmente; no hay TTS.
 - Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
 - Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
+
+
+## Infraestructura de publicación estable — 2026-10-13
+- Instalación real verificada en teléfono: `com.clicktvdigital.alertaec`, versionName 0.1.4, versionCode 104 y certificado SHA-256 `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`.
+- La configuración Gradle permanece en 0.1.4 / 104. 0.1.5 / 105 es solo una propuesta futura.
+- El workflow de Release ya no fija tag/versión ni admite ejecución manual: se activa únicamente con etiqueta explícita estable `vMAJOR.MINOR.PATCH`. Comprueba coherencia de etiqueta, versionName y versionCode, paquete de producción, presencia de secretos sin mostrarlos, firma válida y certificado exacto. Genera checksum SHA-256 del APK universal y publica como Release estable.
+- Acciones actualizadas a revisiones existentes en los workflows del repositorio. La compilación continúa en GitHub Actions.
+- Validación local limitada a inspección estática y `git diff --check`; no se ejecutó el workflow de Release ni Gradle en Termux, no se crearon tags/Releases y no se tocó APK instalada, applicationId, keystore o secretos. Pendiente CI y prueba funcional en dispositivo antes de cualquier publicación.
 
 <!-- ALERTA_EC_AUTO_END -->
