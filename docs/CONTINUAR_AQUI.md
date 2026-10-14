@@ -539,9 +539,22 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 - Se conservaron todas las escenas y marcas existentes. Se añadió una alternativa estática accesible de movimiento reducido, activable durante la intro y persistente entre lanzamientos; el destello intenso se eliminó en todos los modos; también sigue la escala de animación del sistema en cero.
 - Se añadieron controles accesibles de movimiento y sonido. La opción de sonido es opt-in y se muestra como pendiente mientras no haya una pista aprobada.
 - Infraestructura Android preparada con MediaPlayer/AudioFocus, volumen máximo moderado, fundido de entrada, respeto del modo de timbre silencioso/vibración y volumen multimedia cero, liberación al omitir, finalizar, pausar o destruir la actividad.
-- No se encontró audio en `res/raw` (solo datos JSON); no se descargó ni incorporó ningún efecto. La llamada entrega recurso cero, así que no hay reproducción, incluso si el usuario activa la preferencia. Sin TTS automático.
+- Estado histórico previo a la actualización final: `res/raw` solo tenía JSON y la intro no reproducía. Las pistas originales están ahora incorporadas según el detalle final. Sin TTS automático.
 - No se tocaron widgets, ubicaciones, datos de versión, applicationId, firma, secretos o workflows. Pruebas ligeras añadidas; no ejecutar Gradle localmente en Termux.
-- Siguiente paso: conseguir recursos propios o con licencia verificable para distribución pública, documentar autoría/licencias por archivo, sincronizar efectos a escenas y validar audio/CI/dispositivo.
+- La actualización final documenta recursos propios sintetizados y sincronizados; siguen pendientes CI y validación de escucha/foco en dispositivo.
+
+
+
+
+## Intro cinematográfica: efectos originales (2026-10-14)
+
+Estado: pistas procedurales implementadas e integradas; validación en dispositivo y CI pendiente. Esta actualización reemplaza el estado histórico inmediatamente anterior de “audio pendiente”.
+
+- Se generaron localmente con síntesis digital determinista siete WAV originales, sin grabaciones descargadas: viento (5,0 s), tormenta distante (1,8 s), sismo (1,2 s), ambiente volcánico (1,5 s), lluvia (2,0 s), deslizamiento (1,4 s) y cierre armónico (1,4 s). El tamaño conjunto es aprox. 0,60 MiB (630.938 bytes).
+- Archivos en `app/src/main/res/raw/alertaec_intro_{wind,storm,seismic,volcano,rain,landslide,closing}.wav`; mono PCM 16-bit, 22.050 Hz, picos limitados a 0,68 de escala digital (aprox. −3,35 dBFS), con entradas/salidas suaves. El guion reproducible es `scripts/generate_alerta_ec_intro_audio.py`; su autoría es propia y no tiene dependencias ni material de terceros.
+- `IntroAudioPlayback` solicita Audio Focus transitorio y crea/reproduce/libera cada MediaPlayer por efecto. Límite por pista 0,12; no comienza sin activación explícita persistente, volumen multimedia disponible y modo de timbre normal. Omisión, movimiento reducido, pérdida de foco, pausa y destrucción cancelan tareas, detienen y liberan reproductores y abandonan foco. El sonido sigue apagado inicialmente; no hay TTS.
+- Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
+- Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
 
 <!-- ALERTA_EC_AUTO_START -->
 
@@ -567,7 +580,7 @@ Sistema ecuatoriano de vigilancia meteorologica, emergencias naturales, segurida
 - Radar y seguimiento geografico: pendiente.
 - Notificaciones por voz y sonidos especificos: pendiente.
 - Widget meteorológico fase 1: código local implementado con condiciones actuales, lluvia minutely pronosticada, acumulación horaria, antigüedad y descripción accesible; CI/pruebas/dispositivo pendientes. Cuenta regresiva: pendiente.
-- Intro cinematográfica: composición existente conservada; modo de movimiento reducido y preferencia accesible de sonido agregados. La infraestructura MediaPlayer/AudioFocus está preparada, pero no hay pista local con procedencia y licencia pública verificables; los efectos reales siguen pendientes.
+- Intro cinematográfica: composición y accesibilidad conservadas; pistas ambientales originales sintetizadas e integradas en `res/raw`, con reproducción opt-in y MediaPlayer/AudioFocus. Ver actualización detallada al final del documento; CI y validación en dispositivo pendientes.
 - Resumen diario de las 09:00 dentro de Android: pendiente.
 
 ## FENOMENOS NATURALES
@@ -827,16 +840,27 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 
 ## Intro cinematográfica — fase de accesibilidad y audio seguro (2026-10-14)
 
-Estado: infraestructura implementada; sonidos reales pendientes de recurso autorizado.
+Nota histórica: la infraestructura estuvo implementada antes de sintetizar los recursos descritos en la actualización final de este documento.
 
 - Se preservaron el logo, cóndor, terreno y escenas existentes de volcán, incendio, inundación, deslizamiento, tormenta y sismo. Se mantuvieron las animaciones cinematográficas originales para el modo normal.
 - La intro agrega un control accesible y persistente de movimiento reducido. Presenta las mismas escenas en una composición estática, reduce desplazamientos/zoom; los destellos intensos se eliminaron en todos los modos. También respeta la escala de animación del sistema cuando está en cero.
 - Se agregó una preferencia explícita de sonido. El reproductor usa MediaPlayer, atributos de uso multimedia, solicitud/liberación de audio focus, límite de volumen 0.22 y entrada gradual. No inicia en modo silencio/vibración ni con el volumen multimedia a cero.
 - Omisión, fin de la intro, pausa y destrucción de MainActivity detienen y liberan audio. No se genera voz TTS.
-- Inspección de `app/src/main/res/raw` y de recursos de audio: solo hay JSON/datos; no hay archivos de audio. No se descargó ni incorporó ningún sonido. No se identificó una pista propia ni licencia/publicación verificable compatible con distribución pública.
-- Por seguridad, el controlador se invoca sin recurso (`rawResourceId = 0`), por lo que incluso con la preferencia activada no reproduce audio. Efectos ambientales sincronizados y transiciones de audio permanecen pendientes hasta documentar autoría/licencia y añadir recursos aprobados.
+- Estado histórico previo: `res/raw` solo contenía JSON/datos. La actualización final documenta la síntesis original propia que resolvió esa carencia.
+- Estado histórico previo a la actualización final: el controlador recibía recurso cero y no reproducía. Las pistas propias ahora están generadas e integradas; consultar la actualización final para su lista y sincronía.
 - Pruebas unitarias ligeras añadidas para consentimiento/estado silencioso/recurso disponible y política de movimiento. No se ejecutó Gradle en Termux.
 - No se alteraron widgets, ubicaciones, applicationId, versiones, firma, secretos ni workflows de Release. No se creó tag ni Release.
 - Pendiente: obtener y verificar recursos ambientales redistribuibles, registrar cada archivo y licencia, asignar audio por escena y validar escucha/transiciones/accesibilidad en dispositivo; compilar y ejecutar pruebas en CI.
+
+
+## Intro cinematográfica: efectos originales (2026-10-14)
+
+Estado: pistas procedurales implementadas e integradas; validación en dispositivo y CI pendiente. Esta actualización reemplaza el estado histórico inmediatamente anterior de “audio pendiente”.
+
+- Se generaron localmente con síntesis digital determinista siete WAV originales, sin grabaciones descargadas: viento (5,0 s), tormenta distante (1,8 s), sismo (1,2 s), ambiente volcánico (1,5 s), lluvia (2,0 s), deslizamiento (1,4 s) y cierre armónico (1,4 s). El tamaño conjunto es aprox. 0,60 MiB (630.938 bytes).
+- Archivos en `app/src/main/res/raw/alertaec_intro_{wind,storm,seismic,volcano,rain,landslide,closing}.wav`; mono PCM 16-bit, 22.050 Hz, picos limitados a 0,68 de escala digital (aprox. −3,35 dBFS), con entradas/salidas suaves. El guion reproducible es `scripts/generate_alerta_ec_intro_audio.py`; su autoría es propia y no tiene dependencias ni material de terceros.
+- `IntroAudioPlayback` solicita Audio Focus transitorio y crea/reproduce/libera cada MediaPlayer por efecto. Límite por pista 0,12; no comienza sin activación explícita persistente, volumen multimedia disponible y modo de timbre normal. Omisión, movimiento reducido, pérdida de foco, pausa y destrucción cancelan tareas, detienen y liberan reproductores y abandonan foco. El sonido sigue apagado inicialmente; no hay TTS.
+- Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
+- Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
 
 <!-- ALERTA_EC_AUTO_END -->

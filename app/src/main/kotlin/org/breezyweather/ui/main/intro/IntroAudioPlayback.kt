@@ -11,18 +11,21 @@ import android.os.Looper
 
 /** Plays only an explicitly supplied bundled track after the user opts in. */
 internal object IntroAudioPlayback {
-    private const val MAX_VOLUME = 0.22f
+    private const val MAX_VOLUME = 0.12f
     private val handler = Handler(Looper.getMainLooper())
-    private var player: MediaPlayer? = null
+    private val players = mutableSetOf<MediaPlayer>()
+    private var pendingCues = 0
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         if (change < 0) stop()
     }
 
-    fun start(context: Context, rawResourceId: Int, userEnabled: Boolean) {
+    data class Cue(val delayMs: Long, val resourceId: Int)
+
+    fun start(context: Context, cues: List<Cue>, userEnabled: Boolean) {
         stop()
-        if (!userEnabled || rawResourceId == 0) return
+        if (!userEnabled || cues.isEmpty() || cues.any { it.resourceId == 0 }) return
         val manager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
         if (manager.ringerMode != AudioManager.RINGER_MODE_NORMAL ||
             manager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0
@@ -50,17 +53,32 @@ internal object IntroAudioPlayback {
             return
         }
         try {
-            player = MediaPlayer.create(context.applicationContext, rawResourceId)?.apply {
-                setAudioAttributes(attributes)
-                setVolume(0f, 0f)
-                setOnCompletionListener { stop() }
-                start()
+            pendingCues = cues.size
+            cues.forEach { cue ->
+                handler.postDelayed({ playCue(context.applicationContext, attributes, cue) }, cue.delayMs)
             }
-            if (player == null) {
-                abandonFocus()
+        } catch (_: RuntimeException) {
+            stop()
+        }
+    }
+
+    private fun playCue(context: Context, attributes: AudioAttributes, cue: Cue) {
+        pendingCues--
+        try {
+            val activePlayer = MediaPlayer.create(context, cue.resourceId)
+            if (activePlayer == null) {
+                if (pendingCues == 0 && players.isEmpty()) abandonFocus()
                 return
             }
-            fadeIn()
+            players += activePlayer
+            activePlayer.setAudioAttributes(attributes)
+            activePlayer.setVolume(MAX_VOLUME, MAX_VOLUME)
+            activePlayer.setOnCompletionListener {
+                players.remove(it)
+                it.release()
+                if (pendingCues == 0 && players.isEmpty()) abandonFocus()
+            }
+            activePlayer.start()
         } catch (_: RuntimeException) {
             stop()
         }
@@ -68,17 +86,13 @@ internal object IntroAudioPlayback {
 
     fun stop() {
         handler.removeCallbacksAndMessages(null)
-        player?.let { activePlayer -> runCatching { activePlayer.stop() } }
-        player?.release()
-        player = null
+        players.toList().forEach { activePlayer ->
+            runCatching { activePlayer.stop() }
+            activePlayer.release()
+        }
+        players.clear()
+        pendingCues = 0
         abandonFocus()
-    }
-
-    private fun fadeIn(step: Int = 0) {
-        val activePlayer = player ?: return
-        val volume = (step / 8f * MAX_VOLUME).coerceIn(0f, MAX_VOLUME)
-        activePlayer.setVolume(volume, volume)
-        if (step < 8) handler.postDelayed({ fadeIn(step + 1) }, 35L)
     }
 
     private fun abandonFocus() {

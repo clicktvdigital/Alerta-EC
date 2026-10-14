@@ -3,8 +3,8 @@
     <string name="alertaec_intro_skip">Skip introduction</string>
     <string name="alertaec_intro_motion_off">Reduced motion: off</string>
     <string name="alertaec_intro_motion_on">Reduced motion: on</string>
-    <string name="alertaec_intro_sound_disabled_pending">Sound: off; audio pending</string>
-    <string name="alertaec_intro_sound_enabled_pending">Sound allowed; audio pending</string>
+    <string name="alertaec_intro_sound_disabled">Sound: off</string>
+    <string name="alertaec_intro_sound_enabled">Sound: on</string>
     <string name="alertaec_intro_description">Alerta EC animated introduction</string>
 
     <!-- App -->

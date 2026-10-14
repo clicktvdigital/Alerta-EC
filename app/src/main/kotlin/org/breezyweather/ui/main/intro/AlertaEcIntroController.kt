@@ -2,6 +2,7 @@ package org.breezyweather.ui.main.intro
 
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.View
 import android.widget.TextView
@@ -46,17 +47,41 @@ object AlertaEcIntroController {
             systemAnimatorScale
         )
         val layers = listOf(root, terrain, volcano, wildfire, waterHazard, landslide, storm, seismicRing, flash, condor, logo, title, brand)
+        val soundCues = listOf(
+            IntroAudioPlayback.Cue(0L, R.raw.alertaec_intro_wind),
+            IntroAudioPlayback.Cue(250L, R.raw.alertaec_intro_storm),
+            IntroAudioPlayback.Cue(300L, R.raw.alertaec_intro_seismic),
+            IntroAudioPlayback.Cue(1250L, R.raw.alertaec_intro_volcano),
+            IntroAudioPlayback.Cue(3150L, R.raw.alertaec_intro_rain),
+            IntroAudioPlayback.Cue(3350L, R.raw.alertaec_intro_landslide),
+            IntroAudioPlayback.Cue(3900L, R.raw.alertaec_intro_closing),
+        )
+        var introStartedAt = 0L
+        fun startAudioFromCurrentScene() {
+            if (introStartedAt == 0L || reducedMotion) return
+            val elapsed = SystemClock.elapsedRealtime() - introStartedAt
+            if (elapsed >= INTRO_DURATION) return
+            val upcoming = soundCues.filter { it.delayMs > elapsed }
+                .map { it.copy(delayMs = it.delayMs - elapsed) }
+                .ifEmpty { listOf(IntroAudioPlayback.Cue(0L, R.raw.alertaec_intro_closing)) }
+            IntroAudioPlayback.start(
+                root.context,
+                cues = upcoming,
+                userEnabled = preferences.getBoolean(PREF_SOUND_ENABLED, false)
+            )
+        }
         var reducedMotionClose: Runnable? = null
         fun updateControls() {
             val motionLabel = root.context.getString(if (reducedMotion) R.string.alertaec_intro_motion_on else R.string.alertaec_intro_motion_off)
             (reducedMotionControl as TextView).apply { text = motionLabel; contentDescription = motionLabel }
             val soundLabel = root.context.getString(
-                if (preferences.getBoolean(PREF_SOUND_ENABLED, false)) R.string.alertaec_intro_sound_enabled_pending
-                else R.string.alertaec_intro_sound_disabled_pending
+                if (preferences.getBoolean(PREF_SOUND_ENABLED, false)) R.string.alertaec_intro_sound_enabled
+                else R.string.alertaec_intro_sound_disabled
             )
             (soundControl as TextView).apply { text = soundLabel; contentDescription = soundLabel }
         }
         fun showReducedMotion() {
+            IntroAudioPlayback.stop()
             layers.forEach { it.animate().cancel() }
             root.visibility = View.VISIBLE
             root.alpha = 1f
@@ -110,6 +135,7 @@ object AlertaEcIntroController {
             preferences.edit().putBoolean(PREF_SOUND_ENABLED, enabled).apply()
             if (!enabled) IntroAudioPlayback.stop()
             updateControls()
+            if (enabled && root.visibility == View.VISIBLE) startAudioFromCurrentScene()
         }
         updateControls()
         root.visibility = View.VISIBLE
@@ -120,11 +146,8 @@ object AlertaEcIntroController {
             return
         }
         reducedMotionClose?.let(root::removeCallbacks)
-        IntroAudioPlayback.start(
-            root.context,
-            rawResourceId = 0,
-            userEnabled = preferences.getBoolean(PREF_SOUND_ENABLED, false)
-        )
+        introStartedAt = SystemClock.elapsedRealtime()
+        startAudioFromCurrentScene()
 
         terrain.alpha = 0f
         terrain.scaleX = 0.72f

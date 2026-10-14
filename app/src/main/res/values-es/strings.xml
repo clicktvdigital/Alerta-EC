@@ -3,8 +3,8 @@
     <string name="alertaec_intro_skip">Omitir introducción</string>
     <string name="alertaec_intro_motion_off">Movimiento reducido: desactivado</string>
     <string name="alertaec_intro_motion_on">Movimiento reducido: activado</string>
-    <string name="alertaec_intro_sound_disabled_pending">Audio: desactivado; pistas pendientes</string>
-    <string name="alertaec_intro_sound_enabled_pending">Audio permitido; pistas pendientes</string>
+    <string name="alertaec_intro_sound_disabled">Audio: desactivado</string>
+    <string name="alertaec_intro_sound_enabled">Audio: activado</string>
     <string name="alertaec_intro_description">Introducción animada de Alerta EC</string>
 
     <!-- app. -->

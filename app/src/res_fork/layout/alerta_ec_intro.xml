@@ -38,7 +38,7 @@
         android:clickable="true"
         android:focusable="true"
         android:padding="12dp"
-        android:text="@string/alertaec_intro_sound_disabled_pending"
+        android:text="@string/alertaec_intro_sound_disabled"
         android:textColor="#FFFFFF"
         android:textSize="14sp" />
 
