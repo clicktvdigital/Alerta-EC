@@ -516,11 +516,20 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 - No se ejecuta Gradle local en Termux. Verificar `git diff --check` y solo verificaciones ligeras disponibles; push únicamente si no hay error verificable. CI remota/dispositivo quedan como validaciones posteriores si no pueden comprobarse ahora.
 - Próximo paso: ejecutar CI en `alerta-ec`, revisar resultado; luego validar en dispositivo un ciclo con minutely futuro, vencido/vacío y confirmar que solo la notificación original informa precipitación. Después priorizar una mejora horaria accesible con fuente, hora y recomendación, sin duplicar alertas.
 
+## Avance 2026-10-13 — widget meteorológico fase 1
+
+- Se inspeccionaron presenters, layouts, proveedores, modelos y configuración de unidades existentes antes del cambio.
+- Material You presenta condiciones actuales, lluvia minutely próxima y previsión horaria con acumulación por hora. La tasa mm/h se integra sobre los intervalos reales para obtener mm acumulados; la tasa máxima se mantiene claramente diferenciada. Minutely sigue siendo pronóstico, nunca lluvia observada.
+- Hourly Trend muestra acumulación horaria por celda y texto accesible con hora, temperatura y acumulación. Temperatura automática en ubicaciones de Ecuador usa °C sin reemplazar una preferencia manual; las unidades de precipitación del widget son mm y mm/h. Los tiempos se formatean con la zona horaria de la ubicación y se incluye antigüedad.
+- TalkBack recibe condiciones, resumen de lluvia, horas disponibles y actualización; los estados sin pronóstico y sin lluvia pronosticada son distintos.
+- Pruebas unitarias añadidas para acumulación por intervalos, datos sin lluvia, selección de unidad y antigüedad; no ejecutadas porque no se debe ejecutar Gradle en Termux. Solo están escritas, no se declara compilación ni prueba exitosa.
+- Pendiente: CI GitHub, validación física de los tamaños y accesibilidad, y evitar confundir el resumen del widget con la única ruta de notificación original. El widget Material You aún muestra seis horas en sus layouts; ampliar a 12–24 horas según tamaño y exponer el resumen minutely como texto visible en layouts compactos queda pendiente. No se cambió applicationId, versión, firma, logo o intro, ni se creó Release/tag.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
 
-Actualizado: 2026-10-12
+Actualizado: 2026-10-13
 Proyecto: Alerta EC
 Repositorio: clicktvdigital/Alerta-EC
 Rama de desarrollo: alerta-ec
@@ -539,7 +548,7 @@ Sistema ecuatoriano de vigilancia meteorologica, emergencias naturales, segurida
 - Camaras publicas autorizadas: pendiente.
 - Radar y seguimiento geografico: pendiente.
 - Notificaciones por voz y sonidos especificos: pendiente.
-- Widget horario y cuenta regresiva: pendiente.
+- Widget meteorológico fase 1: código local implementado con condiciones actuales, lluvia minutely pronosticada, acumulación horaria, antigüedad y descripción accesible; CI/pruebas/dispositivo pendientes. Cuenta regresiva: pendiente.
 - Intro animada con sonido: pendiente.
 - Resumen diario de las 09:00 dentro de Android: pendiente.
 
@@ -746,5 +755,19 @@ Estado: IMPLEMENTADO / COMPILADO EN CI.
 - Los eventos generados desde pronostico permanecen etiquetados como FORECAST; no deben presentarse como observaciones reales ni alertas oficiales.
 - Pendiente: prueba funcional en dispositivo, deduplicacion, notificaciones Alerta EC, sonido, vibracion y TTS.
 - Este hito NO constituye una Release publica ni una actualizacion de Obtainium.
+
+### Widget meteorológico Alerta EC — fase 1 (2026-10-13)
+
+Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES.
+
+- Se revisaron los presenters HourlyTrendWidgetIMP y MaterialYouForecastWidgetIMP, sus layouts y proveedores, los modelos Weather/Current/Hourly/Minutely/Base y la resolución de unidades de SettingsManager.
+- Material You prioriza condiciones actuales, muestra lluvia próxima cuando hay intervalos minutely futuros y deja explícito que es pronóstico. El total se calcula integrando la tasa mm/h por la duración real de cada intervalo y se presenta como mm acumulados, con tasa máxima aparte en mm/h.
+- La previsión horaria de Material You agrega la acumulación horaria en mm junto a la temperatura. La descripción accesible incluye condiciones actuales, lluvia próxima, hasta 24 horas de datos disponibles y antigüedad de actualización.
+- Hourly Trend incluye la acumulación horaria en mm por celda y un texto accesible para cada hora renderizada.
+- En ubicaciones de Ecuador se usa Celsius cuando la preferencia está en automático; una unidad configurada manualmente conserva prioridad. La precipitación del widget se expresa en mm y mm/h, sin cambiar las preferencias globales.
+- Los horarios usan la zona horaria de Location. No se inventan observaciones, radar, trayectoria, ETA ni cuenta regresiva. Sin datos minutely futuros se informa que falta pronóstico; una serie disponible sin lluvia se distingue de una serie ausente.
+- Se añadieron pruebas unitarias para integración de mm/h por intervalo, ausencia de lluvia pronosticada, prioridad de unidad manual y antigüedad de datos. No se ejecutaron: no correr Gradle en Termux.
+- Limitación de esta fase: las celdas visibles de Material You siguen mostrando hasta seis horas debido a los layouts actuales; las 12–24 horas solo quedan incluidas en la lectura accesible cuando los datos están disponibles. Extender visualmente el horizonte según tamaño sigue pendiente. Los layouts compactos sin campo secundario presentan el detalle de lluvia en TalkBack, no como texto visible.
+- Pendiente: validar compilación y pruebas mediante CI de GitHub, probar en dispositivo todos los tamaños, TalkBack, texto grande, datos vacíos/vencidos y confirmar que la notificación de minutely continúa siendo únicamente la ruta original de Breezy Weather. No se modificaron applicationId, versión, firma, logo ni intro y no se publicó Release.
 
 <!-- ALERTA_EC_AUTO_END -->

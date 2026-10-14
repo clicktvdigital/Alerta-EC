@@ -48,6 +48,7 @@ import org.breezyweather.ui.theme.resource.ResourceHelper
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
 import org.breezyweather.ui.theme.weatherView.WeatherViewController
 import org.breezyweather.unit.formatting.UnitWidth
+import org.breezyweather.unit.precipitation.PrecipitationUnit
 import java.util.Date
 import kotlin.math.max
 import kotlin.math.min
@@ -102,7 +103,12 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
         var highestTemperature: Float? = null
         var lowestTemperature: Float? = null
         val settings = SettingsManager.getInstance(context)
-        val temperatureUnit = settings.getTemperatureUnit(context)
+        val temperatureUnit = resolveWidgetTemperatureUnit(
+            settings.temperatureUnit,
+            location.countryCode,
+            location.country,
+            settings.getTemperatureUnit(context)
+        )
         val minimalIcon = settings.isWidgetUsingMonochromeIcons
         val lightTheme = color.isLightThemed
 
@@ -181,7 +187,14 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
         widgetItemViews.forEachIndexed { i, widgetItemView ->
             weather.nextHourlyForecast.getOrNull(i)?.let { hourly ->
                 widgetItemView.setTitleText(hourly.date.getHour(location, context))
-                widgetItemView.setSubtitleText(null)
+                widgetItemView.setSubtitleText(
+                    hourly.precipitation?.total?.formatMeasure(
+                        context,
+                        PrecipitationUnit.MILLIMETER,
+                        UnitWidth.NARROW,
+                        UnitWidth.NARROW
+                    )
+                )
                 hourly.weatherCode?.let {
                     widgetItemView.setTopIconDrawable(
                         ResourceHelper.getWidgetNotificationIcon(
@@ -263,7 +276,13 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
             "auto",
             location?.isDaylight ?: true
         )
-        val drawableView = getDrawableView(context, location, color) ?: return views
+        val drawableView = getDrawableView(context, location, color) ?: run {
+            views.setContentDescription(
+                R.id.widget_remote_drawable,
+                context.getString(R.string.alertaec_widget_no_data)
+            )
+            return views
+        }
         if (location == null) return views
 
         val items: Array<WidgetItemView> = arrayOf(
@@ -290,6 +309,28 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
         val canvas = Canvas(cache)
         drawableView.draw(canvas)
         views.setImageViewBitmap(R.id.widget_remote_drawable, cache)
+        views.setContentDescription(
+            R.id.widget_remote_drawable,
+            location.weather?.nextHourlyForecast?.take(5)?.takeIf { it.isNotEmpty() }?.let { hours ->
+                context.getString(R.string.alertaec_widget_hourly_forecast) + ". " + hours.joinToString(". ") { hour ->
+                    buildString {
+                        append(hour.date.getHour(location, context))
+                        hour.temperature?.temperature?.formatMeasure(
+                            context,
+                            temperatureUnitForLocation(context, location),
+                            UnitWidth.NARROW,
+                            UnitWidth.LONG
+                        )?.let { append(": ").append(it) }
+                        hour.precipitation?.total?.formatMeasure(
+                            context,
+                            PrecipitationUnit.MILLIMETER,
+                            UnitWidth.SHORT,
+                            UnitWidth.SHORT
+                        )?.let { append(", ").append(context.getString(R.string.alertaec_widget_hourly_rain, it)) }
+                    }
+                }
+            } ?: context.getString(R.string.alertaec_widget_no_data)
+        )
         views.setViewVisibility(R.id.widget_remote_progress, View.GONE)
         views.setImageViewResource(R.id.widget_remote_card, getCardBackgroundId(color))
         views.setInt(R.id.widget_remote_card, "setImageAlpha", (cardAlpha / 100.0 * 255).toInt())
@@ -302,6 +343,14 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
             .getAppWidgetIds(ComponentName(context, WidgetTrendHourlyProvider::class.java))
         return widgetIds != null && widgetIds.isNotEmpty()
     }
+
+    private fun temperatureUnitForLocation(context: Context, location: Location) =
+        resolveWidgetTemperatureUnit(
+            SettingsManager.getInstance(context).temperatureUnit,
+            location.countryCode,
+            location.country,
+            SettingsManager.getInstance(context).getTemperatureUnit(context)
+        )
 
     private fun buildTemperatureArrayForItem(temps: Array<Float?>, index: Int): Array<Float?> {
         val a = arrayOfNulls<Float>(3)

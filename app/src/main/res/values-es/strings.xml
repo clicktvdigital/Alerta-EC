@@ -821,4 +821,15 @@
     <string name="message_please_wait_refresh">Espera a que finalice la actualización</string>
     <string name="settings_main_background_title">Fondo basado en el tiempo</string>
     <string name="settings_weather_source_no_longer_exists">%s (ya no existe)</string>
+    <string name="alertaec_widget_rain_forecast">Lluvia pronosticada</string>
+    <string name="alertaec_widget_rain_window">Lluvia pronosticada %1$s–%2$s: %3$s mm acumulados, tasa máxima %4$s mm/h</string>
+    <string name="alertaec_widget_no_rain">Sin lluvia indicada en el pronóstico próximo disponible</string>
+    <string name="alertaec_widget_updated">Actualizado hace %1$s</string>
+    <string name="alertaec_widget_minutes">%1$d min</string>
+    <string name="alertaec_widget_hours">%1$d h</string>
+    <string name="alertaec_widget_no_data">No hay datos meteorológicos disponibles</string>
+    <string name="alertaec_widget_current">Condiciones actuales</string>
+    <string name="alertaec_widget_hourly_rain">%1$s mm en esta hora</string>
+    <string name="alertaec_widget_no_rain_data">No hay datos de pronóstico de precipitación a corto plazo</string>
+    <string name="alertaec_widget_hourly_forecast">Pronóstico por hora</string>
 </resources>

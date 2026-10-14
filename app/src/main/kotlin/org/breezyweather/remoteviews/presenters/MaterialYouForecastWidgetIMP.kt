@@ -29,18 +29,22 @@ import org.breezyweather.R
 import org.breezyweather.background.receiver.widget.WidgetMaterialYouForecastProvider
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.common.extensions.getHour
+import org.breezyweather.common.extensions.is12Hour
+import org.breezyweather.common.extensions.getFormattedTime
+import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.options.NotificationTextColor
 import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
-import org.breezyweather.domain.weather.model.getName
-import org.breezyweather.domain.weather.model.getShortDescription
 import org.breezyweather.domain.weather.model.getWeek
 import org.breezyweather.domain.weather.model.isToday
 import org.breezyweather.remoteviews.Widgets
 import org.breezyweather.ui.theme.resource.ResourceHelper
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
 import org.breezyweather.unit.formatting.UnitWidth
+import org.breezyweather.unit.precipitation.PrecipitationUnit
+import java.text.NumberFormat
+import java.util.Date
 
 class MaterialYouForecastWidgetIMP : AbstractRemoteViewsPresenter() {
 
@@ -130,11 +134,20 @@ private fun buildRemoteViews(
 ): RemoteViews {
     val views = RemoteViews(context.packageName, layoutId)
 
-    val weather = location?.weather ?: return views
+    val weather = location?.weather ?: run {
+        views.setContentDescription(android.R.id.background, context.getString(R.string.alertaec_widget_no_data))
+        return views
+    }
     val dayTime = location.isDaylight
 
     val provider = ResourcesProviderFactory.newInstance
-    val temperatureUnit = SettingsManager.getInstance(context).getTemperatureUnit(context)
+    val settings = SettingsManager.getInstance(context)
+    val temperatureUnit = resolveWidgetTemperatureUnit(
+        settings.temperatureUnit,
+        location.countryCode,
+        location.country,
+        settings.getTemperatureUnit(context)
+    )
 
     views.setTextViewText(
         R.id.widget_material_you_forecast_city,
@@ -190,18 +203,36 @@ private fun buildRemoteViews(
         )
     }
 
+    val now = Date()
+    val rainWindow = nextForecastRainWindow(weather.minutelyForecast, now)
+    val futureMinutely = weather.minutelyForecast.filter { it.date >= now && it.minuteInterval > 0 }
+    val hasFutureMinutely = futureMinutely.isNotEmpty() && futureMinutely.all { it.precipitationIntensity != null }
+    val rainText = rainWindow?.let { window ->
+        val peakRate = weather.minutelyForecast
+            .filter { it.date >= window.start && it.date < window.end }
+            .mapNotNull { it.precipitationIntensity?.inMillimeters }
+            .maxOrNull() ?: 0.0
+        context.getString(
+            R.string.alertaec_widget_rain_window,
+            window.start.getFormattedTime(location, context, context.is12Hour),
+            window.end.getFormattedTime(location, context, context.is12Hour),
+            formatMillimeters(context, window.accumulationMm),
+            formatMillimeters(context, peakRate)
+        )
+    } ?: context.getString(
+        if (hasFutureMinutely) R.string.alertaec_widget_no_rain else R.string.alertaec_widget_no_rain_data
+    )
+    val updateAge = updateAgeMinutes(now, weather.base.refreshTime)?.let { minutes ->
+        context.getString(
+            if (minutes < 60) R.string.alertaec_widget_minutes else R.string.alertaec_widget_hours,
+            if (minutes < 60) minutes else minutes / 60
+        )
+    }
     views.setTextViewText(
         R.id.widget_material_you_forecast_aqiOrWind,
-        weather.current?.let { current ->
-            if (current.airQuality?.isIndexValid == true) {
-                context.getString(R.string.air_quality) + " – " + current.airQuality!!.getName(context)
-            } else {
-                current.wind?.let { wind ->
-                    wind.getShortDescription(context)?.let {
-                        context.getString(R.string.wind) + " – " + it
-                    }
-                }
-            }
+        buildString {
+            append(rainText)
+            updateAge?.let { append(" · ").append(context.getString(R.string.alertaec_widget_updated, it)) }
         }
     )
 
@@ -254,14 +285,23 @@ private fun buildRemoteViews(
                 )
             )
         } ?: views.setViewVisibility(hourlyId[1], View.INVISIBLE)
+        val hourly = weather.nextHourlyForecast.getOrNull(i)
+        val temperature = hourly?.temperature?.temperature?.formatMeasure(
+            context,
+            temperatureUnit,
+            valueWidth = UnitWidth.NARROW,
+            unitWidth = UnitWidth.NARROW
+        )
+        val accumulation = hourly?.precipitation?.total?.formatMeasure(
+            context,
+            PrecipitationUnit.MILLIMETER,
+            UnitWidth.NARROW,
+            UnitWidth.NARROW
+        )
         views.setTextViewText(
             hourlyId[2],
-            weather.nextHourlyForecast.getOrNull(i)?.temperature?.temperature?.formatMeasure(
-                context,
-                temperatureUnit,
-                valueWidth = UnitWidth.NARROW,
-                unitWidth = UnitWidth.NARROW
-            )
+            listOfNotNull(temperature, accumulation).joinToString("\n")
+                .ifEmpty { context.getString(R.string.widget_ellipsis) }
         )
     }
 
@@ -368,6 +408,38 @@ private fun buildRemoteViews(
         } ?: views.setViewVisibility(dailyId[4], View.INVISIBLE)
     }
 
+    val currentSummary = buildString {
+        append(context.getString(R.string.alertaec_widget_current))
+        weather.current?.weatherText?.let { append(": ").append(it) }
+        weather.current?.temperature?.temperature?.formatMeasure(
+            context,
+            temperatureUnit,
+            UnitWidth.NARROW,
+            UnitWidth.NARROW
+        )?.let { append(", ").append(it) }
+    }
+    val hourlySummary = weather.nextHourlyForecast.take(24).mapNotNull { hour ->
+        val temperature = hour.temperature?.temperature?.formatMeasure(
+            context, temperatureUnit, UnitWidth.NARROW, UnitWidth.NARROW
+        )
+        val rain = hour.precipitation?.total?.formatMeasure(
+            context, PrecipitationUnit.MILLIMETER, UnitWidth.NARROW, UnitWidth.NARROW
+        )
+        if (temperature == null && rain == null) null else buildString {
+            append(hour.date.getHour(location, context))
+            temperature?.let { append(": ").append(it) }
+            rain?.let { append(", ").append(context.getString(R.string.alertaec_widget_hourly_rain, it)) }
+        }
+    }
+    val accessibleDescription = buildList {
+        add(currentSummary)
+        add(rainText)
+        if (hourlySummary.isNotEmpty()) add(context.getString(R.string.alertaec_widget_hourly_forecast))
+        addAll(hourlySummary)
+        updateAge?.let { add(context.getString(R.string.alertaec_widget_updated, it)) }
+    }.joinToString(". ")
+    views.setContentDescription(android.R.id.background, accessibleDescription)
+
     // pending intent.
     views.setOnClickPendingIntent(
         android.R.id.background,
@@ -380,3 +452,7 @@ private fun buildRemoteViews(
 
     return views
 }
+
+private fun formatMillimeters(context: Context, value: Double): String =
+    NumberFormat.getNumberInstance(context.currentLocale).apply { maximumFractionDigits = 1 }
+        .format(value)
