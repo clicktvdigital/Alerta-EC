@@ -26,8 +26,9 @@ No se modificaron applicationId, firma, versiones, logo ni intro. No se activó 
 
 ## Commit y push
 
-- Commit: pendiente al preparar este informe.
-- Push a `alerta-ec`: pendiente.
+- Commit de implementación: `597f3205c` (`feat(alerta-ec): guard minutely forecast parsing`).
+- Push: correcto a `origin/alerta-ec` (`0c73a5d76..597f3205c`). No se publicó a `main` ni se crearon tags o releases.
+- Este informe se completa en un commit documental posterior para registrar el resultado del push.
 - Rama objetivo: `alerta-ec`; no se usa `main`, tags, releases ni repositorios nuevos.
 
 ## Próximo paso
