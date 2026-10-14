@@ -525,6 +525,13 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 - Pruebas unitarias añadidas para acumulación por intervalos, datos sin lluvia, selección de unidad y antigüedad; no ejecutadas porque no se debe ejecutar Gradle en Termux. Solo están escritas, no se declara compilación ni prueba exitosa.
 - Pendiente: CI GitHub, validación física de los tamaños y accesibilidad, y evitar confundir el resumen del widget con la única ruta de notificación original. El widget Material You aún muestra seis horas en sus layouts; ampliar a 12–24 horas según tamaño y exponer el resumen minutely como texto visible en layouts compactos queda pendiente. No se cambió applicationId, versión, firma, logo o intro, ni se creó Release/tag.
 
+
+
+## Diagnóstico CI — commit 550df16d51 (2026-10-14)
+- Los runs 38490947969 (APK Debug) y 38490946868 (Verificación continua) fallaron durante `:app:compileBasicDebugKotlin` en `HourlyTrendWidgetIMP.kt:315`: `getPlace` no se resolvía sobre `Location` porque faltaba importar la extensión `org.breezyweather.domain.location.model.getPlace`.
+- Se agregó ese import. El error era de compilación compartido, no de XML ni de las pruebas; las pruebas unitarias no llegaron a ejecutarse.
+- Pendiente: confirmar compilación/pruebas en CI después del push y validar el widget en dispositivo. Gradle no se ejecuta en Termux.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
@@ -799,5 +806,11 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 ### Verificaciones de este avance
 - Pasaron `git diff --check`, `scripts/validate_alerta_ec.py`, parseo XML de los 13 layouts/recursos modificados y `py_compile` de los dos scripts de validación/sincronización. Gradle local no se ejecutó.
 - Si las verificaciones ligeras pasan, crear commit y hacer push únicamente a `origin/alerta-ec`, sin tag ni Release.
+
+## Corrección CI — 2026-10-14
+- Runs fallidos sobre `550df16d51`: APK Debug `38490947969` y Verificación continua `38490946868`.
+- Causa raíz en ambos: `HourlyTrendWidgetIMP.kt:315` usaba `location.getPlace(context)` para la descripción accesible, pero faltaba importar la extensión `getPlace` del paquete `org.breezyweather.domain.location.model`; Kotlin informó `Unresolved reference`.
+- Corrección: añadir el import en `HourlyTrendWidgetIMP.kt`. No fue necesario modificar XML, pruebas, workflows, datos de versión o firma.
+- Las pruebas unitarias no llegaron a ejecutarse, pues falló antes la compilación Kotlin. Pendiente volver a comprobar ambas ejecuciones de CI y validar en dispositivo.
 
 <!-- ALERTA_EC_AUTO_END -->

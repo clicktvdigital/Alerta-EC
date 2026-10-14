@@ -274,6 +274,13 @@ El widget prioriza condiciones actuales, lluvia próxima pronosticada y acumulac
 
 La previsión Hourly Trend también ofrece texto accesible para cada hora mostrada. La primera fase reutiliza las seis celdas horarias visibles que ya ofrecen los layouts Material You; expandirlas visualmente a 12–24 horas según el tamaño, validar TalkBack/dispositivo y ejecutar CI siguen pendientes. Sin datos minutely el widget indica que no hay pronóstico de corto plazo.
 
+
+
+## CI en `550df16d` (2026-10-14)
+- Los runs 38490947969 (APK Debug) y 38490946868 (Verificación continua) fallaron al compilar `HourlyTrendWidgetIMP.kt:315`: faltaba importar la extensión `Location.getPlace`, por lo que Kotlin no resolvía la llamada de descripción accesible del widget horario. Ambos logs apuntan a esta misma causa; el job de pruebas tampoco alcanzó a ejecutar las pruebas unitarias.
+- Se agregó el import de la extensión existente. No se cambió el texto accesible, las funciones del widget ni la configuración de CI.
+- Pendiente: CI y pruebas unitarias tras el push, y pruebas visuales/accesibles en dispositivo. No se ejecutó Gradle en Termux.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
@@ -548,5 +555,11 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 ### Verificaciones de este avance
 - Pasaron `git diff --check`, `scripts/validate_alerta_ec.py`, parseo XML de los 13 layouts/recursos modificados y `py_compile` de los dos scripts de validación/sincronización. Gradle local no se ejecutó.
 - Si las verificaciones ligeras pasan, crear commit y hacer push únicamente a `origin/alerta-ec`, sin tag ni Release.
+
+## Corrección CI — 2026-10-14
+- Runs fallidos sobre `550df16d51`: APK Debug `38490947969` y Verificación continua `38490946868`.
+- Causa raíz en ambos: `HourlyTrendWidgetIMP.kt:315` usaba `location.getPlace(context)` para la descripción accesible, pero faltaba importar la extensión `getPlace` del paquete `org.breezyweather.domain.location.model`; Kotlin informó `Unresolved reference`.
+- Corrección: añadir el import en `HourlyTrendWidgetIMP.kt`. No fue necesario modificar XML, pruebas, workflows, datos de versión o firma.
+- Las pruebas unitarias no llegaron a ejecutarse, pues falló antes la compilación Kotlin. Pendiente volver a comprobar ambas ejecuciones de CI y validar en dispositivo.
 
 <!-- ALERTA_EC_AUTO_END -->

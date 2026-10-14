@@ -38,6 +38,7 @@ import org.breezyweather.common.extensions.getCalendarMonth
 import org.breezyweather.common.extensions.getHour
 import org.breezyweather.common.extensions.getTabletListAdaptiveWidth
 import org.breezyweather.common.utils.helpers.AsyncHelper
+import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.remoteviews.Widgets
