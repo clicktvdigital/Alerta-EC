@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="alertaec_intro_skip">Omitir introducción</string>
+    <string name="alertaec_intro_description">Introducción animada de Alerta EC</string>
+
     <!-- app. -->
     <string name="app_name">Alerta EC</string>
     <!-- keyword. -->

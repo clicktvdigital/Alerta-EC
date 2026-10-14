@@ -251,7 +251,8 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                 findViewById(R.id.alerta_ec_intro_condor),
                 findViewById(R.id.alerta_ec_intro_logo),
                 findViewById(R.id.alerta_ec_intro_title),
-                findViewById(R.id.alerta_ec_intro_brand)
+                findViewById(R.id.alerta_ec_intro_brand),
+                findViewById(R.id.alerta_ec_intro_skip)
             )
         } else {
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE

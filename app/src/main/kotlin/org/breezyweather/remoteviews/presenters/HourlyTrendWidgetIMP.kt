@@ -312,7 +312,9 @@ object HourlyTrendWidgetIMP : AbstractRemoteViewsPresenter() {
         views.setContentDescription(
             R.id.widget_remote_drawable,
             location.weather?.nextHourlyForecast?.take(5)?.takeIf { it.isNotEmpty() }?.let { hours ->
-                context.getString(R.string.alertaec_widget_hourly_forecast) + ". " + hours.joinToString(". ") { hour ->
+                location.getPlace(context) + ". " +
+                    context.getString(R.string.alertaec_widget_hourly_forecast) + ". " +
+                    hours.joinToString(". ") { hour ->
                     buildString {
                         append(hour.date.getHour(location, context))
                         hour.temperature?.temperature?.formatMeasure(

@@ -52,6 +52,8 @@ class AlertEcForecastWidgetDataTest {
     fun `update age rejects future timestamps and returns elapsed minutes`() {
         val now = Date(3_600_000)
         assertNull(updateAgeMinutes(now, Date(now.time + 1)))
+        assertNull(updateAgeMinutes(now, Date(now.time + 59_999)))
+        assertEquals(0, updateAgeMinutes(now, Date(now.time - 59_999)))
         assertEquals(5, updateAgeMinutes(now, Date(now.time - 5 * 60_000)))
         assertEquals(120, updateAgeMinutes(now, Date(now.time - 2 * 60 * 60_000)))
     }

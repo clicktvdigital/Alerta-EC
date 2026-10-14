@@ -149,9 +149,10 @@ private fun buildRemoteViews(
         settings.getTemperatureUnit(context)
     )
 
+    val locationName = location.getPlace(context)
     views.setTextViewText(
         R.id.widget_material_you_forecast_city,
-        location.getPlace(context)
+        locationName
     )
 
     // current.
@@ -432,6 +433,7 @@ private fun buildRemoteViews(
         }
     }
     val accessibleDescription = buildList {
+        add(locationName)
         add(currentSummary)
         add(rainText)
         if (hourlySummary.isNotEmpty()) add(context.getString(R.string.alertaec_widget_hourly_forecast))

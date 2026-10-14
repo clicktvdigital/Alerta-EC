@@ -240,3 +240,33 @@ Estado: IMPLEMENTADO EN CÓDIGO / COMPILACIÓN, PRUEBAS Y DISPOSITIVO PENDIENTES
 - Se añadieron pruebas unitarias para integración de mm/h por intervalo, ausencia de lluvia pronosticada, prioridad de unidad manual y antigüedad de datos. No se ejecutaron: no correr Gradle en Termux.
 - Limitación de esta fase: las celdas visibles de Material You siguen mostrando hasta seis horas debido a los layouts actuales; las 12–24 horas solo quedan incluidas en la lectura accesible cuando los datos están disponibles. Extender visualmente el horizonte según tamaño sigue pendiente. Los layouts compactos sin campo secundario presentan el detalle de lluvia en TalkBack, no como texto visible.
 - Pendiente: validar compilación y pruebas mediante CI de GitHub, probar en dispositivo todos los tamaños, TalkBack, texto grande, datos vacíos/vencidos y confirmar que la notificación de minutely continúa siendo únicamente la ruta original de Breezy Weather. No se modificaron applicationId, versión, firma, logo ni intro y no se publicó Release.
+
+
+## Revisión de widgets, intro y distribución — 2026-10-13
+
+### Fechas de actualización del widget
+- Corregido `updateAgeMinutes`: compara primero la diferencia en milisegundos y rechaza timestamps futuros antes de convertir a minutos completos.
+- Regresión conservada y ampliada en `AlertEcForecastWidgetDataTest`: timestamps a +1 ms y +59 999 ms se rechazan; un dato de 59 999 ms de antigüedad sigue representando cero minutos completos; se mantienen los casos de 5 y 120 minutos.
+- Pruebas añadidas pero no ejecutadas localmente; no ejecutar Gradle en Termux.
+
+### Widgets y nombres accesibles
+- Los layouts Material You de pronóstico que muestran ciudad permiten hasta dos líneas y ya no truncan ese título con puntos suspensivos; 1x1 y 2x1 conservan su diseño compacto y anuncian la ubicación completa en la descripción TalkBack.
+- La descripción del widget Hourly Trend también inicia con el nombre completo de la ubicación. Las tarjetas de ubicación permiten dos líneas para título y dirección/estado y TalkBack incluye ambos textos junto a las instrucciones de gesto.
+- La temperatura principal de los widgets Material You de pronóstico se redujo de 42sp a 36sp; el formato 2x1 pasó de 38dp a 34sp para respetar escala tipográfica. Se conservan las dimensiones, variantes, datos y acciones existentes.
+- Falta validar visualmente todos los tamaños, escalas de texto y servicios de accesibilidad en dispositivo.
+
+### Intro cinematográfica
+- Se conservaron animaciones, escenas, logo y marcas. Se agregó un control accesible para omitir y una descripción de la introducción; textos disponibles en inglés y español.
+- Reducción de movimiento con una presentación alternativa que preserve el significado y la secuencia de escenas: pendiente de diseño y validación.
+- **Los sonidos y la narración de la intro están pendientes. La intro actual no contiene audio ni narración.** No confundir esto con los planes de TTS para alertas de la app.
+
+### Release, firma y Obtainium
+- Inspección estática: `applicationId` configurado `com.clicktvdigital.alertaec`, `versionCode` 104 y `versionName` 0.1.4. No se modificaron esos valores ni la firma o secretos.
+- `.github/workflows/alerta-ec-ci.yml` corre en push/PR de `alerta-ec`, ejecuta pruebas unitarias y compilación Kotlin Release sin publicar.
+- `.github/workflows/alerta-ec-release.yml` compila Release firmada desde `workflow_dispatch` o el tag `v0.1.4`, usa secretos de firma y publica la Release con nombre/tag de versión fijados en el workflow. No se ejecutó ni se publicó nada. Para futuras versiones debe revisarse ese versionado fijo antes de activar el workflow; no usarlo como prueba de compatibilidad.
+- La documentación histórica registra una instalación Obtainium 0.1.3 / code 103 y una Release 0.1.4 / code 104. No se pudo consultar la APK instalada ni inspeccionar los secretos/certificado: la compatibilidad real de firma y actualización sigue sin verificar. Antes de distribuir hay que obtener de forma segura el SHA-256 del certificado de la APK instalada y compararlo con la Release firmada; comprobar mismo applicationId, `versionCode` superior, `versionName`, artefacto estable detectable por Obtainium e instalar encima sin desinstalar conservando datos cuando Android lo permita.
+- No se cambió versión, firma, secretos, tags o releases.
+
+### Verificaciones de este avance
+- Pasaron `git diff --check`, `scripts/validate_alerta_ec.py`, parseo XML de los 13 layouts/recursos modificados y `py_compile` de los dos scripts de validación/sincronización. Gradle local no se ejecutó.
+- Si las verificaciones ligeras pasan, crear commit y hacer push únicamente a `origin/alerta-ec`, sin tag ni Release.

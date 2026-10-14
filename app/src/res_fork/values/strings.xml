@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="alertaec_intro_skip">Skip introduction</string>
+    <string name="alertaec_intro_description">Alerta EC animated introduction</string>
+
     <!-- App -->
     <string name="brand_name" translatable="false">Alerta EC</string>
 </resources>

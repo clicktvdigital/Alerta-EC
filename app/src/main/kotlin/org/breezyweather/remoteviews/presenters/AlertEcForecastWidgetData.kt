@@ -51,9 +51,9 @@ internal fun nextForecastRainWindow(
 
 internal fun updateAgeMinutes(now: Date, updateTime: Date?): Int? {
     updateTime ?: return null
-    val elapsedMinutes = (now.time - updateTime.time) / 60_000
-    if (elapsedMinutes < 0) return null
-    return elapsedMinutes.toInt()
+    val elapsedMilliseconds = now.time - updateTime.time
+    if (elapsedMilliseconds < 0) return null
+    return (elapsedMilliseconds / 60_000).toInt()
 }
 
 internal fun resolveWidgetTemperatureUnit(

@@ -7,7 +7,29 @@ object AlertaEcIntroController {
 
     private const val INTRO_DURATION = 5000L
 
-    fun play(root: View, terrain: View, volcano: View, wildfire: View, waterHazard: View, landslide: View, storm: View, seismicRing: View, flash: View, condor: View, logo: View, title: View, brand: View) {
+    fun play(
+        root: View,
+        terrain: View,
+        volcano: View,
+        wildfire: View,
+        waterHazard: View,
+        landslide: View,
+        storm: View,
+        seismicRing: View,
+        flash: View,
+        condor: View,
+        logo: View,
+        title: View,
+        brand: View,
+        skip: View,
+    ) {
+        skip.setOnClickListener {
+            listOf(
+                root, terrain, volcano, wildfire, waterHazard, landslide, storm,
+                seismicRing, flash, condor, logo, title, brand
+            ).forEach { it.animate().cancel() }
+            root.visibility = View.GONE
+        }
         root.visibility = View.VISIBLE
         root.alpha = 1f
 

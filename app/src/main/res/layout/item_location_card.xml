@@ -65,7 +65,7 @@
                         <TextView
                             android:id="@+id/title1"
                             android:layout_width="match_parent"
-                            android:maxLines="1"
+                            android:maxLines="2"
                             android:ellipsize="end"
                             android:textAlignment="viewStart"
                             android:textColor="?attr/colorTitleText"
@@ -76,7 +76,7 @@
                         <TextView
                             android:id="@+id/title2"
                             android:layout_width="match_parent"
-                            android:maxLines="1"
+                            android:maxLines="2"
                             android:ellipsize="end"
                             android:textAlignment="viewStart"
                             android:textColor="?attr/colorBodyText"

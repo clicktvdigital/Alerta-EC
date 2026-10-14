@@ -50,6 +50,12 @@ class LocationHolder(
         if (talkBackBuilder.toString().isNotEmpty()) {
             talkBackBuilder.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
         }
+        talkBackBuilder.append(model.title)
+        if (model.body.isNotBlank()) {
+            talkBackBuilder.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
+                .append(model.body)
+        }
+        talkBackBuilder.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
         mBinding.container.apply {
             swipe(0f)
             iconResStart = R.drawable.ic_delete
@@ -132,8 +138,7 @@ class LocationHolder(
             }
             false
         }
-        talkBackBuilder.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-            .append(context.getString(R.string.location_swipe_to_delete))
+        talkBackBuilder.append(context.getString(R.string.location_swipe_to_delete))
         itemView.contentDescription = talkBackBuilder.toString()
     }
 }

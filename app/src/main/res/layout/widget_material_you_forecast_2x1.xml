@@ -19,7 +19,7 @@
         android:includeFontPadding="false"
         android:text="@string/widget_ellipsis"
         android:textColor="?android:attr/textColorPrimary"
-        android:textSize="38dp"
+        android:textSize="34sp"
         android:textStyle="bold"
         android:singleLine="true"
         android:translationY="-16dp"
