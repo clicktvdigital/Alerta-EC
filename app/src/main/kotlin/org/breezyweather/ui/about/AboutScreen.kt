@@ -66,6 +66,7 @@ import org.breezyweather.common.extensions.withUIContext
 import org.breezyweather.common.utils.helpers.SnackbarHelper
 import org.breezyweather.data.appContributors
 import org.breezyweather.data.appTranslators
+import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.common.composables.AlertDialogLink
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
@@ -314,6 +315,8 @@ internal fun AboutScreen(
                 }
             }
 
+            largeSeparatorItem()
+            item { SupportSection() }
             largeSeparatorItem()
             item { SectionTitle(stringResource(R.string.about_contributors)) }
             itemsIndexed(appContributors) { index, item ->
