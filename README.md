@@ -241,6 +241,33 @@ Alerta EC prepara GPS detallado, altitud, relieve 3D y referencias comunitarias 
 - La deduplicación filtra IDs ya notificados y eventos repetidos en una misma actualización.
 - GitHub Actions ejecutará `:app:testBasicDebugUnitTest` y la compilación Kotlin Release. No se ejecutó Gradle localmente en Termux.
 
+
+
+
+## Alerta EC: visión funcional para Ecuador
+
+Alerta EC es una adaptación independiente de Breezy Weather para ofrecer información meteorológica, alertas y referencias territoriales útiles en Ecuador. El producto debe explicar qué se sabe, de qué fuente viene, cuándo se actualizó y con qué incertidumbre. Pronósticos, observaciones, alertas oficiales y reportes ciudadanos deben permanecer claramente diferenciados. Las funciones enumeradas como visión o pendientes no se consideran implementadas hasta contar con código operativo y validación.
+
+### Información y experiencia previstas
+
+- Ubicación por niveles administrativos separados: calle/intersección, barrio o sector, parroquia civil, parroquia eclesiástica cuando una fuente confiable la identifique, distrito/cantón, provincia y código postal. La geocodificación debe conservar fuente, confianza y antigüedad. Para el caso de referencia del usuario, el código postal 170528 está confirmado por el usuario y fuentes postales oficiales; Nominatim ha devuelto 170318 para un punto de prueba y esa discrepancia debe conservarse. Ningún código postal se debe fijar para todos los usuarios.
+- Zona horaria de Quito, UTC−05:00, con hora y segundos cuando la precisión temporal del dato lo permita. Un reloj o cuenta regresiva no debe implicar precisión meteorológica que la fuente no tiene.
+- Temperatura en grados Celsius, acumulación de lluvia en milímetros y tasa de precipitación en mm/h, explicando intervalo y significado. El pronóstico por horas es prioritario; el pronóstico diario es complementario.
+- Seguimiento de lluvia por barrio solo cuando haya cobertura espacial suficiente. Radar y satélites deben ser productos reales, identificados por fuente, hora, cobertura y licencia; distinguir observación de animaciones/modelos de pronóstico. No inferir trayectoria, procedencia o ETA desde un único pronóstico puntual.
+- Calidad del aire explicada en lenguaje sencillo, con contaminantes e índice cuando estén disponibles, hora, fuente y recomendaciones; no presentar estimaciones como mediciones locales.
+- Recomendaciones breves asociadas al riesgo y al nivel de confianza. Accesibilidad desde el diseño: lectores de pantalla, contraste y texto configurables, voz/TTS, sonido y vibración opcionales, y controles sencillos.
+- Mapas y referencias comunitarias con procedencia y privacidad; reportes ciudadanos marcados como no verificados hasta corroboración. Las funciones de SOS, comunicación comunitaria, cámaras y seguimiento de rutas requieren implementación, controles de privacidad y validación antes de anunciar disponibilidad.
+
+### Fuentes a evaluar e integrar con verificación
+
+INAMHI, IG-EPN, SGR, COE, ECU 911, AMT, EPMMOP, MTOP, REMMAQ, GeoQuito, NOAA y canales oficiales en X, además de fuentes meteorológicas existentes compatibles. Antes de usar cada fuente se deben confirmar endpoint, cobertura, actualización, calidad, permisos, atribución y términos/licencia. Una publicación en X o un reporte ciudadano no confirma automáticamente una emergencia. No acceder a cámaras restringidas de ECU 911; usar únicamente transmisiones públicas autorizadas. Radar, imágenes satelitales, cámaras y cartografía pueden tener restricciones de redistribución o uso comercial: no copiar, retransmitir ni almacenar sin autorización comprobada.
+
+### Estado de implementación
+
+La base heredada de Breezy Weather, los modelos y adaptador inicial de eventos Alerta EC, los pronósticos horarios, deduplicación y política de estados existen parcialmente. El minutely sigue atendido por la notificación original de Breezy Weather para evitar duplicados; sus valores de Open-Meteo representan pronóstico en intervalos de 15 minutos convertido a tasa equivalente mm/h, nunca observación. Radar/satélite ecuatorianos integrados, alertas de las instituciones enumeradas, vigilancia por barrios, recomendaciones contextuales, reportes comunitarios, parroquia eclesiástica y una interfaz completa de accesibilidad siguen pendientes o sujetos a validación. Consulta [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md) para el estado técnico y las decisiones acumuladas.
+
+**Regla de mantenimiento:** toda función nueva o decisión de producto debe actualizar README.md con el cambio funcional y docs/CONTINUAR_AQUI.md con el estado técnico, decisión, pendientes y riesgos correspondientes antes de cada commit.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

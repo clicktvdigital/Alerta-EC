@@ -1,7 +1,7 @@
 package org.breezyweather.alertaec
 
 import io.kotest.matchers.shouldBe
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class AlertaEcNotificationPolicyTest {
     @Test

@@ -542,9 +542,10 @@ class OpenMeteoService @Inject constructor(
     ): List<Minutely>? {
         if (minutelyFifteen?.time == null || minutelyFifteen.time.isEmpty()) return null
 
-        val currentMinutelyIndex = minutelyFifteen.time.indexOfFirst {
-            it.seconds.inWholeMilliseconds >= (Date().time - 15.minutes.inWholeMilliseconds)
-        }
+        val currentMinutelyIndex = findMinutelyForecastStartIndex(
+            minutelyFifteen.time,
+            (Date().time / 1000) - 15.minutes.inWholeSeconds
+        ) ?: return null
         val maxMinutelyIndex = minOf(currentMinutelyIndex + 8, minutelyFifteen.time.size - 1)
         val precipitationMinutely = minutelyFifteen.precipitation?.slice(currentMinutelyIndex until maxMinutelyIndex)
         // val precipitationProbabilityMinutely =
@@ -954,3 +955,7 @@ class OpenMeteoService @Inject constructor(
         )
     }
 }
+
+
+internal fun findMinutelyForecastStartIndex(timesInSeconds: LongArray, cutoffSeconds: Long): Int? =
+    timesInSeconds.indexOfFirst { it >= cutoffSeconds }.takeIf { it >= 0 }

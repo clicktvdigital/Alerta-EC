@@ -1,5 +1,10 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+## Diagnóstico CI — commit 0c73a5d76abf10618cf029d32a782a7e223dc0ea
+- `:app:compileBasicDebugUnitTestKotlin` fallaba porque `AlertaEcNotificationPolicyTest.kt` importaba `org.junit.Test` (JUnit 4), mientras `app/build.gradle.kts` incorpora JUnit 6/Jupiter mediante `libs.bundles.test` y los tests existentes usan `org.junit.jupiter.api.Test`.
+- Se corrigió únicamente el import para usar Jupiter. Se conservaron todas las pruebas y su contenido; no se modificaron dependencias, CI, funciones de la app, logos, intro cinematográfica, firma ni `applicationId`.
+- Verificación solicitada: `git diff --check`. No compilar Gradle en Termux.
+
 <!-- ALERTA_EC_ESTADO_OPERATIVO_INICIO -->
 ## ESTADO OPERATIVO — LEER PRIMERO
 
@@ -472,6 +477,44 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - `OBSERVED` permanece sin generación/notificación mientras no haya una fuente observacional real. Los pronósticos no se elevan a emergencias; las alertas oficiales siguen en `remoteviews.Notifications`.
 - La deduplicación elimina IDs ya notificados y repetidos dentro de una actualización; se añadieron pruebas para esos casos y para la política de estados.
 - El workflow existente `alerta-ec-ci.yml` ejecuta `:app:testBasicDebugUnitTest` y compila Kotlin Release. Pendiente resultado de GitHub Actions y validación funcional en dispositivo. No se ejecutó Gradle en Termux.
+
+
+
+
+## Acuerdo de producto y estado técnico consolidado — 2026-10-13
+
+Esta sección complementa el historial de continuidad anterior; se conservan sus acuerdos, casos de prueba y notas históricas, aunque algunos pasos antiguos hayan quedado superados. El README describe la visión funcional. Este archivo conserva decisiones técnicas y pendientes.
+
+### Regla permanente de documentación
+Toda nueva función o decisión debe actualizar README.md y este documento según corresponda antes de cada commit. README registra la experiencia y capacidades previstas/implementadas; CONTINUAR_AQUI registra estado verificable, decisiones, pendientes, riesgos, pruebas y próximo paso. No etiquetar una función como implementada solo por tener un modelo o plan.
+
+### Territorio, ubicación y unidades
+- Desglosar ubicación sin mezclar niveles: calle/intersección, barrio, sector, parroquia civil, parroquia eclesiástica (solo con fuente verificable), distrito/cantón, provincia y código postal. Conservar proveedor, confianza y antigüedad. No publicar coordenadas de domicilios.
+- Para el caso de referencia, 170528 está confirmado por el usuario y respaldado por fuentes postales oficiales consultadas (incluido vademécum MINTEL: Quito, 17D05, Cochapamba). No generalizarlo ni hardcodearlo. Nominatim/OSM entregó 170318 para la coordenada de prueba; mantener ambos valores y resolver con validación postal/geoespacial independiente.
+- Caso de geocodificación previo: barrio Atucucho, sector San José si lo informa el proveedor, parroquia civil Cochapamba, cantón/distrito Quito y provincia Pichincha; la zona municipal indicada en antecedentes es Eugenio Espejo. No confundir parroquia civil con eclesiástica, distrito postal, distrito de salud ni administración zonal.
+- Zona horaria objetivo Quito, UTC−05:00; preservar segundos en presentación/registro cuando la fuente los soporte y mostrar antigüedad. Tiempo exacto no significa precisión predictiva.
+- Unidades predeterminadas: temperatura °C, lluvia acumulada mm y tasa mm/h. Expresar intervalo de acumulación y no mezclar profundidad acumulada con tasa. Pronóstico por horas prioritario y diario secundario.
+
+### Datos, alertas y presentación
+- Minutely de Open-Meteo llega como precipitación en mm por intervalo de 15 minutos; Breezy Weather multiplica por cuatro para normalizar a tasa equivalente mm/h usada en su nowcast/dBZ. Es dato de PRONÓSTICO, no observación pluviométrica. Minutely permanece bajo `Notifications.checkAndSendPrecipitation`; el adaptador Alerta EC no genera notificación paralela.
+- Mejora de este cambio: si no hay un índice temporal minutely desde el corte permitido, el parser Open-Meteo devuelve null en vez de cortar un rango desde índice -1. Conversión mm/15 min a mm/h intacta. Prueba unitaria cubre intervalo encontrado, serie pasada y serie vacía.
+- Distinguir siempre FORECAST, OBSERVED, OFFICIAL_EVENT y reporte ciudadano no verificado. No elevar un pronóstico a alerta oficial ni marcar OBSERVED sin fuente observacional. No predecir sismos ni inventar magnitud, hora o trayectoria.
+- Seguimiento por barrios, dirección de precipitación y ETA requieren radar/campos espaciales reales con resolución suficiente; con punto único declarar indisponibilidad/incertidumbre.
+- Radar y satélites deben ser observaciones/productos reales con proveedor, cobertura y fecha, diferenciados de modelos. Calidad del aire debe explicar índice/contaminantes, si son mediciones o estimaciones, fuente, hora y recomendación comprensible.
+- Añadir recomendaciones solo con base en riesgo/fuente y sin alarmismo. Voz/TTS, vibración, sonidos configurables, contraste, textos grandes, lectores de pantalla y flujos fáciles permanecen objetivos; registrar qué está operativo al momento del cambio.
+- Mapas offline/relieve, reportes ciudadanos moderados, historial privado, SOS con estados (guardado/transmitido/recibido/confirmado) y contactos siguen por fases; no afirmar contacto ECU 911 sin integración oficial autorizada.
+
+### Fuentes, licencias y límites conocidos
+- Inventario a evaluar, no declaración de integraciones: INAMHI, IG-EPN, SGR, COE, ECU 911, AMT, EPMMOP, MTOP, REMMAQ, GeoQuito, NOAA y canales oficiales en X, junto con proveedores ya presentes. Confirmar endpoint, cobertura, calidad, latencia, permiso, atribución y términos para cada uso.
+- Redes sociales y reportes ciudadanos son pistas, no confirmación automática. Las publicaciones deben revisarse con fuente oficial cuando el riesgo lo requiera.
+- No acceder a cámaras restringidas de ECU 911. Solo considerar transmisiones públicas autorizadas. Mantener explícitas restricciones de licencias de radar, satélite, mapas, cámaras y redistribución; no descargar, retransmitir ni usar comercialmente un producto sin autorización comprobada.
+- Las fuentes de barrios/parroquia eclesiástica y cobertura real de radar/satélite no están comprobadas todavía. No simularlas.
+
+### Estado actual de cambios y siguiente paso
+- Se conserva el cambio local previo de `AlertaEcNotificationPolicyTest.kt`: usa `org.junit.jupiter.api.Test`, alineado con las dependencias Jupiter del proyecto. También se conserva el diagnóstico local inicial al comienzo de este archivo.
+- En este cambio se actualizan ambos documentos y se agrega una guardia de índice para pronóstico minutely de Open-Meteo más pruebas unitarias. No se cambian applicationId, firma, versiones, logo ni intro.
+- No se ejecuta Gradle local en Termux. Verificar `git diff --check` y solo verificaciones ligeras disponibles; push únicamente si no hay error verificable. CI remota/dispositivo quedan como validaciones posteriores si no pueden comprobarse ahora.
+- Próximo paso: ejecutar CI en `alerta-ec`, revisar resultado; luego validar en dispositivo un ciclo con minutely futuro, vencido/vacío y confirmar que solo la notificación original informa precipitación. Después priorizar una mejora horaria accesible con fuente, hora y recomendación, sin duplicar alertas.
 
 <!-- ALERTA_EC_AUTO_START -->
 
