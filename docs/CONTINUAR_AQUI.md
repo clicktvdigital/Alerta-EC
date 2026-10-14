@@ -567,6 +567,24 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Versiones de acciones verificadas contra revisiones ya usadas por los workflows existentes: checkout v7.0.1, setup-java v6.0.1, setup-gradle v5.0.2 y gh-release v3.0.3.
 - No se ejecutó Release ni Gradle en Termux; no se crearon tags/Releases ni se tocaron instalación, applicationId, keystore o secretos.
 
+
+
+
+## Continuidad verificada — 2026-10-14
+
+- PRIORIDAD: preservar avances y decisiones en GitHub.
+- Intro cinematografica: composicion y siete pistas de audio procedurales documentadas; faltan CI y pruebas reales de audio en dispositivo.
+- Widget meteorologico: fase 1 implementada en codigo; faltan CI, pruebas visuales, accesibilidad y ampliacion de horizonte.
+- Alertas: adaptador meteorologico y modelos iniciales existentes; motor multiamenaza, avisos anticipados, sonidos por fenomeno, vibracion y voz TTS pendientes de integracion y validacion.
+- Ubicaciones: GPS, calles, barrios, parroquias, altitud y referencias comunitarias pendientes de completar y verificar; no publicar domicilios privados.
+- Donaciones: ui/support/SupportSection.kt creado y conectado localmente a AboutScreen.kt; faltan formulario, WhatsApp, pruebas y CI. No afirmar que esta publicado.
+- Resenas: usar opiniones reales, moderadas, con posible lectura desde GitHub; no publicar opiniones ficticias.
+- Proxima prioridad: completar aportes, revisar intro/widget/alertas, ejecutar CI y pruebas en dispositivo.
+- Codex: utilizarlo para implementar tareas por modulos y documentar resultados.
+- Version publica documentada: 0.1.4 / 104; mantener applicationId y certificado de produccion.
+- No publicar Release, tag ni APK nueva sin pruebas, firma verificada y autorizacion.
+- Actualizar README.md y docs/CONTINUAR_AQUI.md en cada avance; mantener cada proyecto en su propio repositorio.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
