@@ -19,5 +19,7 @@ class IntroPlaybackPolicyTest {
         IntroPlaybackPolicy.shouldReduceMotion(false, 1f) shouldBe false
         IntroPlaybackPolicy.shouldReduceMotion(true, 1f) shouldBe true
         IntroPlaybackPolicy.shouldReduceMotion(false, 0f) shouldBe true
+        IntroPlaybackPolicy.shouldReduceMotion(false, 1f, systemAnimationsEnabled = false) shouldBe true
+        IntroPlaybackPolicy.shouldReduceMotion(false, Float.NaN) shouldBe true
     }
 }

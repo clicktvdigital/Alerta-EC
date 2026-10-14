@@ -1,5 +1,14 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+## Avance de intro y alertas — 2026-10-14
+- Rama `alerta-ec`, paquete de producción `com.clicktvdigital.alertaec`; no se modificaron versión, firma, publicación ni tags.
+- Intro: se mantuvieron las siete pistas WAV originales y su cronología. La secuencia visual dura ahora 5,8 s y comienza el fundido a 5,3 s, para no truncar lluvia (hasta 5,15 s) ni cierre armónico (hasta 5,3 s). La política contempla animaciones deshabilitadas desde `ValueAnimator.areAnimatorsEnabled()` (API 26+) y escala de animador no finita/cero; reproducción requiere consentimiento, pista válida, timbre normal y volumen multimedia activo. La liberación de cada reproductor se protege para que un fallo no corte la limpieza del resto.
+- Recursos existentes: viento, tormenta, sismo, volcán, lluvia, deslizamiento y cierre armónico. La duración/formato/picos fueron verificados por el script generador según el registro de README; `file` confirmó WAV PCM mono 16-bit/22.050 Hz en esta revisión.
+- Riesgos/pendientes: faltan compilación CI, reproducción/foco real, TalkBack y validación visual en dispositivo. Volumen máximo configurado 0,12. No hay TTS en intro.
+- Widgets/alertas: las notificaciones oficiales pasan por `remoteviews.Notifications`; AlertaEcNotifier omite `OFFICIAL_EVENT`, guarda IDs recientes para deduplicar, y la lluvia minutely sigue reservada al notificador original. AlertaEcWeatherAdapter solo construye el pronóstico del primer registro horario disponible. No se agregan sonidos/TTS, ETA ni avisos de anticipación con esa resolución; deben diseñarse con una fuente y deduplicación común antes de implementarse.
+- No existe un widget horario específico de Alerta EC en el código encontrado: hay widgets meteorológicos generales y vistas de tendencia horaria. La lluvia minutely requiere verificar funcionalmente su proveedor y antigüedad antes de alertar.
+- Verificaciones ligeras de esta revisión: `git diff --check` y `file app/src/main/res/raw/alertaec_intro_*.wav`. No se ejecutaron Gradle, CI ni pruebas instrumentadas. Siguiente: revisión manual del diff, CI de GitHub y reproducción/escucha + accesibilidad en dispositivo.
+
 ## Diagnóstico CI — commit 0c73a5d76abf10618cf029d32a782a7e223dc0ea
 - `:app:compileBasicDebugUnitTestKotlin` fallaba porque `AlertaEcNotificationPolicyTest.kt` importaba `org.junit.Test` (JUnit 4), mientras `app/build.gradle.kts` incorpora JUnit 6/Jupiter mediante `libs.bundles.test` y los tests existentes usan `org.junit.jupiter.api.Test`.
 - Se corrigió únicamente el import para usar Jupiter. Se conservaron todas las pruebas y su contenido; no se modificaron dependencias, CI, funciones de la app, logos, intro cinematográfica, firma ni `applicationId`.

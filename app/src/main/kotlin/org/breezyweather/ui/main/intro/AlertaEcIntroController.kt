@@ -6,12 +6,14 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.view.View
 import android.widget.TextView
+import android.animation.ValueAnimator
 import android.view.animation.AccelerateDecelerateInterpolator
 import org.breezyweather.R
 
 object AlertaEcIntroController {
 
-    private const val INTRO_DURATION = 5000L
+    // Leave enough tail for rain (2.0s) and the closing cue (1.4s at 3.9s).
+    private const val INTRO_DURATION = 5800L
     private const val PREFS = "alerta_ec_intro"
     private const val PREF_REDUCED_MOTION = "reduced_motion"
     private const val PREF_SOUND_ENABLED = "sound_enabled"
@@ -42,9 +44,11 @@ object AlertaEcIntroController {
         } else {
             1f
         }
+        val systemAnimationsEnabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
         var reducedMotion = IntroPlaybackPolicy.shouldReduceMotion(
             preferences.getBoolean(PREF_REDUCED_MOTION, false),
-            systemAnimatorScale
+            systemAnimatorScale,
+            systemAnimationsEnabled
         )
         val layers = listOf(root, terrain, volcano, wildfire, waterHazard, landslide, storm, seismicRing, flash, condor, logo, title, brand)
         val soundCues = listOf(
@@ -121,7 +125,7 @@ object AlertaEcIntroController {
         reducedMotionControl.setOnClickListener {
             val requested = !preferences.getBoolean(PREF_REDUCED_MOTION, false)
             preferences.edit().putBoolean(PREF_REDUCED_MOTION, requested).apply()
-            reducedMotion = IntroPlaybackPolicy.shouldReduceMotion(requested, systemAnimatorScale)
+            reducedMotion = IntroPlaybackPolicy.shouldReduceMotion(requested, systemAnimatorScale, systemAnimationsEnabled)
             updateControls()
             if (reducedMotion) {
                 showReducedMotion()

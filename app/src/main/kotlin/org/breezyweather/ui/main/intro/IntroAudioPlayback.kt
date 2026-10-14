@@ -27,8 +27,12 @@ internal object IntroAudioPlayback {
         stop()
         if (!userEnabled || cues.isEmpty() || cues.any { it.resourceId == 0 }) return
         val manager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        if (manager.ringerMode != AudioManager.RINGER_MODE_NORMAL ||
-            manager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0
+        if (!IntroPlaybackPolicy.shouldPlayAudio(
+                userEnabled,
+                cues.firstOrNull()?.resourceId ?: 0,
+                manager.ringerMode,
+                manager.getStreamVolume(AudioManager.STREAM_MUSIC),
+            )
         ) return
         audioManager = manager
         val attributes = AudioAttributes.Builder()
@@ -88,7 +92,7 @@ internal object IntroAudioPlayback {
         handler.removeCallbacksAndMessages(null)
         players.toList().forEach { activePlayer ->
             runCatching { activePlayer.stop() }
-            activePlayer.release()
+            runCatching { activePlayer.release() }
         }
         players.clear()
         pendingCues = 0

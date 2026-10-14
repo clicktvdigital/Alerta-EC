@@ -296,7 +296,15 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Archivos en `app/src/main/res/raw/alertaec_intro_{wind,storm,seismic,volcano,rain,landslide,closing}.wav`; mono PCM 16-bit, 22.050 Hz, picos limitados a 0,68 de escala digital (aprox. −3,35 dBFS), con entradas/salidas suaves. El guion reproducible es `scripts/generate_alerta_ec_intro_audio.py`; su autoría es propia y no tiene dependencias ni material de terceros.
 - `IntroAudioPlayback` solicita Audio Focus transitorio y crea/reproduce/libera cada MediaPlayer por efecto. Límite por pista 0,12; no comienza sin activación explícita persistente, volumen multimedia disponible y modo de timbre normal. Omisión, movimiento reducido, pérdida de foco, pausa y destrucción cancelan tareas, detienen y liberan reproductores y abandonan foco. El sonido sigue apagado inicialmente; no hay TTS.
 - Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
+- La duración final se amplió a 5,8 s: permite que terminen la lluvia (5,15 s) y el cierre (5,3 s) antes de ocultar la intro; el fundido comienza a 5,3 s.
 - Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
+
+### Ajustes de estabilización (2026-10-14)
+- La reducción de movimiento también consulta `ValueAnimator.areAnimatorsEnabled()` en Android 8 o posterior, además de la escala global; valores de escala no finitos o iguales/menores que cero se tratan como movimiento reducido.
+- La ruta de audio aplica la política probada de consentimiento, recurso disponible, modo de timbre normal y volumen multimedia distinto de cero. Liberar un reproductor ya detenido no interrumpe la limpieza del resto.
+- El adaptador de alertas conserva los eventos oficiales en `remoteviews.Notifications` y los deduplica por identificador en su propia ruta. La lluvia por minuto sigue siendo exclusiva del notificador previo de Breezy Weather; el evento Alerta EC de pronóstico es horario.
+- No hay en este checkout un widget horario Alerta EC aislado con su propio sonido/TTS. Los widgets generales muestran pronósticos y los datos minutely disponibles; no se añadieron avisos de 60/30/15/5/1 minutos ni voz porque la fuente horaria no permite respaldar esos tiempos. El TTS de alertas sigue pendiente de diseño y deduplicación compartida.
+- Verificación de esta revisión: `git diff --check`, inspección de recursos WAV con `file`, lectura estática de flujos de audio, ciclo de vida, widget/notificación. No se ejecutó Gradle, CI ni prueba en dispositivo.
 
 
 
