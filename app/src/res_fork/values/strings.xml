@@ -7,6 +7,17 @@
     <string name="alertaec_intro_sound_enabled">Sound: on</string>
     <string name="alertaec_intro_description">Alerta EC animated introduction</string>
 
+    <string name="alertaec_support_title">💙 Support ALERTA EC 🇪🇨</string>
+    <string name="alertaec_support_description">Contributions are optional. Weather alerts and essential features will remain free.</string>
+    <string name="alertaec_support_payphone_button">❤️ Support with PayPhone</string>
+    <string name="alertaec_support_paypal">PayPal · Voluntary contribution</string>
+    <string name="alertaec_support_patreon">Patreon · Monthly contribution of USD 1</string>
+    <string name="alertaec_support_github">GitHub Sponsors</string>
+    <string name="alertaec_support_open_with">Open external payment link</string>
+    <string name="alertaec_support_open_error_title">Could not open the link</string>
+    <string name="alertaec_support_open_error_message">No compatible browser or app could open this secure link. Try again later.</string>
+    <string name="alertaec_support_close">Close</string>
+
     <!-- App -->
     <string name="brand_name" translatable="false">Alerta EC</string>
 </resources>
