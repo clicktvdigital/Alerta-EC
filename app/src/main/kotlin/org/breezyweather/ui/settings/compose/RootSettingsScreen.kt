@@ -43,6 +43,7 @@ fun RootSettingsView(
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = generateCollapsedScrollBehavior()
+    val context = LocalContext.current
 
     Material3Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -156,7 +157,7 @@ fun RootSettingsView(
                     isFirst = true,
                     isLast = true
                 ) {
-                    shareAlertaEc(context = LocalContext.current)
+                    shareAlertaEc(context = context)
                 }
             }
 
