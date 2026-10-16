@@ -9,7 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 
-/** Plays only an explicitly supplied bundled track after the user opts in. */
+/** Plays bundled audio when enabled by preference and allowed by device audio policy. */
 internal object IntroAudioPlayback {
     private const val MAX_VOLUME = 0.12f
     private val handler = Handler(Looper.getMainLooper())
@@ -69,13 +69,12 @@ internal object IntroAudioPlayback {
     private fun playCue(context: Context, attributes: AudioAttributes, cue: Cue) {
         pendingCues--
         try {
-            val activePlayer = MediaPlayer.create(context, cue.resourceId)
+            val activePlayer = MediaPlayer.create(context, cue.resourceId, attributes, 0)
             if (activePlayer == null) {
                 if (pendingCues == 0 && players.isEmpty()) abandonFocus()
                 return
             }
             players += activePlayer
-            activePlayer.setAudioAttributes(attributes)
             activePlayer.setVolume(MAX_VOLUME, MAX_VOLUME)
             activePlayer.setOnCompletionListener {
                 players.remove(it)

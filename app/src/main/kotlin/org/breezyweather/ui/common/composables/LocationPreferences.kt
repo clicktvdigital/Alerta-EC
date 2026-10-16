@@ -248,6 +248,7 @@ fun LocationPreference(
                                         // if we only change a secondary weather source
                                         weather = location.weather?.let { weather ->
                                             weather.copy(
+                                                hourlyForecast = weather.hourlyForecast.map { it.copy(acquiredAt = null) },
                                                 base = weather.base.copy(
                                                     refreshTime = null,
                                                     forecastUpdateTime = null,
@@ -886,6 +887,7 @@ fun SecondarySourcesPreference(
                             // if we only change a secondary weather source
                             weather = location.weather?.let { weather ->
                                 weather.copy(
+                                    hourlyForecast = weather.hourlyForecast.map { it.copy(acquiredAt = null) },
                                     base = weather.base.copy(
                                         refreshTime = null,
                                         forecastUpdateTime = null,

@@ -25,6 +25,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import org.breezyweather.R
 import org.breezyweather.common.extensions.plus
+import org.breezyweather.ui.about.shareAlertaEc
 import org.breezyweather.ui.common.widgets.Material3Scaffold
 import org.breezyweather.ui.common.widgets.generateCollapsedScrollBehavior
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
@@ -144,6 +145,18 @@ fun RootSettingsView(
                     isLast = true
                 ) {
                     onNavigateTo(SettingsScreenRouter.Debug.route)
+                }
+            }
+            largeSeparatorItem()
+            clickablePreferenceItem(R.string.alertaec_share_title) { id ->
+                PreferenceViewWithCard(
+                    titleId = id,
+                    iconId = R.drawable.ic_share,
+                    summaryId = R.string.alertaec_share_summary,
+                    isFirst = true,
+                    isLast = true
+                ) {
+                    shareAlertaEc(context = LocalContext.current)
                 }
             }
 

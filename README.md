@@ -1,14 +1,15 @@
 <div align="center">
 <br />
-<img src="app/src/res_breezy/mipmap-xxxhdpi/ic_launcher_round.webp" alt="Logo" />
+<img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logotipo de ALERTA EC" width="320" />
 </div>
 
-<h1 align="center">Breezy Weather</h1>
+<h1 align="center">ALERTA EC</h1>
+<p align="center"><strong>Desarrollador: CLICK TV DIGITAL</strong></p>
 
 <br />
 
 <div align="center">
-  <img alt="API 21+" src="https://img.shields.io/badge/Api%2021+-50f270?logo=android&logoColor=black&style=for-the-badge" />
+  <img alt="API mínima configurada: 24" src="https://img.shields.io/badge/API%2024+-50f270?logo=android&logoColor=black&style=for-the-badge" />
   <a href="https://kotlinlang.org/">
     <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-a503fc?logo=kotlin&logoColor=white&style=for-the-badge" />
   </a>
@@ -16,68 +17,103 @@
     <img alt="Jetpack Compose" src="https://img.shields.io/static/v1?style=for-the-badge&message=Jetpack+Compose&color=4285F4&logo=Jetpack+Compose&logoColor=FFFFFF&label=" />
   </a>
   <a href="https://m3.material.io/">
-    <img alt="Material 3 Expressive" src="https://custom-icon-badges.demolab.com/badge/m3%20expressive-lightblue?style=for-the-badge&logoColor=333&logo=material-you" />
+    <img alt="Material 3" src="https://img.shields.io/badge/Material%203-lightblue?style=for-the-badge" />
   </a>
   <br />
-  <a href="https://github.com/breezy-weather/breezy-weather/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/breezy-weather/breezy-weather?style=for-the-badge" alt="License LGPL-3.0" />
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/Licencia-LGPL--3.0-blue?style=for-the-badge" alt="License LGPL-3.0" />
   </a>
-  <img src="https://img.shields.io/github/languages/code-size/breezy-weather/breezy-weather?style=for-the-badge" alt="GitHub code size in bytes" />
   <br /><br />
-  <a href="https://github.com/breezy-weather/breezy-weather/releases">
-      <img src="https://img.shields.io/github/v/release/breezy-weather/breezy-weather?color=purple&include_prereleases&logo=github&style=for-the-badge" alt="Download from GitHub" />
-  </a>
-  <a href="https://apt.izzysoft.de/fdroid/index/apk/org.breezyweather/">
-      <img src="https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/org.breezyweather?color=purple&include_prereleases&logo=FDROID&style=for-the-badge" alt="Download from IzzyOnDroid repo" />
-  </a>
-  <a href="https://f-droid.org/packages/org.breezyweather/">
-      <img src="https://img.shields.io/f-droid/v/org.breezyweather?color=purple&include_prereleases&logo=FDROID&style=for-the-badge" alt="Download from F-Droid default repo" />
+  <a href="https://github.com/clicktvdigital/Alerta-EC/releases">
+    <img src="https://img.shields.io/badge/ALERTA_EC-Releases-purple?logo=github&style=for-the-badge" alt="Releases de ALERTA EC en GitHub" />
   </a>
 </div>
 
+<h4 align="center">Aplicación Android de código abierto en desarrollo, orientada a información meteorológica y alertas para Ecuador. La disponibilidad y precisión de los datos dependen de las fuentes y su cobertura; las funciones propias requieren validación progresiva.</h4>
 
-<h4 align="center">Breezy Weather is a feature-rich free and open source Material 3 Expressive weather app with well-thought-out visualizations, supporting forecast, observations, nowcasting, air quality, pollen, alerts, from more than 50 weather sources.</h4>
+ALERTA EC es un proyecto derivado no oficial de [Breezy Weather](https://github.com/breezy-weather/breezy-weather), desarrollado por **CLICK TV DIGITAL**. Conserva la licencia original y las atribuciones a sus autores y colaboradores. No es una publicación del equipo de Breezy Weather ni está afiliado oficialmente a ECU 911 o a instituciones gubernamentales. Consulta el [estado y los pendientes del proyecto](docs/CONTINUAR_AQUI.md).
 
-<div align="center">
+## Características de ALERTA EC implementadas en código
 
-# ⬇️ Download
+Esta lista describe el árbol de trabajo actual, incluidos cambios locales. No certifica compilación, pruebas en dispositivo ni disponibilidad en la última Release. La base meteorológica procede de Breezy Weather; los datos visibles dependen del proveedor, la ubicación y su vigencia.
 
-<a href="https://github.com/breezy-weather/breezy-weather/releases">
-<img src="https://user-images.githubusercontent.com/69304392/148696068-0cfea65d-b18f-4685-82b5-329a330b1c0d.png"
-alt="Get it on GitHub" align="center" height="80" /></a>
+| Característica | Evidencia de implementación y límites |
+| --- | --- |
+| Introducción con identidad ALERTA EC y CLICK TV DIGITAL | [Controlador de la intro](app/src/main/kotlin/org/breezyweather/ui/main/intro/AlertaEcIntroController.kt), conectado a la pantalla principal: escenas animadas, omisión, movimiento reducido y control de sonido con siete pistas. Pendientes validación visual, escucha y accesibilidad en dispositivo. |
+| Resumen del pronóstico horario | [Vista horaria](app/src/main/kotlin/org/breezyweather/ui/main/adapters/main/holder/HourlyViewHolder.kt): muestra datos meteorológicos disponibles, hora prevista, adquisición y estados de disponibilidad mediante el resumen horario. Pendientes pruebas funcionales; no equivale a observaciones ni seguimiento por radar. |
+| Organización de direcciones para Ecuador | [Mapeo de direcciones](app/src/main/kotlin/org/breezyweather/background/location/EcuadorAddressMapper.kt), utilizado por el proveedor de dirección detallada: separa barrio, sector, parroquia, cantón y provincia según los datos recibidos. No garantiza exactitud postal ni cobertura completa. |
+| Clasificación y notificaciones meteorológicas | [Adaptador](app/src/main/kotlin/org/breezyweather/alertaec/AlertaEcWeatherAdapter.kt) y [notificador](app/src/main/kotlin/org/breezyweather/alertaec/AlertaEcNotifier.kt), llamado desde la actualización en segundo plano: distinguen pronósticos y alertas de la fuente, incorporan datos disponibles y filtran duplicados. Las alertas oficiales y la precipitación minutely conservan su ruta original. Pendientes pruebas de recepción, permisos y datos vencidos. |
+| Compartir la aplicación y aportes voluntarios | [Pantalla Acerca de](app/src/main/kotlin/org/breezyweather/ui/about/AboutScreen.kt): integra compartir ALERTA EC y la sección de apoyo. Pendiente validar el flujo en dispositivo; no se afirman transacciones verificadas. |
 
-<a href="https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md#obtainium">
-<img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png"
-alt="Get it on Obtainium" align="center" height="54" />
-</a>
+El motor multiamenaza completo, SOS, reportes ciudadanos, mapas offline/relieve 3D y seguimiento de lluvia con trayectoria o cuenta regresiva siguen siendo objetivos por fases. Los nombres de fenómenos en los modelos no demuestran una integración operativa de fuentes para cada amenaza.
 
-<a href="https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md#f-droid-client">
-<img src="https://f-droid.org/badge/get-it-on.png"
-alt="Get it on F-Droid" align="center" height="80" /></a>
-</div>
+### Base técnica comprobada por inspección
 
-<div align="center">
-    <p><a href="https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md"><strong>All installation methods</strong></a></p>
-</div>
+- **API mínima 24:** definida en [AndroidConfig.kt](buildSrc/src/main/kotlin/breezy/buildlogic/AndroidConfig.kt) y aplicada por [ProjectExtensions.kt](buildSrc/src/main/kotlin/breezy/buildlogic/ProjectExtensions.kt). Es un requisito configurado, no una garantía de pruebas en todos los dispositivos.
+- **Kotlin, Jetpack Compose y Material 3:** el [módulo de la aplicación](app/build.gradle.kts), las convenciones de compilación y el [catálogo de dependencias](gradle/libs.versions.toml) declaran su uso. La insignia describe tecnologías, no certificación visual ni compilación exitosa.
 
-<div align="center">
-  <p><strong>SHA-256 hash of the signing certificate:</strong> 29d435f70aa9aec3c1faff7f7ffa6e15785088d87f06ecfcab9c3cc62dc269d8<br />
-  SHA-256 checksums are also provided per file on the <a href="https://github.com/breezy-weather/breezy-weather/releases">GitHub releases page</a>.</p>
-</div>
+
+## Corrección de consentimiento de audio — v0.1.6 (2026-10-15)
+
+- Corregida la lectura de `sound_enabled`: una preferencia ausente significa sonido apagado. Inicio, etiqueta del control y alternancia usan la misma lectura; solo el botón guarda la elección. Los valores `true` y `false` ya guardados se conservan, sin migración ni sobrescritura.
+- El valor predeterminado anterior `true` podía permitir audio sin activación explícita cuando el timbre, volumen y foco lo permitían. Esas barreras no sustituyen el consentimiento.
+- Revisión estática: omisión, final, pausa, destrucción y movimiento reducido detienen audio; pérdida de foco cancela pistas y libera reproductores. Silencio/vibración y volumen multimedia cero bloquean el inicio. No se cambió el reproductor ni la cronología.
+- Añadidas pruebas unitarias para preferencia ausente, valores guardados y ausencia de escrituras al leer; ampliada la cobertura de la política al modo vibración. No ejecutadas: Gradle no se ejecuta en Termux. Pendientes CI y pruebas de audio/foco/ciclo de vida en dispositivo; los cambios de timbre durante la reproducción no se monitorizan continuamente.
+- Se preservaron logo, CLICK TV DIGITAL, versión, applicationId, firma y cambios locales. Sin commit, push, tag ni Release.
+
+### Capturas reales de ALERTA EC pendientes
+
+No se presenta aquí una galería propia validada. Debemos obtener del dispositivo, con la versión instalada identificada:
+
+1. Introducción con logo y marca, incluidos los controles de omisión, movimiento reducido y sonido. Una captura no valida el audio.
+2. Pantalla principal en temas claro y oscuro, con ubicación pública de prueba, fuente y fecha de los datos visibles.
+3. Pronóstico horario y sus estados reales de datos disponibles, ausentes o vencidos, cuando puedan reproducirse sin manipular la imagen.
+4. Dirección por niveles administrativos con una ubicación pública, sin domicilio ni coordenadas privadas.
+5. Notificación realmente recibida, mostrando su clasificación, fuente y hora; no fabricar una alerta para ilustrar la función.
+6. Widgets Material You y Hourly Trend instalados en el lanzador, identificando tamaño y versión; comprobar también texto grande.
+7. Pantalla Acerca de, opción de compartir y sección de aportes, ocultando cualquier dato personal.
+
+Registrar versión de ALERTA EC, versión de Android, fecha, tema y tamaño de texto de cada captura. Publicar únicamente pantallas existentes de esa instalación; las funciones ausentes deben seguir como pendientes. TalkBack, sonido y comportamiento de actualización requieren pruebas aparte.
+
+# ⬇️ Descarga de ALERTA EC
+
+Las descargas propias se encuentran en [Releases de ALERTA EC](https://github.com/clicktvdigital/Alerta-EC/releases). Para uso público, elige únicamente una Release estable con APK de producción; las versiones marcadas como preliminares, los APK Debug y los artefactos de CI son de prueba. Si no hay una Release estable disponible, espera su publicación.
+
+### Obtainium
+
+1. Instala [Obtainium desde su proyecto oficial](https://github.com/ImranR98/Obtainium).
+2. En la opción para añadir una aplicación, introduce la URL del repositorio: `https://github.com/clicktvdigital/Alerta-EC` y utiliza la fuente GitHub.
+3. Mantén desactivada la inclusión de versiones preliminares (*pre-releases*). Guarda la aplicación y selecciona el APK de producción compatible con tu dispositivo (universal, si está disponible).
+4. Comprueba que corresponde a ALERTA EC, paquete `com.clicktvdigital.alertaec`. Si no se detecta una versión estable con APK, espera su publicación; no uses el repositorio de Breezy Weather como sustituto.
+
+Consulta también la [documentación oficial de Obtainium](https://wiki.obtainium.imranr.dev/). La detección y actualización de una nueva Release de ALERTA EC debe comprobarse antes de distribuirla.
+
+**Firma de producción:** la huella SHA-256 queda pendiente de validación criptográfica contra un APK de producción y la versión instalada antes de incorporarla a esta sección. El registro histórico de continuidad no sustituye esa comprobación. Un checksum SHA-256 del archivo APK es distinto de la huella de su certificado de firma.
+
+Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado pertenecen al proyecto original; no son canales ni credenciales de distribución de ALERTA EC.
 
 <hr />
 
+## Procedencia y documentación heredada de Breezy Weather
+
+Se conservan los créditos, la licencia y las referencias del proyecto original. El bloque desplegable contiene documentación heredada: sus capacidades, políticas, contactos, canales de distribución y planes corresponden a Breezy Weather, no al estado validado de ALERTA EC. La [guía de instalación original](https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md) es una referencia de procedencia; para ALERTA EC utiliza las instrucciones de descarga anteriores.
+
+<details>
+<summary>Consultar capturas, Features y documentación heredada de Breezy Weather</summary>
+
+### Capturas heredadas de Breezy Weather — no son capturas verificadas de ALERTA EC
+
 <div align="center">
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01-main-header-light.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02-main-header-dark.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03-main-blocks-1.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-main-blocks-2.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-settings.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-sources.png" alt="" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-details.png" alt="" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01-main-header-light.png" alt="Pantalla principal clara de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02-main-header-dark.png" alt="Pantalla principal oscura de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03-main-blocks-1.png" alt="Bloques meteorológicos, vista 1 de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-main-blocks-2.png" alt="Bloques meteorológicos, vista 2 de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-settings.png" alt="Ajustes de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-sources.png" alt="Fuentes de Breezy Weather; captura heredada" style="width: 300px" />
+    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-details.png" alt="Detalles de Breezy Weather; captura heredada" style="width: 300px" />
 </div>
 
-# ✨ Features
+# ✨ Features de Breezy Weather — referencia heredada
 
 - 🌤️ Weather data
   - Daily and hourly forecasts up to 16 days
@@ -135,14 +171,14 @@ alt="Get it on F-Droid" align="center" height="80" /></a>
 </details>
 
 
-# 🛟 Help
+# 🛟 Help de Breezy Weather
 
 * [Frequently Asked Questions / Help](HELP.md)
 * [Main screen explanations](docs/HOMEPAGE.md)
 * [Weather sources comparison](docs/SOURCES.md)
 
 
-# 🤝 Contribute
+# 🤝 Contribute al proyecto Breezy Weather
 
 Pull requests are welcome. You can have a look at [issues opened to contributions](https://github.com/breezy-weather/breezy-weather/issues?q=is%3Aissue+is%3Aopen+label%3A%22Open+to+contributions%22). For other changes, please open an issue first to discuss what you would like to change.
 
@@ -171,7 +207,7 @@ Pull requests are welcome. You can have a look at [issues opened to contribution
 - Donations: if you have extra money to spare, consider [donating to Open-Meteo](https://github.com/sponsors/open-meteo) to support infrastructure costs and future developments (we currently lack a libre and gratis worldwide alternative for the following features: [Reverse geocoding](https://github.com/open-meteo/geocoding-api/issues/6), [Alerts](https://github.com/open-meteo/open-meteo/issues/351), [Normals](https://github.com/open-meteo/open-meteo/issues/361))
 
 
-# 🌍 Translations
+# 🌍 Translations de Breezy Weather
 
 Translation is done externally [on Weblate](https://hosted.weblate.org/projects/breezy-weather/breezy-weather-android/#information). Please read carefully project instructions if you want to help.
 
@@ -182,7 +218,7 @@ English (and regional variants) and French translations are maintained by repo m
 For unit formatting, we use [Unicode data](https://www.unicode.org/cldr/charts/47/summary/root.html) as much as possible. If you believe there is an error, please [open a discussion](https://github.com/breezy-weather/breezy-weather/discussions/categories/general) with evidences that the changes you suggest is the recommendation for your language.
 
 
-# ✉️ Contact us
+# ✉️ Contactos de Breezy Weather
 
 * If you’d like to report a bug or suggest a new feature, GitHub discussions or issues are best for organization.
 * We’ve also created a Matrix/Element space with a number of different channels for more general discussion: [`#breezy-weather-space:matrix.org`](https://matrix.to/#/#breezy-weather-space:matrix.org).
@@ -191,7 +227,7 @@ For unit formatting, we use [Unicode data](https://www.unicode.org/cldr/charts/4
   * If you’d prefer a direct channel link instead of a space link, here’s the main Breezy Weather Matrix channel: [`#breezy-weather:matrix.org`](https://matrix.to/#/#breezy-weather:matrix.org)
 
 
-# 📜 License
+# 📜 License original — LGPL-3.0
 
 * [GNU Lesser General Public License v3.0](/LICENSE)
 * This License does not grant any rights in the trademarks, service marks, or logos of any Contributor.
@@ -208,22 +244,24 @@ Otherwise, remember to:
   - Change the app icons in the [`res_fork`](https://github.com/breezy-weather/breezy-weather/blob/main/app/src/res_fork) folders
   - Avoid installation conflicts: change the `applicationId` in [`build.gradle.kts`](https://github.com/breezy-weather/breezy-weather/blob/main/app/build.gradle.kts#L25)
 
+</details>
+
 ## ❤️ Apoya Alerta EC 🇪🇨
 
 Alerta EC es un proyecto independiente y de código abierto que busca mejorar el acceso a información meteorológica y alertas para las comunidades del Ecuador.
 
 ¡Ayúdanos a mantener encendida la alerta y caliente el cafecito!
 
-Puedes apoyar voluntariamente su desarrollo mediante [GitHub Sponsors](https://github.com/sponsors/clicktvdigital):
+Puedes apoyar voluntariamente su desarrollo mediante estos enlaces:
 
-- ☕ **Un cafecito:** $1, aporte único.
-- 🫔☕ **Tamalito lojano con café:** $3, aporte único.
-- 🥣 **Un encebollado:** $5, aporte único.
-- ❤️ **Patrocinio mensual:** desde $2.
+- [PayPhone](https://ppls.me/izAAuu8fptGHF6uZBV9L4Q)
+- [PayPal](https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N)
+- [Patreon](https://www.patreon.com/clicktvdigital)
+- [GitHub Sponsors](https://github.com/sponsors/clicktvdigital)
 
 Las alertas meteorológicas y las futuras funciones SOS seguirán siendo gratuitas para todos. Las donaciones no otorgan prioridad en situaciones de emergencia.
 
-**Estado:** perfil de GitHub Sponsors pendiente de aprobación. Las contribuciones estarán disponibles cuando GitHub habilite el perfil.
+Los aportes son opcionales y no habilitan funciones meteorológicas esenciales de pago. No se han verificado transacciones de prueba.
 
 Alerta EC no está afiliada oficialmente a ECU 911 ni a instituciones gubernamentales.
 
@@ -250,7 +288,7 @@ Alerta EC es una adaptación independiente de Breezy Weather para ofrecer inform
 
 ### Información y experiencia previstas
 
-- Ubicación por niveles administrativos separados: calle/intersección, barrio o sector, parroquia civil, parroquia eclesiástica cuando una fuente confiable la identifique, distrito/cantón, provincia y código postal. La geocodificación debe conservar fuente, confianza y antigüedad. Para el caso de referencia del usuario, el código postal 170528 está confirmado por el usuario y fuentes postales oficiales; Nominatim ha devuelto 170318 para un punto de prueba y esa discrepancia debe conservarse. Ningún código postal se debe fijar para todos los usuarios.
+- Ubicación por niveles administrativos separados: calle/intersección, barrio o sector, parroquia civil, parroquia eclesiástica cuando una fuente confiable la identifique, distrito/cantón, provincia y código postal. La geocodificación debe conservar fuente, confianza y antigüedad. Para el caso de referencia del usuario, el código postal [código postal residencial omitido] está confirmado por el usuario y fuentes postales oficiales; Nominatim ha devuelto 170318 para un punto de prueba y esa discrepancia debe conservarse. Ningún código postal se debe fijar para todos los usuarios.
 - Zona horaria de Quito, UTC−05:00, con hora y segundos cuando la precisión temporal del dato lo permita. Un reloj o cuenta regresiva no debe implicar precisión meteorológica que la fuente no tiene.
 - Temperatura en grados Celsius, acumulación de lluvia en milímetros y tasa de precipitación en mm/h, explicando intervalo y significado. El pronóstico por horas es prioritario; el pronóstico diario es complementario.
 - Seguimiento de lluvia por barrio solo cuando haya cobertura espacial suficiente. Radar y satélites deben ser productos reales, identificados por fuente, hora, cobertura y licencia; distinguir observación de animaciones/modelos de pronóstico. No inferir trayectoria, procedencia o ETA desde un único pronóstico puntual.

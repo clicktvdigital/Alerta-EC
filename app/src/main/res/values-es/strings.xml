@@ -10,12 +10,29 @@
     <string name="alertaec_support_description">Los aportes son voluntarios. Las alertas y funciones esenciales seguirán siendo gratuitas.</string>
     <string name="alertaec_support_payphone_button">❤️ Apoyar con PayPhone</string>
     <string name="alertaec_support_paypal">PayPal · Aporte voluntario</string>
-    <string name="alertaec_support_patreon">Patreon · Aporte mensual de USD 1</string>
+    <string name="alertaec_support_patreon">Patreon · Apoyo voluntario</string>
     <string name="alertaec_support_github">GitHub Sponsors</string>
+    <string name="alertaec_support_more_options">Más formas de apoyar</string>
     <string name="alertaec_support_open_with">Abrir enlace de pago externo</string>
     <string name="alertaec_support_open_error_title">No se pudo abrir el enlace</string>
     <string name="alertaec_support_open_error_message">No se encontró un navegador o una aplicación compatible para abrir este enlace seguro. Inténtalo más tarde.</string>
     <string name="alertaec_support_close">Cerrar</string>
+    <string name="alertaec_share_title">📲 Compartir ALERTA EC</string>
+    <string name="alertaec_share_summary">Recomienda la aplicación a otras personas</string>
+    <string name="alertaec_share_message">ALERTA EC 🇪🇨🦅: pronósticos y alertas meteorológicas para Ecuador. Descárgala desde la Release estable: https://github.com/clicktvdigital/Alerta-EC/releases/latest</string>
+    <string name="alertaec_credits_title">Créditos ALERTA EC</string>
+    <string name="alertaec_credit_brand">ALERTA EC 🇪🇨🦅</string>
+    <string name="alertaec_credit_developer">Desarrollo y adaptación: Ing. Richard Ontaneda</string>
+    <string name="alertaec_credit_company">CLICK TV DIGITAL</string>
+    <string name="alertaec_hourly_highlight">+%1$d h · %2$s · %3$s</string>
+    <string name="alertaec_hourly_rain">lluvia %1$s</string>
+    <string name="alertaec_hourly_wind">viento %1$s</string>
+    <string name="alertaec_view_details">Ver detalles</string>
+    <string name="alertaec_hourly_acquired_at">Datos horarios recibidos: %1$s</string>
+    <string name="alertaec_hourly_recent">Datos recientes · recibidos: %1$s</string>
+    <string name="alertaec_hourly_stale">Aviso: datos guardados antiguos · recibidos: %1$s. Actualiza el pronóstico.</string>
+    <string name="alertaec_hourly_unknown">Aviso: datos guardados sin fecha fiable de adquisición. Actualiza el pronóstico.</string>
+    <string name="alertaec_hourly_missing">+%1$d h · Sin información para este intervalo</string>
 
     <!-- app. -->
     <string name="app_name">Alerta EC</string>
@@ -825,8 +842,8 @@
     <string name="settings_appearance_dark_mode_locations_day_night">Seguir día/noche</string>
     <string name="settings_appearance_dark_mode_locations_dark">Siempre oscuro con la app en modo oscuro</string>
     <string name="about_update_check_eol">Esta versión de Android ya no tiene soporte</string>
-    <string name="content_provider_permission_label">Leer datos de Breezy Weather</string>
-    <string name="content_provider_permission_description">obtener información meteorológica de Breezy Weather, incluidas las coordenadas de tus ubicaciones, como la ubicación actual si la has añadido</string>
+    <string name="content_provider_permission_label">Leer datos de ALERTA EC</string>
+    <string name="content_provider_permission_description">obtener información meteorológica de ALERTA EC, incluidas las coordenadas de tus ubicaciones, como la ubicación actual si la has añadido</string>
     <string name="common_weather_text_mostly_cloudy">Muy nuboso</string>
     <string name="settings_appearance_dark_mode_custom">Modo oscuro de %1$s a %2$s</string>
     <string name="action_pull_down_to_refresh">Desliza abajo para actualizar</string>

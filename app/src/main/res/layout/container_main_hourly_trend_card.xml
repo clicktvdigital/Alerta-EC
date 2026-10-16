@@ -46,6 +46,19 @@
             tools:text="Rain Wednesday evening"
             app:layout_constraintTop_toBottomOf="@+id/hourly_block_title" />
 
+        <TextView
+            android:id="@+id/hourly_block_highlights"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/large_margin"
+            android:layout_marginTop="@dimen/small_margin"
+            android:layout_marginEnd="@dimen/large_margin"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_subtitle"
+            tools:text="+1 h · 14:00 · 20 °C · lluvia 40 %" />
+
         <com.google.android.material.button.MaterialButtonGroup
             android:id="@+id/hourly_block_button_group"
             style="@style/Widget.Material3Expressive.MaterialButtonGroup.Connected"
@@ -54,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/hourly_block_subtitle"
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_highlights"
             app:layout_constraintStart_toStartOf="@+id/hourly_block_title_icon" />
 
         <org.breezyweather.ui.common.widgets.trend.TrendRecyclerView

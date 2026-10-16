@@ -1,5 +1,14 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+## Corrección de consentimiento de audio — v0.1.6 (2026-10-15)
+
+- Corregida la lectura de `sound_enabled`: una preferencia ausente significa sonido apagado. Inicio, etiqueta del control y alternancia usan la misma lectura; solo el botón guarda la elección. Los valores `true` y `false` ya guardados se conservan, sin migración ni sobrescritura.
+- El valor predeterminado anterior `true` podía permitir audio sin activación explícita cuando el timbre, volumen y foco lo permitían. Esas barreras no sustituyen el consentimiento.
+- Revisión estática: omisión, final, pausa, destrucción y movimiento reducido detienen audio; pérdida de foco cancela pistas y libera reproductores. Silencio/vibración y volumen multimedia cero bloquean el inicio. No se cambió el reproductor ni la cronología.
+- Añadidas pruebas unitarias para preferencia ausente, valores guardados y ausencia de escrituras al leer; ampliada la cobertura de la política al modo vibración. No ejecutadas: Gradle no se ejecuta en Termux. Pendientes CI y pruebas de audio/foco/ciclo de vida en dispositivo; los cambios de timbre durante la reproducción no se monitorizan continuamente.
+- Se preservaron logo, CLICK TV DIGITAL, versión, applicationId, firma y cambios locales. Sin commit, push, tag ni Release.
+
+
 ## Avance de intro y alertas — 2026-10-14
 - Rama `alerta-ec`, paquete de producción `com.clicktvdigital.alertaec`; no se modificaron versión, firma, publicación ni tags.
 - Intro: se mantuvieron las siete pistas WAV originales y su cronología. La secuencia visual dura ahora 5,8 s y comienza el fundido a 5,3 s, para no truncar lluvia (hasta 5,15 s) ni cierre armónico (hasta 5,3 s). La política contempla animaciones deshabilitadas desde `ValueAnimator.areAnimatorsEnabled()` (API 26+) y escala de animador no finita/cero; reproducción requiere consentimiento, pista válida, timbre normal y volumen multimedia activo. La liberación de cada reproductor se protege para que un fallo no corte la limpieza del resto.
@@ -54,14 +63,14 @@
 - No acumular APK, builds y logs innecesarios en el telefono.
 ### SIGUIENTE ACCION EXACTA
 1. COMPLETADO: diagnostico integral de GPS, Nominatim, Release y panel local.
-2. COMPLETADO: identificar que Nominatim entrega para el punto de prueba road=Angel Araujo, quarter=San Jose, city_district=Cochapamba, village=Atucucho, county=Quito y state=Pichincha.
+2. COMPLETADO: identificar que Nominatim entrega para el punto de prueba road=[calle residencial omitida], quarter=San Jose, city_district=Cochapamba, village=Atucucho, county=Quito y state=Pichincha.
 3. EN ESTE CAMBIO: corregir la jerarquia de Ecuador para que quarter/sector no sustituya a la parroquia en el titulo principal.
 4. EN ESTE CAMBIO: mapear direccion detallada como barrio/sector/parroquia/canton/provincia sin mezclar niveles.
 5. EN ESTE CAMBIO: activar CI automatica de compilacion Kotlin Release en GitHub para cada push a alerta-ec.
 6. EN ESTE CAMBIO: guardar el panel local dentro del repositorio y mantener una copia de ejecucion en ~/alerta-ec-panel.
 7. SIGUIENTE: confirmar CI verde en GitHub.
 8. SIGUIENTE: probar que la app muestra Atucucho, Cochapamba y que la direccion detallada conserva San Jose solamente como sector si el proveedor lo devuelve.
-9. SIGUIENTE: resolver el codigo postal con estrategia multifuente; no sobreescribir 170528 por el 170318 de OSM sin validacion.
+9. SIGUIENTE: resolver el codigo postal con estrategia multifuente; no sobreescribir [código postal residencial omitido] por el 170318 de OSM sin validacion.
 10. SIGUIENTE: validar en dispositivo GPS, clima, minutely y FPAS; no crear una Release hasta completar CI y pruebas funcionales.
 ### PRIORIDADES QUE NO SE PUEDEN OLVIDAR
 - GPS real y seguro.
@@ -171,8 +180,8 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - La clasificacion municipal vigente consultada en fuentes del Municipio de Quito ubica Atucucho y la parroquia Cochapamba en la Administracion Zonal Eugenio Espejo (Zona Norte), no en la Administracion Zonal La Delicia.
 - Zona de Planificacion 9 significa Distrito Metropolitano de Quito; no debe confundirse con una administracion zonal ni con un distrito de salud.
 - El MSP ubica Atucucho/Cochapamba en el Distrito de Salud 17D05, denominado La Concepcion a Zambiza.
-- El codigo postal 170528 es un codigo postal valido del Distrito Metropolitano de Quito. Su estructura normativa es 17-05-28: provincia Pichincha, distrito postal/administrativo 05, zona postal 28.
-- Referencia validada por el usuario en Google Maps y en una aplicacion de Codigo Postal Ecuador: 170528. Ademas existen referencias publicas de servicios y direcciones cercanas que usan 170528.
+- El codigo postal [código postal residencial omitido] es un codigo postal valido del Distrito Metropolitano de Quito. Su estructura normativa es 17-05-28: provincia Pichincha, distrito postal/administrativo 05, zona postal 28.
+- Referencia validada por el usuario en Google Maps y en una aplicacion de Codigo Postal Ecuador: [código postal residencial omitido]. Ademas existen referencias publicas de servicios y direcciones cercanas que usan [código postal residencial omitido].
 - Nominatim/OpenStreetMap devolvio 170318 para la coordenada GPS de prueba, por lo que existe una discrepancia de fuente. No asumir que el codigo de OSM es correcto solo por venir del geocodificador.
 - Objetivo de presentacion para el caso de prueba: barrio Atucucho; sector San Jose si la fuente lo devuelve como quarter; parroquia Cochapamba; canton Quito; provincia Pichincha; calle segun el proveedor; codigo postal validado por una fuente postal independiente.
 - No hardcodear una direccion particular para todos los usuarios. La aplicacion debe resolver dinamicamente por GPS y conservar procedencia/confianza de cada dato.
@@ -376,7 +385,7 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - El panel debe permanecer en 127.0.0.1:8765 y no exponerse a 0.0.0.0.
 - Mantener flujo: cambios -> validaciones -> commit/push -> CI GitHub -> prueba funcional -> Release firmada -> Obtainium.
 - No crear una Release nueva hasta confirmar CI verde y probar la geocodificacion corregida.
-- Mantener 170528 como referencia postal validada independientemente por el usuario; Nominatim/OSM devolvio 170318 y debe conservarse como discrepancia de fuente hasta resolverla con estrategia multifuente.
+- Mantener [código postal residencial omitido] como referencia postal validada independientemente por el usuario; Nominatim/OSM devolvio 170318 y debe conservarse como discrepancia de fuente hasta resolverla con estrategia multifuente.
 
 <!-- ALERTA_EC_PANEL_FIX_DEFINITIVO_20261008 -->
 ## Panel local reparado — 8 de octubre de 2026
@@ -400,10 +409,10 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 <!-- ALERTA_EC_GPS_VALIDADO_014 -->
 ## GPS/geocodificacion validada y candidata 0.1.4 — 8 de octubre de 2026
 - Panel local operativo y arbol Git limpio.
-- GPS real y Nominatim validaron para el caso de prueba: calle Angel Araujo; village/barrio Atucucho; quarter/sector San Jose; city_district/parroquia Cochapamba; county Distrito Metropolitano de Quito; provincia Pichincha.
+- GPS real y Nominatim validaron para el caso de prueba: calle [calle residencial omitida]; village/barrio Atucucho; quarter/sector San Jose; city_district/parroquia Cochapamba; county Distrito Metropolitano de Quito; provincia Pichincha.
 - La jerarquia nueva produce como titulo esperado: Atucucho, Cochapamba.
-- El Vademecum oficial del sector postal de MINTEL incluye Quito | 17D05 | 170528 | Cochapamba; tambien existen 170529 y 170530 dentro de Cochapamba.
-- 170528 queda registrado como referencia postal validada por el usuario y respaldada por fuentes postales; no hardcodearlo para todos los usuarios.
+- El Vademecum oficial del sector postal de MINTEL incluye Quito | 17D05 | [código postal residencial omitido] | Cochapamba; tambien existen 170529 y 170530 dentro de Cochapamba.
+- [código postal residencial omitido] queda registrado como referencia postal validada por el usuario y respaldada por fuentes postales; no hardcodearlo para todos los usuarios.
 - Nominatim/OpenStreetMap devolvio 170318 para el punto GPS y se mantiene registrado como discrepancia de fuente.
 - Municipio de Quito ubica Atucucho, parroquia Cochapamba, dentro de la Administracion Zonal Eugenio Espejo.
 - 0.1.4 sera prerelease de prueba para validar la jerarquia de ubicacion en la APK instalada.
@@ -418,7 +427,7 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - GitHub Release v0.1.4 fue verificada y contiene al menos una APK valida.
 - Esta version es una prerelease de prueba para validar en el telefono la nueva jerarquia de geocodificacion de Ecuador.
 - Caso de validacion esperado: Atucucho, Cochapamba como titulo; San Jose separado como sector; Quito y Pichincha en sus niveles administrativos.
-- Mantener 170528 como referencia postal validada para Cochapamba/17D05 y 170318 como discrepancia devuelta por Nominatim/OpenStreetMap hasta implementar validacion postal multifuente.
+- Mantener [código postal residencial omitido] como referencia postal validada para Cochapamba/17D05 y 170318 como discrepancia devuelta por Nominatim/OpenStreetMap hasta implementar validacion postal multifuente.
 - Siguiente paso: actualizar Alerta EC con Obtainium y verificar version instalada, certificado, direccion mostrada, GPS, clima, minutely y FPAS.
 
 ## PLAN GPS 3D Y REFERENCIAS COMUNITARIAS — 2026-10-08
@@ -437,13 +446,13 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - El sector debe determinarse dinamicamente; no fijar Union La Paz para todos.
 
 ### Calles y referencias comunitarias por verificar
-- Angel Leonidas Araujo Chiriboga, tambien conocida como Angel Araujo.
-- Calle N56D y Zulema Julia Blacio Galarza: nombres y conexiones por contrastar.
-- Carpinteria Don Pedro Sarango: referencia aproximada a 10 metros.
-- Viveres Solange: referencia aproximada a 20 metros.
-- Mecanica de Edison Guallichico: hacia la parte alta.
-- Fundacion Pan de Vida: referencia por N56D.
-- Viveres Damasio: referencia hacia Zulema Blacio.
+- [calle residencial omitida], tambien conocida como [calle residencial omitida].
+- Calle [transversal residencial omitida] y [transversal residencial omitida]: nombres y conexiones por contrastar.
+- [referencia comercial residencial omitida por privacidad].
+- [referencia comercial residencial omitida por privacidad].
+- [referencia local residencial omitida por privacidad].
+- [referencia local residencial omitida por privacidad].
+- [referencia comercial omitida]: referencia hacia Zulema Blacio.
 - Faldas del Pichincha: referencia natural general.
 - Las distancias son reportes comunitarios, NO mediciones GPS verificadas.
 - No publicar puntos que permitan identificar un domicilio privado.
@@ -500,7 +509,7 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 
 ### Territorio, ubicación y unidades
 - Desglosar ubicación sin mezclar niveles: calle/intersección, barrio, sector, parroquia civil, parroquia eclesiástica (solo con fuente verificable), distrito/cantón, provincia y código postal. Conservar proveedor, confianza y antigüedad. No publicar coordenadas de domicilios.
-- Para el caso de referencia, 170528 está confirmado por el usuario y respaldado por fuentes postales oficiales consultadas (incluido vademécum MINTEL: Quito, 17D05, Cochapamba). No generalizarlo ni hardcodearlo. Nominatim/OSM entregó 170318 para la coordenada de prueba; mantener ambos valores y resolver con validación postal/geoespacial independiente.
+- Para el caso de referencia, [código postal residencial omitido] está confirmado por el usuario y respaldado por fuentes postales oficiales consultadas (incluido vademécum MINTEL: Quito, 17D05, Cochapamba). No generalizarlo ni hardcodearlo. Nominatim/OSM entregó 170318 para la coordenada de prueba; mantener ambos valores y resolver con validación postal/geoespacial independiente.
 - Caso de geocodificación previo: barrio Atucucho, sector San José si lo informa el proveedor, parroquia civil Cochapamba, cantón/distrito Quito y provincia Pichincha; la zona municipal indicada en antecedentes es Eugenio Espejo. No confundir parroquia civil con eclesiástica, distrito postal, distrito de salud ni administración zonal.
 - Zona horaria objetivo Quito, UTC−05:00; preservar segundos en presentación/registro cuando la fuente los soporte y mostrar antigüedad. Tiempo exacto no significa precisión predictiva.
 - Unidades predeterminadas: temperatura °C, lluvia acumulada mm y tasa mm/h. Expresar intervalo de acumulación y no mezclar profundidad acumulada con tasa. Pronóstico por horas prioritario y diario secundario.
@@ -593,6 +602,273 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Version publica documentada: 0.1.4 / 104; mantener applicationId y certificado de produccion.
 - No publicar Release, tag ni APK nueva sin pruebas, firma verificada y autorizacion.
 - Actualizar README.md y docs/CONTINUAR_AQUI.md en cada avance; mantener cada proyecto en su propio repositorio.
+
+
+## Requisitos SOS y búsqueda familiar inspirados en Cerberus — 2026-10-16
+
+**Estado:** requisitos de producto y arquitectura para evaluación; **NO son funcionalidades terminadas ni verificadas en ALERTA EC v0.1.6**. Esta sección recoge la experiencia relatada por el usuario con la aplicación antirrobo Cerberus, no una comprobación independiente de las funciones de Cerberus ni de su disponibilidad actual. No altera el estado de releases, firma o permisos. Mantener este registro junto al historial de continuidad y trasladar los avances validados al README cuando se implementen.
+
+### Objetivo y casos de uso
+
+Ampliar ALERTA EC, de CLICK TV DIGITAL, con un sistema SOS de localización y coordinación de ayuda para desastres naturales, sismos, accidentes, caídas con incapacidad, personas desaparecidas y situaciones de secuestro o riesgo. Evitar confundir prevención comunitaria con una respuesta oficial garantizada. Mantener fuentes meteorológicas/sísmicas, comunicación de emergencia y privacidad como componentes separados pero coordinados.
+
+### Funciones solicitadas y criterios de diseño
+
+1. **Geolocalización real y trazable:** latitud y longitud precisas, precisión de la medición, altitud y precisión vertical cuando existan, fuente/sistema de posicionamiento, fecha, hora, minutos, segundos y zona horaria. Ofrecer coordenadas decimales y grados/minutos/segundos. No inventar altura, profundidad, mediciones, tiempos ni precisión. Diferenciar última ubicación conocida de posición actual.
+2. **Botón SOS:** al activarlo, solicitar la mejor ubicación disponible e iniciar una sesión de seguimiento por 10 o 30 minutos (configurable), con fin anticipado y opción de reactivación. Actualizar, por ejemplo, cada 5 minutos, ajustando a movimiento, batería, red y precisión; informar claramente el momento de cada muestra. Cuando la señal no esté disponible, conservar y mostrar la última posición válida con su antigüedad.
+3. **Hasta cinco contactos de emergencia:** alta y verificación individual, autorizaciones granulares, confirmación de recepción y opción de revocar. Enviar avisos con ubicación/mapa y, si se configura y la red lo permite, mensajes/correo electrónico a los cinco contactos. Las alertas deben distinguir envío, entrega y lectura; no prometer ninguna sin evidencia. Evitar incluir coordenadas sensibles en canales públicos o correos no protegidos sin elección informada.
+4. **Solicitud remota de auxilio por un familiar:** contacto preautorizado puede solicitar localización de emergencia desde otro dispositivo, incluso si la persona no puede contestar. Exigir autenticación sólida, consentimientos previos revocables, avisos visibles y registro de accesos. Solo utilizar permisos y servicios de localización disponibles según Android. La aplicación **no puede forzar silenciosamente la activación del GPS del sistema si el usuario lo desactivó**, ni garantizar respuesta con teléfono apagado o sin conectividad. No permitir rastreo no consentido.
+5. **Batería crítica (referencia Cerberus):** umbral configurable, con 5 % como caso solicitado; priorizar aviso de baja batería, coordenada más reciente, hora, precisión y último recorrido consentido antes que acciones de alto consumo. Registrar si el envío falló y reintentar cuando resulte viable. No prometer fotografías/audio/vídeo si Android, energía o permisos no lo permiten.
+6. **Geovallas voluntarias:** entrada/salida de áreas elegidas, con controles anti-falsas alarmas, límites de precisión y horarios. No son equivalentes a detectar accidentes, terremotos o secuestros.
+7. **Historial de recorridos y búsqueda:** sucesión de posiciones verdaderas con marcas de tiempo, precisión, estado de transmisión, inicio/fin de incidente, acciones tomadas, resultado y forma de localización/asistencia; estados no confirmado, en curso y cerrado. Control de acceso; borrado manual y retención configurable (por ejemplo 7 o 30 días) con purga automática, sujetos a validación de cachés, copias de Android y receptores externos.
+8. **Detección de accidente/caída:** explorar sensores y algoritmos validados con umbrales prudentes, cuenta atrás cancelable y confirmación cuando sea posible. En caso de incapacidad, iniciar un protocolo previamente habilitado, no un diagnóstico infalible. Minimizar falsos positivos y consumo de batería.
+9. **Evidencia multimedia de emergencia:** el usuario solicita audio de aproximadamente un minuto, vídeo de uno o cinco minutos e imágenes cada cinco minutos. Diseñar opciones de captura **iniciadas conscientemente en el dispositivo**, claramente señaladas y sujetas a permisos, indicadores de Android, consentimiento y restricciones de segundo plano. No implementar encendido remoto oculto del micrófono/cámara ni escucha clandestina de conversaciones; un pedido remoto de familiar podrá solicitar ayuda/localización autorizada, no activar sensores invasivos sin participación y controles del dueño.
+10. **Mapa de proximidad / radar de búsqueda:** mostrar posición, última actualización, posibles ayudantes y zonas aproximadas; el radar comunitario es una presentación geográfica, no una medición satelital propia. Ofrecer nombre, iniciales o seudónimo según autorización. Las coordenadas exactas se reservarán preferentemente a contactos verificados y rescatistas legitimados, con controles especiales ante secuestro, acoso y violencia; la comunidad abierta recibirá un área aproximada de manera predeterminada y solo datos de incidentes moderados.
+11. **Meteorología, sismos y peligros naturales:** integrar únicamente fuentes reales y verificables de lluvia, rayos, satélite y alertas INAMHI/Instituto Geofísico donde sea factible; distinguir pronóstico, observación y alerta oficial. Un movimiento detectado por el celular no prueba un terremoto; las notificaciones sísmicas exigen fuente confiable, sello temporal y límites geográficos claros.
+12. **ECU 911 e infraestructura de cámaras:** ofrecer botón para llamar al 911 y funciones de compartir coordenadas/reportes, claramente separadas de una integración institucional no existente. Investigar app ECU911, acuerdos, protocolos y acceso a cámaras de tránsito/vecinos únicamente con autorización legal de sus propietarios u organismos; nunca acceso o activación de cámaras ajenas sin permiso.
+13. **Conectividad degradada:** explorar GNSS/GPS, ubicación de red celular y Wi-Fi, Bluetooth de proximidad, radio y servicios satelitales (incluido Starlink) solo cuando hardware, sistema, permisos, operadores y APIs lo soporten. Recibir coordenadas GNSS no equivale a poder enviar por satélite. Nunca prometer comunicación sin cobertura real. Colas locales y reintentos sujetos a límites y consentimiento.
+14. **Privacidad, seguridad y resistencia al abuso:** permisos graduados y revocables, cifrado en tránsito y controles de acceso, verificación de contactos, transparencia de solicitudes remotas, límite temporal de sesiones, protección de datos y auditoría de accesos. Considerar riesgos de violencia doméstica, coerción, secuestro, seguimiento indebido, filtraciones y avisos falsos. No difundir ubicación precisa de personas vulnerables públicamente por defecto. Definir mecanismo de cancelación segura.
+15. **Validaciones obligatorias:** comprobar funcionamiento real en Android, restricciones de ubicación/cámara/micrófono en segundo plano, batería baja, teléfono bloqueado, GPS apagado, red ausente, retrasos, permisos denegados, actualización tras reinicio, accesibilidad y calidad del posicionamiento. Añadir pruebas y ejecutar compilaciones en GitHub Actions; evitar Gradle pesado en Termux. No presentar funciones como operativas hasta pasar validación funcional.
+
+### Priorización recomendada
+
+- **Núcleo:** botón SOS + GPS auténtico + última ubicación conocida + hasta cinco contactos verificados + seguimiento temporal + historial mínimo protegido + botón 911.
+- **Resiliencia:** batería 5 %, red intermitente, geovallas voluntarias, detección de caídas, reintentos y gestión de falsas alarmas.
+- **Multimedia segura:** capturas explícitas durante SOS y envío de evidencia con consentimiento y compatibilidad Android verificados.
+- **Comunidad y coordinación:** mapa/radar, moderación y privacidad; evaluación de convenios ECU 911 y cámaras con autorización.
+
+### Estado de proyecto / reglas de continuidad
+
+- No confundir estos requisitos con capacidades ya presentes en la APK publicada; la última Release indicada previamente era v0.1.5 y v0.1.6 está en desarrollo local sin CI ni publicación confirmadas.
+- No modificar applicationId `com.clicktvdigital.alertaec`, firma de producción, historial Git o Releases para aplicar esta especificación.
+- Conservar `AGENTS.md`, `README.md`, `docs/CONTINUAR_AQUI.md`, los respaldos y las atribuciones/licencias a Breezy Weather. Registrar cada avance probado antes de anunciarlo como funcionalidad.
+- La política de privacidad de ALERTA EC permanece en borrador hasta verificaciones técnicas y datos legales pendientes; actualizarla **antes** de habilitar nuevas transmisiones, multimedia, contactos o mecanismos SOS.
+
+## Aclaración de requisitos: administración, búsquedas y batería — 2026-10-16
+
+**Estado: REQUISITOS APROBADOS PARA ESTUDIO Y DISEÑO, NO FUNCIONES IMPLEMENTADAS.** Este anexo amplía y, en los puntos indicados, CORRIGE el anexo «Requisitos SOS y búsqueda familiar inspirados en Cerberus — 2026-10-16». Es la referencia más reciente para el diseño de este módulo; no cambia el código, las pruebas ni las Releases.
+
+### 1. UNA sola aplicación; distintas funciones por rol
+
+ALERTA EC — by CLICK TV DIGITAL conservará una sola aplicación Android y el identificador de producción existente. Los accesos se asignarán por cuentas autenticadas, permisos y autorización del servidor cuando exista infraestructura validada, no por una APK secreta ni por una simple pantalla oculta.
+
+- **Usuario:** SOS propio, ubicación actual y última posición con fecha y precisión reales, permisos y contactos, geovallas consentidas, historial propio, privacidad y revocación.
+- **Hasta cinco contactos familiares verificados:** recibir alertas; consultar la localización exacta durante sesiones autorizadas; solicitar una sesión de auxilio previamente consentida y temporal; reconocer recepción; no disponer de un mando permanente e invisible del teléfono.
+- **Comunidad:** alertas de incidentes moderados, seudónimo/nombre consentido, bandera y mapa de proximidad; visualizar por defecto zona aproximada y hora de última actualización, nunca posiciones precisas de cualquier ciudadano a demanda.
+- **Rescatista o colaborador verificado:** acceso por incidente y por tiempo limitado a los datos estrictamente necesarios para auxiliar, con autenticación, trazabilidad y validación de identidad/función.
+- **Administrador CLICK TV DIGITAL:** consola especial en la MISMA aplicación para gestionar usuarios/roles autorizados, revisar reportes, evaluar evidencias de incidentes, coordinar búsqueda y rescatistas, auditar accesos y preparar notificaciones. La condición de administrador no concede GPS, cámara, micrófono ni historial permanente de todos los usuarios.
+- **Autoridad pública enlazada (futura):** rol institucional independiente, creado únicamente tras convenio, validación legal/técnica y procedimiento formal. No simular que ALERTA EC es ECU 911, COE Nacional o un servicio oficial de despacho.
+
+### 2. Inicio y ciclo de un incidente
+
+1. Emergencia activada por el propio usuario, evento de caída potencial detectado con función previamente habilitada, o aviso presentado por familiar/administrador/comunidad.
+2. Los avisos de terceros son **reportes por verificar**, no prueba de delito, secuestro, accidente o desaparición. Incorporar verificación, prevención de hostigamiento, denuncias falsas y eliminación de datos.
+3. Para ubicación remota, utilizar únicamente permisos otorgados en Android y autorizaciones previas expresas, revocables y específicas de la persona. Una solicitud autenticada puede activar una sesión permitida cuando el dispositivo, la app y las reglas Android lo permitan; si servicios de localización están deshabilitados, el teléfono apagado/sin red o el sistema lo impide, mostrar el fallo y la última posición disponible claramente marcada con antigüedad.
+4. Avisar a contactos autorizados y, conforme a reglas de privacidad del caso, a colaboradores verificados o a la comunidad con un aviso moderado. Mostrar bandera de incidente, estado «sin confirmar/en curso/cerrado», código de caso y seudónimo opcional.
+5. Seguimiento temporal seleccionable: 10 o 30 minutos como propuestas iniciales, con posibilidad de cancelación, ampliación verificada y registro de todas las consultas; nunca convertirlo en rastreo indefinido. Durante una sesión, actualizar según capacidad real: p. ej. aproximadamente cada 5 minutos, o más frecuentemente si existe necesidad técnica y consentimiento.
+6. Cierre, resumen de acciones y localización/asistencia, desactivación de enlaces y accesos temporales, y retención/borrado configurable como en el documento previo, teniendo en cuenta cachés y copias.
+
+### 3. Identidad, autenticación y seguridad
+
+- La app deberá exigir inicio de sesión fuerte, doble factor en administración y operaciones sensibles, comprobación del rol en servidor, controles de mínimo privilegio, permisos por incidente y caducidad.
+- Nunca codificar un «usuario maestro» o contraseña secreta universal dentro de la APK. El modo de administrador no debe habilitar vigilancia discrecional de todos los usuarios.
+- Registrar quién accedió, a qué incidente, cuándo, qué datos vio, justificación, autorización y caducidad. Permitir revisión de acciones sensibles.
+- Vincular cada instalación a una cuenta y un identificador propio y rotativo/revocable de aplicación; no depender del IMEI para comandos remotos: en Android moderno su acceso está restringido a apps privilegiadas/casos especiales.
+- Para terceros que reportan una persona desaparecida, exigir medidas contra suplantación, órdenes de acoso, violencia intrafamiliar y exposición del paradero de una víctima a su agresor.
+- El usuario debe poder ver permisos y contactos autorizados, deshabilitar acceso de personas específicas y obtener un historial de solicitudes. Diseñar un procedimiento de excepción de emergencia únicamente si es legalmente aplicable, aprobado por el responsable y auditable, no un bypass oculto.
+
+### 4. Batería: CORRECCIÓN EXPLÍCITA DEL 5 % ANTERIOR
+
+**La referencia anterior al 5 % como umbral principal queda SUPERADA.** La solicitud más reciente fija una propuesta predeterminada de **25 % (aviso inicial)** y **20 % (aviso reforzado)**, ambos configurables, sujetos a pruebas de consumo, preferencias y permisos. A 25 %, avisar y ofrecer medidas preventivas; a 20 %, priorizar ahorro y transmitir última posición válida a destinatarios autorizados en una emergencia activa o mediante una opción expresamente habilitada. No declarar una desaparición pública, transmitir ubicación privada o grabar multimedia solo porque la batería esté al 25 %/20 %. Evitar grabaciones o sondeos intensivos que agoten la batería restante. El 5 % puede quedar como escenario de contingencia, no como activador principal.
+
+### 5. Multimedia y comandos remotos
+
+- Se conserva el requisito de explorar **audio ~1 minuto**, **video de 1 o 5 minutos** y **fotografías espaciadas** como evidencias de emergencia. Diseñar la captura iniciada con SOS en el dispositivo y con avisos/permisos de Android, y archivos cifrados/protegidos; validar límites y costes de red/batería.
+- El usuario desea que familiares o administración pidan esa evidencia cuando la persona esté inconsciente. Se evaluará una **solicitud de auxilio remota**, pero no se implementará encendido oculto de cámara o micrófono, escucha clandestina, ni capturas remotas indiscriminadas. Android restringe cámara/micrófono desde segundo plano y requiere permisos/indicadores.
+- Alternativa prioritaria para incapacidad: último recorrido consentido, última posición georreferenciada, estado de batería/red, alertas a cinco contactos, sesión de posición previamente consentida y notificaciones a voluntarios verificados.
+- Nunca presentar un mensaje SMS, correo o push como una vía garantizada de encendido de GPS, sensor o cámara; requiere infraestructura, autorización, entrega de mensajes, red y permisos del sistema.
+
+### 6. Mapa, radar y datos exactos
+
+- GPS/GNSS y fuentes disponibles: latitud, longitud, altitud si está disponible, precisión, fuente y sello temporal con fecha/hora/minutos/segundos/zona horaria; distinguir ubicación actual de última conocida. No fabricar mediciones de profundidad ni calidad de señal.
+- Mapa familiar con recorrido real, historial con caducidad y contador de última actualización; mapa comunitario con zona aproximada predeterminada, banderita/aviso, categorías moderadas, nombre o seudónimo según configuración.
+- Acceso a coordenadas exactas para contactos verificados y personal de rescate autorizado por caso. Considerar rutas especiales de intervención cuando haya amenaza de secuestro, violencia o acoso: publicar ubicación exacta en un radar abierto puede poner en peligro a la víctima.
+- El radar meteorológico de lluvia/rayos y el mapa comunitario de proximidad podrán compartir interfaz cartográfica, pero son capas con orígenes, exactitudes y permisos diferentes; no confundir satélite meteorológico con seguimiento de personas vía satélite.
+
+### 7. ECU 911, COE Nacional y cámaras
+
+- Primero habilitar teléfono 911 mediante acción explícita del usuario y exportación segura de datos para compartir; no afirmar transmisión electrónica al ECU 911 hasta verificar integración real.
+- Explorar convenios de interoperabilidad del SIS ECU 911, procedimientos oficiales de privacidad y cadena de custodia. Que el desarrollador trabaje con una institución no concede por sí mismo acceso irrestricto a datos, sistemas o cámaras.
+- Cámaras de tránsito, vecinos y comercios: uso solo con consentimiento de propietarios o habilitación legal/institucional. Evitar acceso o activación unilateral, especialmente para búsquedas de personas vulnerables.
+
+### 8. Pendientes y verificación
+
+- Diseñar servidor/API autenticada, canales de entrega confirmada, almacenamiento cifrado, registro de auditoría, controles de abuso y revisión legal de Ecuador; identificar responsables reales y destinatarios.
+- Validar Android para GPS desactivado, segundo plano, suspensión de batería, sin internet, teléfono apagado, permisos revocados, geovallas, falso reporte, botón de emergencia, latencia y precisión.
+- Revisar el alcance de comunicación por SMS/correo, satélite/Starlink, Wi-Fi y Bluetooth sin prometer capacidades no disponibles. Documentar claramente «solicitado», «diseñado», «implementado», «validado en CI» y «comprobado en dispositivo».
+- Actualizar política de privacidad antes de habilitar localización compartida, roles, comunidad o multimedia; no publicar rastreo o grabación sin verificación y control de permisos.
+- **Requisitos de proyecto:** preservar historial, README.md, AGENTS.md, docs/CONTINUAR_AQUI.md, firma, applicationId y versiones; no ejecutar builds pesados en Termux; no commit/push/tag/Release sin autorización. v0.1.6 sigue en desarrollo local.
+
+### Fuentes técnicas y administrativas verificadas para el análisis (consultadas 2026-10-16)
+
+Android — restricciones de servicios en segundo plano: https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start
+Android — identificadores únicos / IMEI: https://developer.android.com/identity/user-data-ids
+Android — ubicación en servicios en primer plano: https://developer.android.com/develop/background-work/services/fgs/service-types
+ECU 911 — Resolución de interoperabilidad (PDF): https://www.ecu911.gob.ec/wp-content/uploads/2024/08/RESOLUCION-INTEROPERABILIDAD-ok-.-signed.pdf
+ECU 911 — Registro de interoperabilidad privado: https://www.ecu911.gob.ec/registro-de-interoperabilidad-privado-local-seguro/
+Superintendencia de Protección de Datos Personales (Ecuador): https://spdp.gob.ec/
+
+<!-- ALERTA_EC_UNIVERSAL_SOS_2026_10_16_START -->
+
+ALERTA EC — ANEXO DE CONTINUIDAD
+ENFOQUE UNIVERSAL DE ACCESIBILIDAD, SOS Y COMPARTICIÓN FAMILIAR
+Fecha: 2026-10-16
+Estado: requisitos de producto y arquitectura propuestos; NO equivalen a funcionalidades compiladas, probadas o publicadas.
+Marca: ALERTA EC — by CLICK TV DIGITAL
+
+OBJETIVO GENERAL
+ALERTA EC debe ser una aplicación inclusiva, útil e intuitiva para personas de cualquier edad y condición, tanto en Ecuador como en otros territorios donde las funciones y servicios estén disponibles. No limitar el diseño a perfiles infantiles o a usuarios familiarizados con la tecnología. El objetivo abarca emergencias, prevención de fenómenos naturales, seguridad personal, accesibilidad, ayuda comunitaria y coordinación autorizada de rescate.
+
+USUARIOS Y NECESIDADES
+- Adultos de todas las edades y personas mayores, incluidas quienes nunca han usado aplicaciones complejas.
+- Personas ciegas o con baja visión: lector de pantalla, etiquetas claras, navegación lógica, avisos hablados opcionales y alternativas táctiles.
+- Personas sordas o con hipoacusia: avisos por vibración, señales visuales, subtítulos y comunicación escrita sin depender del sonido.
+- Personas que no pueden hablar: SOS silencioso y mensajes predefinidos, texto y pictogramas; no exigir una llamada de voz para solicitar ayuda.
+- Personas con movilidad reducida, destreza limitada o discapacidad cognitiva: controles grandes, poco esfuerzo motor, navegación sencilla, ayuda guiada y recuperación de errores.
+- Niñas, niños y adolescentes: modos de protección con padres o tutores acreditados, garantías reforzadas y privacidad ante la comunidad.
+- Personas en accidentes, desorientación, desastres, riesgo de violencia o desaparición: protocolo SOS adaptable y última ubicación conocida.
+- Cada persona elige las funciones que necesita; evitar forzar una clasificación por discapacidad o asumir incapacidad por la edad.
+
+DISEÑO DE LA INTERFAZ
+1. Misma aplicación y mismo identificador Android; accesibilidad universal desde la pantalla principal, no una app paralela.
+2. Interfaz clara con opciones de "Modo sencillo" y "Modo avanzado" opcionales, reversibles y sin perder funcionalidades críticas.
+3. Botón SOS grande, claramente identificado, accesible con TalkBack, buen contraste, texto escalable y áreas táctiles suficientes; estudiar accesos alternativos por botón físico o acciones del sistema cuando Android lo permita.
+4. Instrucciones breves, lenguaje sencillo, iconos acompañados de texto, confirmaciones inequívocas y estados visibles: sin conexión, ubicación antigua, alerta enviada, pendiente y error.
+5. Alertas multicanal: texto, vibración, sonido opcional, mensajes legibles, notificaciones compatibles con lector de pantalla. No depender de un único canal sensorial.
+6. Aplicar pruebas reales con personas usuarias de tecnologías de asistencia, personas mayores y usuarios de poca experiencia tecnológica.
+
+GPS Y COMPARTICIÓN DE UBICACIÓN (REQUISITOS)
+- Tres modalidades: compartir durante 1 hora; compartir hasta que el titular lo desactive; compartir durante emergencia SOS con duración preconfigurada y posibilidad de ampliación segura.
+- Hasta cinco contactos de confianza verificados, permisos explícitos y revocables; para menores o personas bajo representación legal, configuración apropiada por tutor acreditado y salvaguardas adicionales.
+- Los adultos conservan su autonomía: parentesco, discapacidad o edad no conceden automáticamente acceso permanente.
+- Ubicación actual precisa cuando el dispositivo la ofrece: latitud, longitud, altitud/precisión vertical si están disponibles, precisión horizontal, fuente y sello de fecha/hora completo con segundos y zona horaria; indicar antigüedad y última ubicación conocida cuando corresponda.
+- Actualizaciones periódicas configurables según batería, señal, emergencia y restricciones Android; historial de recorrido con consentimiento y política de conservación configurable.
+- GPS activo como capacidad PRIORITARIA al iniciar una emergencia, siempre sujeto a permisos y disponibilidad del sistema; Android no permite que una app ordinaria fuerce silenciosamente un servicio de ubicación deshabilitado por el usuario.
+- Sin red: conservar localmente lo necesario y reintentar envíos; nunca afirmar que familiares o autoridades recibieron la alerta sin confirmación técnica.
+- Geovallas optativas y notificaciones de llegada/salida configuradas por la persona autorizada.
+
+SOS Y RESCATE INCLUSIVO
+- SOS de un toque y mecanismo de activación por accidente/caída solo si se implementa, valida y configura de antemano; contemplar falsos positivos.
+- Alternativas para personas que no pueden hablar u oír: solicitud SOS por texto, pictogramas y señales visuales/táctiles.
+- Compartir con contactos autorizados el tipo de emergencia, coordenadas, precisión y actualizaciones, sin exigir que la persona pueda manejar el teléfono durante el incidente.
+- El panel de comunidad puede mostrar reportes moderados y zona aproximada; la ubicación exacta de menores y personas vulnerables se reserva a contactos/rescatistas habilitados conforme a autorizaciones y protocolos de protección.
+- Mapa de incidentes con marcador, alias/nombre configurable cuando corresponda, tiempo desde la última señal, estado del caso y capas meteorológicas reales separadas del "radar" de búsqueda.
+- Avisos de batería tempranos configurables al 25 % y 20 %; priorizar posición y autonomía ante una emergencia activa, no publicar desapariciones solo por batería baja.
+- Audio/video/fotografías SOS: evaluar únicamente flujos con inicio/consentimiento válido, indicadores y permisos exigidos por Android; no proponer activación remota clandestina de cámara o micrófono.
+- Contacto al 911 mediante llamada/enlace según lo disponible, sin afirmar integración directa con ECU 911 o COE hasta tener convenio y pruebas.
+
+ROLES EN UNA SOLA APLICACIÓN
+- Persona usuaria: gestiona su ubicación y autorizaciones.
+- Hasta cinco familiares/contactos verificados: acceso según consentimiento y ventana temporal autorizada.
+- Comunidad: alertas moderadas con controles de privacidad y verificación.
+- Rescatistas autorizados: gestión de incidentes conforme a autorización y protocolo.
+- Administrador de CLICK TV DIGITAL: configura servicio, valida incidencias, modera y coordina; NO acceso irrestricto a sensores/ubicaciones. Autenticación fuerte, privilegios mínimos y trazabilidad de acceso.
+
+VALIDACIONES Y GARANTÍAS PENDIENTES
+- Auditar el comportamiento real de Android para ubicación en segundo plano, notificaciones, sensor de caída, accesibilidad y ahorro de batería.
+- Documentar los tratamientos de datos y permisos en PRIVACY.md antes de publicar cambios.
+- Definir límites y eliminación de historiales, registros, geovallas, sesiones SOS y respaldos; aplicar retención configurable cuando corresponda.
+- Verificar seguridad, consentimiento, protección a menores y personas en riesgo, falsas alarmas, suplantación, abuso del panel administrativo y pruebas con usuarios reales.
+- No atribuir capacidades a v0.1.6 sin pruebas ni despliegue.
+- Mantener README.md y docs/CONTINUAR_AQUI.md actualizados al implementar y verificar; no alterar el historial previo.
+
+NOTA DE CONTINUIDAD
+Este anexo complementa los anexos GPS/SOS/Cerberus y roles/batería existentes. No los reemplaza. Prioridad de desarrollo: GPS real y fiabilidad de SOS, seguidos de accesibilidad, contactos de confianza y validación integral. La ejecución de esta especificación requiere planificación, implementación y pruebas antes de su distribución pública.
+
+<!-- ALERTA_EC_UNIVERSAL_SOS_2026_10_16_END -->
+
+<!-- ALERTA_EC_SIN_CUENTAS_2026_10_16_START -->
+
+## Decisión vigente: publicación sin registro obligatorio — 2026-10-16
+
+```text
+ALERTA EC — PLAN PRIORITARIO DE PUBLICACIÓN SIN CUENTAS
+Fecha: 16 de octubre de 2026
+Estado: decisión de alcance y propuesta, NO implementada ni publicada por este archivo.
+Proyecto: https://github.com/clicktvdigital/Alerta-EC
+Rama: alerta-ec
+Versión de desarrollo local reportada: 0.1.6 (versionCode 106)
+Identificador de producción: com.clicktvdigital.alertaec
+Desarrollador: CLICK TV DIGITAL
+
+OBJETIVO
+Entregar cuanto antes una aplicación gratuita, intuitiva y accesible sin demorar su distribución por un sistema de cuentas ni una infraestructura de pago. La urgencia no elimina la necesidad de comprobar compilación, firma, permisos y funcionamiento real antes de la Release estable.
+
+DECISIÓN ACTUAL
+1. No exigir registro, contraseñas ni identificación para consultar clima y alertas públicas y usar funciones locales disponibles.
+2. Aplazar integración de Firebase, Supabase, Google Sign-In, Apple, Facebook y GitHub Login. No son requisitos de la siguiente Release estable.
+3. Mantener ALERTA EC 100 % gratuita, sin anuncios invasivos y sin vender datos de ubicación.
+4. Usar GitHub Releases estables y Obtainium como vía de distribución y actualización; no generar APK temporales para los usuarios finales.
+5. Mantener una sola aplicación, el nombre ALERTA EC y la atribución by CLICK TV DIGITAL.
+6. Proteger el historial del repositorio, las credenciales de firma y las versiones instaladas.
+
+FUNCIONES QUE PUEDEN PLANIFICARSE SIN CUENTA NI SERVIDOR PROPIO
+- Consulta de meteorología y alertas de fuentes existentes (validar cada ruta realmente funcional).
+- Ubicación local con permisos Android, precisión y marca temporal reales; no inventar lecturas.
+- Acceso directo al marcador 911 y/o aplicación ECU 911 como acceso externo sin afirmar integración institucional.
+- Preparar mensaje SOS de texto con coordenadas y enlace de mapas en el selector de compartir de Android; su envío depende de la aplicación escogida, conexión y confirmación del usuario.
+- Contactos de confianza guardados localmente, con controles claros de consentimiento y protección de datos.
+- Accesibilidad desde el diseño para personas mayores, personas ciegas, sordas, sin habla, con movilidad reducida y usuarios con escasa experiencia tecnológica.
+
+FUNCIONES FUTURAS QUE REQUIEREN COMUNICACIÓN ADICIONAL
+- Seguimiento familiar EN VIVO desde otro teléfono, solicitudes remotas de ubicación y avisos automáticos a cinco contactos.
+- Ubicación comunitaria sincronizada, moderación, autorización y validación de incidentes.
+- Notificaciones push fiables, sincronización de rutas y evidencias entre dispositivos.
+Estas funciones requieren evaluar un canal de datos seguro, servidor o servicio externo, SMS/canales compatibles y sus costos reales. No presentarlas como implementadas hasta demostrar el funcionamiento. Sin infraestructura, una app no puede garantizar ubicación remota continua ni envío automático a familiares cuando el titular esté inconsciente.
+- Cámara y micrófono no podrán activarse clandestinamente a distancia. Cualquier captación SOS debe respetar permisos, restricciones del sistema, consentimiento y seguridad de víctimas.
+
+OBTAINIUM — EXPERIENCIA DE INSTALACIÓN
+Repositorio de ALERTA EC: https://github.com/clicktvdigital/Alerta-EC
+Releases oficiales: https://github.com/clicktvdigital/Alerta-EC/releases
+Obtainium oficial: https://github.com/ImranR98/Obtainium
+Wiki de Obtainium: https://wiki.obtainium.imranr.dev/
+
+- Añadir el repositorio propio a Obtainium; preferiblemente comenzar la instalación desde Obtainium para favorecer futuras actualizaciones automáticas.
+- Activar comprobaciones periódicas y, cuando sea compatible, actualizaciones en segundo plano.
+- Permitir a Obtainium instalar apps desde esa fuente en Ajustes de Android, cuando lo pida.
+- No seleccionar versiones prerelease ni APK debug; una Release estable debería incluir una APK universal firmada y claramente identificable.
+- El sistema puede solicitar confirmación para instalar: no prometer instalación silenciosa universal. El instalador que registró la instalación original, versión Android, configuración y permisos influyen.
+- Las políticas de ahorro de batería y red pueden retrasar las comprobaciones; no asegurar que se actualice exactamente al publicarse una Release.
+- Para futuras versiones conservar el mismo applicationId, misma firma de producción y versionCode ascendente; validar certificado SHA-256 de APK instalada y de la Release antes de publicar.
+
+GOOGLE PLAY PROTECT Y VERIFICACIÓN DE DESARROLLADOR
+- La APK distribuida fuera de Play puede generar solicitud de análisis porque es desconocida. No equivale por sí sola a una detección de malware.
+- No desactivar Play Protect, no usar trucos para ocultar el sistema de seguridad ni pedir a usuarios que ignoren advertencias de riesgo elevado.
+- Revisar permisos mínimos, funcionamiento honesto, procedencia del APK, firma, integridad, políticas de privacidad y vías oficiales de apelación si existe un falso positivo.
+- Prever los cambios progresivos de Android Developer Verification; su alcance depende de país, fecha y tipo de instalación.
+
+ANTES DE PUBLICAR v0.1.6
+[ ] Resolver revisión pendiente del historial Git y protección de datos privados.
+[ ] Validar CI/compilación mediante GitHub Actions, nunca Gradle pesado en Termux.
+[ ] Revisar pruebas de funcionamiento y accesibilidad reales.
+[ ] Confirmar certificado de firma de producción y compatibilidad de actualización desde v0.1.5.
+[ ] Validar enlaces, README, INSTALACIÓN, política de privacidad y descripción honesta de funciones.
+[ ] Probar Obtainium en al menos un teléfono real, incluido caso instalación inicial desde Descargas y caso desde Obtainium.
+[ ] Publicar solo con autorización explícita; no hacer push, tags ni Releases de manera automática.
+
+FUENTES PÚBLICAS DE REFERENCIA
+- Obtainium: https://wiki.obtainium.imranr.dev/sources/
+- Actualizaciones Android: https://developer.android.com/google/play/app-updates
+- Instaladores Android: https://developer.android.com/reference/android/content/pm/PackageInstaller.SessionParams
+- Play Protect: https://developers.google.com/android/play-protect/warning-dev-guidance
+- Distribución alternativa: https://developer.android.com/distribute/marketing-tools/alternative-distribution
+- Verificación: https://support.google.com/android/answer/17065026
+
+ESTADO DE LA DOCUMENTACIÓN
+Este TXT es un ANEXO nuevo de planificación que deja en pausa el plan anterior de cuentas. No borra los requisitos futuros de GPS, SOS, cinco familiares, inclusión universal y coordinación de rescates; los prioriza por fases. No contiene cambios de código ni da a entender que una función pendiente ya opera.
+```
+
+<!-- ALERTA_EC_SIN_CUENTAS_2026_10_16_END -->
 
 <!-- ALERTA_EC_AUTO_START -->
 

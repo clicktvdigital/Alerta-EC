@@ -27,8 +27,14 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonGroup
 import org.breezyweather.R
 import org.breezyweather.common.activities.BreezyActivity
+import org.breezyweather.common.extensions.formatMeasure
+import org.breezyweather.common.extensions.formatPercent
+import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.getThemeColor
 import org.breezyweather.domain.settings.SettingsManager
+import org.breezyweather.unit.formatting.UnitWidth
+import org.breezyweather.ui.main.adapters.main.HourlyForecastHighlights
+import org.breezyweather.ui.main.adapters.main.HourlyHighlightState
 import org.breezyweather.ui.common.adapters.ButtonAdapter
 import org.breezyweather.ui.common.widgets.trend.TrendLayoutManager
 import org.breezyweather.ui.common.widgets.trend.TrendRecyclerView
@@ -36,11 +42,14 @@ import org.breezyweather.ui.main.adapters.trend.HourlyTrendAdapter
 import org.breezyweather.ui.main.widgets.TrendRecyclerViewScrollBar
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
+import org.breezyweather.ui.theme.weatherView.WeatherViewController
+import java.text.DateFormat
 
 class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
     LayoutInflater.from(parent.context).inflate(R.layout.container_main_hourly_trend_card, parent, false)
 ) {
     private val subtitle: TextView = itemView.findViewById(R.id.hourly_block_subtitle)
+    private val highlights: TextView = itemView.findViewById(R.id.hourly_block_highlights)
     private val buttonGroup: MaterialButtonGroup = itemView.findViewById(R.id.hourly_block_button_group)
     private val trendRecyclerView: TrendRecyclerView = itemView.findViewById(R.id.hourly_block_trendRecyclerView)
     private val scrollBar: TrendRecyclerViewScrollBar = TrendRecyclerViewScrollBar()
@@ -69,6 +78,72 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
             subtitle.visibility = View.VISIBLE
             subtitle.text = weather.current?.hourlyForecast
         }
+
+        val settings = SettingsManager.getInstance(context)
+        val temperatureUnit = settings.getTemperatureUnit(context)
+        val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT, context.currentLocale).apply {
+            timeZone = location.timeZone
+        }
+        val acquiredFormat = DateFormat.getDateTimeInstance(
+            DateFormat.SHORT,
+            DateFormat.SHORT,
+            context.currentLocale
+        ).apply { timeZone = location.timeZone }
+        val highlightLines = HourlyForecastHighlights.describe(
+            forecasts = weather.nextHourlyForecast,
+            nowMillis = System.currentTimeMillis(),
+            timeZone = location.timeZone
+        ).map { highlight ->
+            val forecast = highlight.forecast
+            if (forecast == null || highlight.state == HourlyHighlightState.MISSING) {
+                return@map context.getString(R.string.alertaec_hourly_missing, highlight.offsetHours)
+            }
+            val details = buildList {
+                forecast.temperature?.temperature?.let {
+                    add(it.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW))
+                }
+                (forecast.weatherText?.takeIf { it.isNotBlank() }
+                    ?: forecast.weatherCode?.let { WeatherViewController.getWeatherText(it) })
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let(::add)
+                forecast.precipitationProbability?.total?.let {
+                    add(context.getString(R.string.alertaec_hourly_rain, it.formatPercent(context, UnitWidth.NARROW)))
+                }
+                forecast.wind?.speed?.let {
+                    add(context.getString(R.string.alertaec_hourly_wind, it.formatMeasure(context, unitWidth = UnitWidth.NARROW)))
+                }
+            }
+            val acquiredAt = forecast.acquiredAt
+            val acquisitionText = when {
+                acquiredAt == null -> context.getString(R.string.alertaec_hourly_unknown)
+                highlight.state == HourlyHighlightState.RECENT -> context.getString(
+                    R.string.alertaec_hourly_recent,
+                    acquiredFormat.format(acquiredAt)
+                )
+                highlight.state == HourlyHighlightState.STALE -> context.getString(
+                    R.string.alertaec_hourly_stale,
+                    acquiredFormat.format(acquiredAt)
+                )
+                else -> context.getString(R.string.alertaec_hourly_unknown)
+            }
+            context.getString(
+                R.string.alertaec_hourly_highlight,
+                highlight.offsetHours,
+                timeFormat.format(forecast.date),
+                (details + acquisitionText).joinToString(" · ")
+            )
+        }
+        highlights.text = highlightLines.joinToString("\n")
+        highlights.visibility = View.VISIBLE
+
+        // Keep missing-interval text available even when there is no series to chart.
+        if (weather.nextHourlyForecast.isEmpty()) {
+            trendRecyclerView.adapter = null
+            trendRecyclerView.visibility = View.GONE
+            buttonGroup.visibility = View.GONE
+            return
+        }
+        trendRecyclerView.visibility = View.VISIBLE
 
         val trendAdapter = HourlyTrendAdapter(activity, trendRecyclerView).apply {
             bindData(location)

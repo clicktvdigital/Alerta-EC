@@ -300,6 +300,18 @@ internal fun AboutScreen(
             }
 
             item { SectionTitle(stringResource(R.string.about_app)) }
+            item {
+                AboutAppLink(
+                    iconId = R.drawable.ic_share,
+                    title = stringResource(R.string.alertaec_share_title),
+                    isFirst = true,
+                    isLast = activity == null,
+                    onClick = { shareAlertaEc(context) }
+                )
+            }
+            if (activity != null) {
+                item { SmallSeparatorItem() }
+            }
             if (activity != null) {
                 itemsIndexed(aboutViewModel.getAboutAppLinks(activity)) { index, item ->
                     AboutAppLink(
@@ -317,6 +329,27 @@ internal fun AboutScreen(
 
             largeSeparatorItem()
             item { SupportSection() }
+            largeSeparatorItem()
+            item { SectionTitle(stringResource(R.string.alertaec_credits_title)) }
+            item {
+                Column(modifier = Modifier.padding(dimensionResource(R.dimen.normal_margin))) {
+                    Text(
+                        text = stringResource(R.string.alertaec_credit_brand),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.alertaec_credit_developer),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.alertaec_credit_company),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
             largeSeparatorItem()
             item { SectionTitle(stringResource(R.string.about_contributors)) }
             itemsIndexed(appContributors) { index, item ->

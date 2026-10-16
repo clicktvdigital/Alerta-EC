@@ -747,8 +747,8 @@
     <string name="about_translators">Tradutores</string>
     <string name="about_contribution_WangDaYeeeeee">Desenvolvedor do proxecto orixinal Geometric Weather</string>
     <string name="about_contribution_designer">Deseñador do logotipo</string>
-    <string name="content_provider_permission_label">Ler datos de Breezy Weather</string>
-    <string name="content_provider_permission_description">obter información meteorolóxica de Breezy Weather, incluídas as coordenadas das túas localizacións, como a túa localización actual se a engadiches</string>
+    <string name="content_provider_permission_label">Ler datos de ALERTA EC</string>
+    <string name="content_provider_permission_description">obter información meteorolóxica de ALERTA EC, incluídas as coordenadas das túas localizacións, como a túa localización actual se a engadiches</string>
     <string name="common_weather_text_mostly_cloudy">Maiormente nubrado</string>
     <string name="common_weather_text_rain_freezing_light">Choiva xeada lixeira</string>
     <string name="common_weather_text_rain_freezing_heavy">Choiva xeada intensa</string>

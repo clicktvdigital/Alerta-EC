@@ -424,6 +424,7 @@ object WeatherMapper {
         pressure: Pressure?,
         cloudCover: Ratio?,
         visibility: Distance?,
+        acquiredAt: Long?,
     ): Hourly = Hourly(
         Date(date),
         daylight,
@@ -468,7 +469,8 @@ object WeatherMapper {
         dewPoint,
         pressure,
         cloudCover,
-        visibility
+        visibility,
+        acquiredAt = acquiredAt?.let { Date(it) }
     )
 
     fun mapAlert(

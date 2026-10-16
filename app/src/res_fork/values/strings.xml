@@ -11,12 +11,29 @@
     <string name="alertaec_support_description">Contributions are optional. Weather alerts and essential features will remain free.</string>
     <string name="alertaec_support_payphone_button">❤️ Support with PayPhone</string>
     <string name="alertaec_support_paypal">PayPal · Voluntary contribution</string>
-    <string name="alertaec_support_patreon">Patreon · Monthly contribution of USD 1</string>
+    <string name="alertaec_support_patreon">Patreon · Optional support</string>
     <string name="alertaec_support_github">GitHub Sponsors</string>
+    <string name="alertaec_support_more_options">More ways to support</string>
     <string name="alertaec_support_open_with">Open external payment link</string>
     <string name="alertaec_support_open_error_title">Could not open the link</string>
     <string name="alertaec_support_open_error_message">No compatible browser or app could open this secure link. Try again later.</string>
     <string name="alertaec_support_close">Close</string>
+    <string name="alertaec_share_title">📲 Share ALERTA EC</string>
+    <string name="alertaec_share_summary">Recommend the app to others</string>
+    <string name="alertaec_share_message">ALERTA EC 🇪🇨🦅: weather forecasts and alerts for Ecuador. Get it from the stable release: https://github.com/clicktvdigital/Alerta-EC/releases/latest</string>
+    <string name="alertaec_credits_title">ALERTA EC credits</string>
+    <string name="alertaec_credit_brand">ALERTA EC 🇪🇨🦅</string>
+    <string name="alertaec_credit_developer">Development and adaptation: Ing. Richard Ontaneda</string>
+    <string name="alertaec_credit_company">CLICK TV DIGITAL</string>
+    <string name="alertaec_hourly_highlight">+%1$d h · %2$s · %3$s</string>
+    <string name="alertaec_hourly_rain">rain %1$s</string>
+    <string name="alertaec_hourly_wind">wind %1$s</string>
+    <string name="alertaec_view_details">View details</string>
+    <string name="alertaec_hourly_acquired_at">Hourly data received: %1$s</string>
+    <string name="alertaec_hourly_recent">Recent data · received: %1$s</string>
+    <string name="alertaec_hourly_stale">Warning: old saved data · received: %1$s. Refresh the forecast.</string>
+    <string name="alertaec_hourly_unknown">Warning: saved data has no reliable acquisition time. Refresh the forecast.</string>
+    <string name="alertaec_hourly_missing">+%1$d h · No information for this interval</string>
 
     <!-- App -->
     <string name="brand_name" translatable="false">Alerta EC</string>

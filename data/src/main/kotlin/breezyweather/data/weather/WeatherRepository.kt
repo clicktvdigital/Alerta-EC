@@ -369,7 +369,8 @@ class WeatherRepository(
                     dewPoint = hourly.dewPoint,
                     pressure = hourly.pressure,
                     cloudCover = hourly.cloudCover,
-                    visibility = hourly.visibility
+                    visibility = hourly.visibility,
+                    acquiredAt = hourly.acquiredAt?.time
                 )
             }
 

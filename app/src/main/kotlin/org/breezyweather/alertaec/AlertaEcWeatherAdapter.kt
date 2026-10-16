@@ -10,7 +10,7 @@ import breezyweather.domain.weather.reference.WeatherCode
 
 object AlertaEcWeatherAdapter {
 
-    fun fromLocation(location: Location): List<AlertaEcEvent> {
+    fun fromLocation(location: Location, nowMillis: Long = System.currentTimeMillis()): List<AlertaEcEvent> {
         val weather = location.weather ?: return emptyList()
         val events = mutableListOf<AlertaEcEvent>()
 
@@ -21,7 +21,11 @@ object AlertaEcWeatherAdapter {
         // Minutely rain remains owned by Notifications.checkAndSendPrecipitation.
         // Keep this Alerta EC route inactive to prevent duplicate notifications.
 
-        weather.nextHourlyForecast.firstOrNull()?.let { hour ->
+        // Use the eligibility clock; an hour starting exactly one hour ago is no longer eligible.
+        weather.hourlyForecast.firstOrNull {
+            it.date.time > nowMillis - 60 * 60 * 1000L &&
+                it.date.time - nowMillis < 24 * 60 * 60 * 1000L
+        }?.let { hour ->
             fromHourlyForecast(hour, location)?.let { events += it }
         }
 
@@ -83,12 +87,16 @@ object AlertaEcWeatherAdapter {
             longitude = location.longitude,
             sourceName = location.forecastSource,
             startTimeMillis = hour.date.time,
-            precipitationMmPerHour = precipitationMm,
+            updatedAtMillis = hour.acquiredAt?.time,
+            precipitationAccumulationMm = precipitationMm,
             precipitationProbabilityPercent = probability,
+            temperatureCelsius = hour.temperature?.temperature?.inCelsius,
+            feelsLikeCelsius = hour.temperature?.feelsLikeTemperature?.inCelsius,
             windSpeedKmh = windKmh,
             windGustKmh = gustKmh,
             windDirectionDegrees = hour.wind?.degree?.takeIf { it >= 0.0 }?.roundToInt(),
             humidityPercent = hour.relativeHumidity?.inPercent?.roundToInt(),
+            pressureHpa = hour.pressure?.inHectopascals,
             visibilityKm = hour.visibility?.inKilometers
         )
     }
@@ -130,8 +138,7 @@ object AlertaEcWeatherAdapter {
     }
 
     private fun locationName(location: Location): String =
-        location.customName?.takeIf { it.isNotBlank() }
-            ?: location.district?.takeIf { it.isNotBlank() }
+        location.district?.takeIf { it.isNotBlank() }
             ?: location.city.takeIf { it.isNotBlank() }
             ?: location.admin1
             ?: location.country

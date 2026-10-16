@@ -37,7 +37,7 @@ internal fun SupportSection() {
     val methods = remember {
         listOf(
             R.string.alertaec_support_paypal to "https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N",
-            R.string.alertaec_support_patreon to "https://www.patreon.com/checkout/clicktvdigital?rid=29823674&vanity=11078284",
+            R.string.alertaec_support_patreon to "https://www.patreon.com/clicktvdigital",
             R.string.alertaec_support_github to "https://github.com/sponsors/clicktvdigital"
         )
     }
@@ -54,6 +54,11 @@ internal fun SupportSection() {
         ) {
             Text(stringResource(R.string.alertaec_support_payphone_button))
         }
+        Text(
+            stringResource(R.string.alertaec_support_more_options),
+            modifier = Modifier.padding(top = 12.dp),
+            style = MaterialTheme.typography.titleSmall
+        )
         methods.forEach { (labelId, url) ->
             TextButton(
                 onClick = {

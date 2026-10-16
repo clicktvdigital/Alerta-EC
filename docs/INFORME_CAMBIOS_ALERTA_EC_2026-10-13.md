@@ -4,7 +4,7 @@
 
 Se leyeron README.md, docs/CONTINUAR_AQUI.md y el historial reciente de la rama alerta-ec. Se preservó el contenido histórico existente: la visión y los acuerdos nuevos se anexaron, sin sustituir ninguno de los dos documentos. Se mantuvieron los cambios locales previos de la corrección JUnit Jupiter y su diagnóstico.
 
-README.md ahora registra la visión funcional, ubicación administrativa, código postal 170528 confirmado por el usuario y discrepancia Nominatim 170318, unidades, zona horaria, prioridades horarias, radar/satélites reales, vigilancia territorial, calidad del aire, accesibilidad, fuentes, límites de licencia y funciones pendientes. CONTINUAR_AQUI.md agrega estado técnico, regla de sincronización antes de cada commit, decisiones, riesgos y siguiente fase.
+README.md ahora registra la visión funcional, ubicación administrativa, código postal [código postal residencial omitido] confirmado por el usuario y discrepancia Nominatim 170318, unidades, zona horaria, prioridades horarias, radar/satélites reales, vigilancia territorial, calidad del aire, accesibilidad, fuentes, límites de licencia y funciones pendientes. CONTINUAR_AQUI.md agrega estado técnico, regla de sincronización antes de cada commit, decisiones, riesgos y siguiente fase.
 
 ## Archivos cambiados
 

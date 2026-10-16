@@ -24,7 +24,9 @@ import java.util.Date
  */
 data class Base(
     // val publishDate: Date = Date(),
+    // Last refresh attempt/cache lookup; not proof of hourly data acquisition.
     val refreshTime: Date? = null,
+    // Daily forecast acquisition. Hourly acquisition belongs to each Hourly.acquiredAt.
     val forecastUpdateTime: Date? = null,
     val currentUpdateTime: Date? = null,
     val airQualityUpdateTime: Date? = null,

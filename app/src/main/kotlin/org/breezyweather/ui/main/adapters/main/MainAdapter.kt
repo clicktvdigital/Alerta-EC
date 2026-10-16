@@ -103,10 +103,10 @@ class MainAdapter(
         mItemAnimationEnabled = itemAnimationEnabled
         location?.weather?.let { weather ->
             val cardDisplayList = SettingsManager.getInstance(activity).cardDisplayList
-            mViewTypeList.add(ViewType.HEADER)
-            if (location.weather?.alertList?.any { it.endDate == null || it.endDate!!.time > Date().time } == true) {
+            if (weather.currentAlertList.isNotEmpty()) {
                 mViewTypeList.add(ViewType.ALERT)
             }
+            mViewTypeList.add(ViewType.HEADER)
             for (c in cardDisplayList) {
                 if (c === CardDisplay.CARD_NOWCAST &&
                     (!weather.hasMinutelyPrecipitation || weather.minutelyForecast.size < 3)
@@ -114,9 +114,6 @@ class MainAdapter(
                     continue
                 }
                 if (c === CardDisplay.CARD_DAILY_FORECAST && weather.dailyForecast.isEmpty()) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_HOURLY_FORECAST && weather.nextHourlyForecast.isEmpty()) {
                     continue
                 }
                 if (c === CardDisplay.CARD_PRECIPITATION) {

@@ -69,6 +69,9 @@ enum class CardDisplay(
             }
         }
 
+        fun resolveStoredList(value: String?, recommendedValue: String): List<CardDisplay> =
+            if (value == null) toCardDisplayList(recommendedValue) else toCardDisplayList(value)
+
         fun toValue(list: List<CardDisplay>): String {
             return list.joinToString("&") { item ->
                 item.id

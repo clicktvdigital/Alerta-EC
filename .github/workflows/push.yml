@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'breezy-weather/breezy-weather'
     runs-on: 'ubuntu-24.04'
 
     steps:

@@ -933,8 +933,8 @@
     <!-- %s is a link -->
     <string name="about_open_link_message">Open %s?</string>
     <!-- Content provider -->
-    <string name="content_provider_permission_label">Read Breezy Weather data</string>
-    <string name="content_provider_permission_description">get weather information from Breezy Weather, including the coordinates of your locations, such as your current location if you added it</string>
+    <string name="content_provider_permission_label">Read ALERTA EC data</string>
+    <string name="content_provider_permission_description">get weather information from ALERTA EC, including the coordinates of your locations, such as your current location if you added it</string>
     <!-- Weather condition text -->
     <!-- Check https://unterm.un.org/unterm2/en/ -->
     <!-- We don’t use all of them currently, but they might come useful some day -->

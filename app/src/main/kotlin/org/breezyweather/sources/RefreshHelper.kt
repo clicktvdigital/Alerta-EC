@@ -715,6 +715,12 @@ class RefreshHelper @Inject constructor(
                                                             )
                                                         }
                                                         null
+                                                    }?.let { response ->
+                                                        if (SourceFeature.FORECAST in featuresToUpdate) {
+                                                            response.withHourlyAcquisition(System.currentTimeMillis())
+                                                        } else {
+                                                            response
+                                                        }
                                                     }
                                             } catch (e: Throwable) {
                                                 e.printStackTrace()

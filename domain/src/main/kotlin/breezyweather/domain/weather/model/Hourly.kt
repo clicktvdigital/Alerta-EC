@@ -47,6 +47,8 @@ data class Hourly(
     val pressure: Pressure? = null,
     val cloudCover: Ratio? = null,
     val visibility: Distance? = null,
+    /** Local receipt time of this forecast record, never the time of a cache lookup. */
+    val acquiredAt: Date? = null,
 ) : Serializable {
 
     fun toHourlyWrapper() = HourlyWrapper(
@@ -63,6 +65,7 @@ data class Hourly(
         dewPoint = this.dewPoint,
         pressure = this.pressure,
         cloudCover = this.cloudCover,
-        visibility = this.visibility
+        visibility = this.visibility,
+        acquiredAt = this.acquiredAt
     )
 }

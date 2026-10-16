@@ -1,6 +1,7 @@
 package org.breezyweather.ui.main.intro
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
@@ -17,6 +18,10 @@ object AlertaEcIntroController {
     private const val PREFS = "alerta_ec_intro"
     private const val PREF_REDUCED_MOTION = "reduced_motion"
     private const val PREF_SOUND_ENABLED = "sound_enabled"
+
+    // Reading must not persist a default or overwrite an existing user choice.
+    internal fun isSoundEnabled(preferences: SharedPreferences): Boolean =
+        preferences.getBoolean(PREF_SOUND_ENABLED, false)
 
     fun stop() = IntroAudioPlayback.stop()
 
@@ -67,11 +72,11 @@ object AlertaEcIntroController {
             if (elapsed >= INTRO_DURATION) return
             val upcoming = soundCues.filter { it.delayMs > elapsed }
                 .map { it.copy(delayMs = it.delayMs - elapsed) }
-                .ifEmpty { listOf(IntroAudioPlayback.Cue(0L, R.raw.alertaec_intro_closing)) }
+            if (upcoming.isEmpty()) return
             IntroAudioPlayback.start(
                 root.context,
                 cues = upcoming,
-                userEnabled = preferences.getBoolean(PREF_SOUND_ENABLED, false)
+                userEnabled = isSoundEnabled(preferences)
             )
         }
         var reducedMotionClose: Runnable? = null
@@ -79,7 +84,7 @@ object AlertaEcIntroController {
             val motionLabel = root.context.getString(if (reducedMotion) R.string.alertaec_intro_motion_on else R.string.alertaec_intro_motion_off)
             (reducedMotionControl as TextView).apply { text = motionLabel; contentDescription = motionLabel }
             val soundLabel = root.context.getString(
-                if (preferences.getBoolean(PREF_SOUND_ENABLED, false)) R.string.alertaec_intro_sound_enabled
+                if (isSoundEnabled(preferences)) R.string.alertaec_intro_sound_enabled
                 else R.string.alertaec_intro_sound_disabled
             )
             (soundControl as TextView).apply { text = soundLabel; contentDescription = soundLabel }
@@ -135,7 +140,7 @@ object AlertaEcIntroController {
             }
         }
         soundControl.setOnClickListener {
-            val enabled = !preferences.getBoolean(PREF_SOUND_ENABLED, false)
+            val enabled = !isSoundEnabled(preferences)
             preferences.edit().putBoolean(PREF_SOUND_ENABLED, enabled).apply()
             if (!enabled) IntroAudioPlayback.stop()
             updateControls()

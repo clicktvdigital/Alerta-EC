@@ -56,6 +56,8 @@ data class HourlyWrapper(
      * Duration of sunshine, NOT duration of daylight
      */
     val sunshineDuration: Duration? = null,
+    /** Preserved through cache conversions; assigned when a forecast response is received. */
+    val acquiredAt: Date? = null,
 ) {
     fun toHourly(
         airQuality: AirQuality? = null,
@@ -76,6 +78,7 @@ data class HourlyWrapper(
         dewPoint = this.dewPoint,
         pressure = this.pressure,
         cloudCover = this.cloudCover,
-        visibility = this.visibility
+        visibility = this.visibility,
+        acquiredAt = this.acquiredAt
     )
 }

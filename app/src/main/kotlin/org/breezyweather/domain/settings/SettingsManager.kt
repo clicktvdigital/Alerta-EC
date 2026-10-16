@@ -58,10 +58,10 @@ class SettingsManager private constructor(
             return instance!!
         }
 
-        const val DEFAULT_CARD_DISPLAY = "nowcast" +
-            "&daily_forecast" +
-            "&hourly_forecast" +
+        const val DEFAULT_CARD_DISPLAY = "hourly_forecast" +
+            "&nowcast" +
             "&precipitation" +
+            "&daily_forecast" +
             "&wind" +
             "&air_quality" +
             "&pollen" +
@@ -304,9 +304,7 @@ class SettingsManager private constructor(
                 .apply()
         }
         get() = CardDisplay
-            .toCardDisplayList(
-                config.getString("card_display", DEFAULT_CARD_DISPLAY)
-            )
+            .resolveStoredList(config.getString("card_display", null), DEFAULT_CARD_DISPLAY)
             .toMutableList()
 
     var dailyTrendDisplayList: List<DailyTrendDisplay>

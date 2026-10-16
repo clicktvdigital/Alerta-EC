@@ -28,13 +28,13 @@ class CardDisplayTest {
 
     @Test
     fun toCardDisplayList() = runTest {
-        val value = "nowcast&daily_forecast&hourly_forecast&precipitation&wind&air_quality&pollen" +
+        val value = "hourly_forecast&nowcast&precipitation&daily_forecast&wind&air_quality&pollen" +
             "&humidity&uv&visibility&pressure&sun&moon"
         val list = CardDisplay.toCardDisplayList(value)
-        list[0] shouldBe CardDisplay.CARD_NOWCAST
-        list[1] shouldBe CardDisplay.CARD_DAILY_FORECAST
-        list[2] shouldBe CardDisplay.CARD_HOURLY_FORECAST
-        list[3] shouldBe CardDisplay.CARD_PRECIPITATION
+        list[0] shouldBe CardDisplay.CARD_HOURLY_FORECAST
+        list[1] shouldBe CardDisplay.CARD_NOWCAST
+        list[2] shouldBe CardDisplay.CARD_PRECIPITATION
+        list[3] shouldBe CardDisplay.CARD_DAILY_FORECAST
         list[4] shouldBe CardDisplay.CARD_WIND
         list[5] shouldBe CardDisplay.CARD_AIR_QUALITY
         list[6] shouldBe CardDisplay.CARD_POLLEN
@@ -49,10 +49,10 @@ class CardDisplayTest {
     @Test
     fun toValue() = runTest {
         val list = arrayListOf(
-            CardDisplay.CARD_NOWCAST,
-            CardDisplay.CARD_DAILY_FORECAST,
             CardDisplay.CARD_HOURLY_FORECAST,
+            CardDisplay.CARD_NOWCAST,
             CardDisplay.CARD_PRECIPITATION,
+            CardDisplay.CARD_DAILY_FORECAST,
             CardDisplay.CARD_WIND,
             CardDisplay.CARD_AIR_QUALITY,
             CardDisplay.CARD_POLLEN,
@@ -63,7 +63,7 @@ class CardDisplayTest {
             CardDisplay.CARD_SUN,
             CardDisplay.CARD_MOON
         )
-        val value = "nowcast&daily_forecast&hourly_forecast&precipitation&wind&air_quality&pollen" +
+        val value = "hourly_forecast&nowcast&precipitation&daily_forecast&wind&air_quality&pollen" +
             "&humidity&uv&visibility&pressure&sun&moon"
         CardDisplay.toValue(list) shouldBe value
     }
@@ -75,10 +75,10 @@ class CardDisplayTest {
             every { getString(org.breezyweather.unit.R.string.locale_separator) } returns ", "
         }
         val list = arrayListOf(
-            CardDisplay.CARD_NOWCAST,
-            CardDisplay.CARD_DAILY_FORECAST,
             CardDisplay.CARD_HOURLY_FORECAST,
+            CardDisplay.CARD_NOWCAST,
             CardDisplay.CARD_PRECIPITATION,
+            CardDisplay.CARD_DAILY_FORECAST,
             CardDisplay.CARD_WIND,
             CardDisplay.CARD_AIR_QUALITY,
             CardDisplay.CARD_POLLEN,
@@ -91,5 +91,20 @@ class CardDisplayTest {
         )
         val value = "Name, Name, Name, Name, Name, Name, Name, Name, Name, Name, Name, Name, Name"
         CardDisplay.getSummary(context, list) shouldBe value
+    }
+
+    @Test
+    fun resolveStoredListKeepsUserOrderAndUsesRecommendationOnlyWhenUnset() {
+        val recommended = "hourly_forecast&nowcast&daily_forecast"
+        CardDisplay.resolveStoredList(null, recommended) shouldBe listOf(
+            CardDisplay.CARD_HOURLY_FORECAST,
+            CardDisplay.CARD_NOWCAST,
+            CardDisplay.CARD_DAILY_FORECAST
+        )
+        CardDisplay.resolveStoredList("daily_forecast&hourly_forecast", recommended) shouldBe listOf(
+            CardDisplay.CARD_DAILY_FORECAST,
+            CardDisplay.CARD_HOURLY_FORECAST
+        )
+        CardDisplay.resolveStoredList("", recommended) shouldBe emptyList()
     }
 }

@@ -1,0 +1,2 @@
+-- Existing records intentionally retain NULL: their acquisition time is unknown.
+ALTER TABLE hourlys ADD COLUMN acquired_at INTEGER;

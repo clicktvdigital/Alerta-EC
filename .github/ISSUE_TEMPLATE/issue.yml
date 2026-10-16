@@ -1,101 +1,92 @@
-name: Issue
-description: Report a bug/issue with Breezy Weather
-labels: Bug, Needs review
+name: "ALERTA EC — Reportes, consultas y sugerencias"
+description: "Comunica un problema, solicita una mejora o plantea una consulta sobre ALERTA EC."
+labels:
+  - "Needs review"
 body:
-  - type: textarea
-    id: steps-to-reproduce
+  - type: markdown
     attributes:
-      label: Steps to reproduce
-      placeholder: |
-        Example:
-          1. First step
-          2. Second step
-          3. Issue here
-    validations:
-      required: true
+      value: |
+        Gracias por ayudar a mejorar **ALERTA EC — by CLICK TV DIGITAL**. Esta aplicación es gratuita y está dirigida a toda la comunidad.
 
-  - type: textarea
-    id: expected-behavior
-    attributes:
-      label: Expected behavior
-      description: Explain what should happen.
-      placeholder: |
-        Example:
-          "X should happen…"
-    validations:
-      required: true
+        **Importante:** este formulario no recibe emergencias en tiempo real. En Ecuador, si alguien necesita ayuda inmediata, comunícate con el **ECU 911**. Fuera de Ecuador, usa el servicio de emergencia local.
 
-  - type: textarea
-    id: actual-behavior
+        **Privacidad:** no publiques coordenadas exactas, domicilios, información identificable de menores, nombres de víctimas, documentos, contraseñas, fotografías íntimas ni registros que contengan datos sensibles. Para estos asuntos utiliza **clicktvdigital@gmail.com**.
+  - type: dropdown
+    id: tipo
     attributes:
-      label: Actual behavior
-      description: Explain what actually happens.
-      placeholder: |
-        Example:
-          "X happened instead…"
-    validations:
-      required: true
-
-  - type: input
-    id: weather-source
-    attributes:
-      label: Weather source used
-      description: You can find it on bottom of main screen, or in location list.
-      placeholder: |
-        Example: "AccuWeather"
-    validations:
-      required: true
-
-  - type: input
-    id: app-version
-    attributes:
-      label: Breezy Weather version
-      description: You can find it on Info icon in app settings or from Android settings for the app. We expect a version number (and optionally the flavor) here, “Latest” is not a valid answer.
-      placeholder: |
-        Examples: "5.2.0 or 5.2.0_freenet"
-    validations:
-      required: true
-
-  - type: input
-    id: android-version
-    attributes:
-      label: Android version
-      description: You can find it in your Android settings. If you use a custom ROM, please write it here.
-      placeholder: |
-        Example: "Android 13"
-    validations:
-      required: true
-
-  - type: input
-    id: device
-    attributes:
-      label: Device
-      description: Your device and model.
-      placeholder: |
-        Example: "Samsung Galaxy A54"
-    validations:
-      required: true
-
-  - type: textarea
-    id: other-details
-    attributes:
-      label: Other details
-      placeholder: |
-        Additional details and attachments. If you have a refresh issue, please include here if you use current location (with the location service used) or manually added location, and export crash log from Settings > Debug.
-
-  - type: checkboxes
-    id: acknowledgements
-    attributes:
-      label: Acknowledgements
-      description: Your issue will be closed if you don’t read this carefully.
+      label: "¿Qué deseas comunicar?"
       options:
-        - label: I have searched the existing issues and this is a new ticket, **NOT** a duplicate or related to another open OR closed issue.
+        - "Error o fallo de la aplicación"
+        - "Problema con ubicación, GPS o pronóstico"
+        - "Problema con alertas o notificaciones"
+        - "Accesibilidad o dificultad de uso"
+        - "Instalación o actualización con Obtainium"
+        - "Sugerencia o nueva función"
+        - "Consulta general"
+    validations:
+      required: true
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: "Cuéntanos qué sucedió o qué propones"
+      description: "Describe el problema o la idea con palabras sencillas. No incluyas datos privados."
+      placeholder: "Por ejemplo: la alerta no apareció, qué esperabas ver o cómo podemos mejorar la aplicación."
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: "Pasos para reproducir (si corresponde)"
+      description: "Opcional. Si es un fallo, indica cómo ocurrió sin compartir información sensible."
+      placeholder: |
+        1. Abrí la aplicación.
+        2. Entré en una sección.
+        3. Apareció el problema.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: "Versión de ALERTA EC (si la conoces)"
+      description: "Se puede consultar en Acerca de o en los ajustes de Android. Indica el número instalado, no una versión futura."
+      placeholder: "Ejemplo: 0.1.5; o: No lo sé"
+    validations:
+      required: false
+  - type: input
+    id: android
+    attributes:
+      label: "Versión de Android (opcional)"
+      placeholder: "Ejemplo: Android 14"
+    validations:
+      required: false
+  - type: input
+    id: dispositivo
+    attributes:
+      label: "Marca y modelo del dispositivo (opcional)"
+      placeholder: "Ejemplo: Samsung Galaxy A54"
+    validations:
+      required: false
+  - type: input
+    id: fuente
+    attributes:
+      label: "Fuente meteorológica (solo si es relevante)"
+      description: "Indícala únicamente si el problema se relaciona con el pronóstico o los datos meteorológicos."
+      placeholder: "Ejemplo: Open-Meteo"
+    validations:
+      required: false
+  - type: textarea
+    id: detalles
+    attributes:
+      label: "Otros detalles no sensibles (opcional)"
+      description: "Adjunta capturas únicamente después de ocultar ubicaciones, nombres y demás datos personales."
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmacion
+    attributes:
+      label: "Antes de enviar"
+      options:
+        - label: "He evitado incluir información privada o sensible de otras personas."
           required: true
-        - label: I checked that my issue is not covered in the [Frequently Asked Questions](https://github.com/breezy-weather/breezy-weather/blob/main/HELP.md) document.
-          required: true
-        - label: I have updated the app to **[version 6.2.2 or later](https://github.com/breezy-weather/breezy-weather/releases)** and I can reproduce the issue in this version.
-          required: true
-        - label: I wrote my request in English, and any screenshot I attached are also in English (language can be changed from Settings > Appearance), unless my issue only happens with a specific language. I can write in my native language under the English text, if necessary.
-          required: true
-        - label: I understand that this app is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY, so I may not get a positive reply to my request, if any at all.
+        - label: "Entiendo que este formulario no comunica emergencias al ECU 911 ni ofrece asistencia inmediata."
           required: true
