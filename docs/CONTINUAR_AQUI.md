@@ -870,6 +870,20 @@ Este TXT es un ANEXO nuevo de planificación que deja en pausa el plan anterior 
 
 <!-- ALERTA_EC_SIN_CUENTAS_2026_10_16_END -->
 
+
+
+
+<!-- ALERTA_EC_README_CAPTURAS_2026_10_16 -->
+## Identidad visual, créditos y capturas oficiales — estado 2026-10-16
+
+- Crédito de presentación pública: **Richard Ontaneda**, creador y desarrollador de ALERTA EC; fundador y creador de **CLICK TV DIGITAL**. No añadir el prefijo académico «Ing.» a su nombre en la documentación oficial.
+- Logo principal del README: `artwork/alerta-ec/alerta-ec-master.png` (conservar este archivo original). Vista previa social GitHub configurada por separado.
+- Retiradas del README las siete referencias gráficas históricas `fastlane/metadata/android/en-US/images/phoneScreenshots/` porque son del proyecto original y están en inglés. Los archivos históricos originales y las atribuciones/licencia **no se borraron**.
+- No generar capturas ficticias. Pendiente obtener fotografías/capturas reales de la APK estable v0.1.6 instalada: intro, pantalla principal, pronóstico y Acerca de/apoyo; registrar versión, contexto público y fecha, y ocultar datos sensibles.
+- Eliminar referencias a capturas solo del README no equivale a que la app esté validada ni a que la Release se haya publicado.
+- La documentación heredada de Breezy Weather permanece en su bloque histórico desplegable, separada de la presentación de ALERTA EC.
+<!-- /ALERTA_EC_README_CAPTURAS_2026_10_16 -->
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

@@ -4,7 +4,8 @@
 </div>
 
 <h1 align="center">ALERTA EC</h1>
-<p align="center"><strong>Desarrollador: CLICK TV DIGITAL</strong></p>
+<p align="center"><strong>Richard Ontaneda — creador y desarrollador de ALERTA EC</strong></p>
+<p align="center">Fundador y creador de CLICK TV DIGITAL</p>
 
 <br />
 
@@ -61,19 +62,11 @@ El motor multiamenaza completo, SOS, reportes ciudadanos, mapas offline/relieve 
 - Añadidas pruebas unitarias para preferencia ausente, valores guardados y ausencia de escrituras al leer; ampliada la cobertura de la política al modo vibración. No ejecutadas: Gradle no se ejecuta en Termux. Pendientes CI y pruebas de audio/foco/ciclo de vida en dispositivo; los cambios de timbre durante la reproducción no se monitorizan continuamente.
 - Se preservaron logo, CLICK TV DIGITAL, versión, applicationId, firma y cambios locales. Sin commit, push, tag ni Release.
 
-### Capturas reales de ALERTA EC pendientes
+## 📱 Capturas oficiales de ALERTA EC
 
-No se presenta aquí una galería propia validada. Debemos obtener del dispositivo, con la versión instalada identificada:
+Las capturas verificadas de la aplicación se incorporarán después de instalar y probar la **Release estable v0.1.6** en Android. Mostraremos pantallas reales de ALERTA EC, preferentemente con una ubicación pública de Quito o Ecuador, sin divulgar domicilios ni datos personales.
 
-1. Introducción con logo y marca, incluidos los controles de omisión, movimiento reducido y sonido. Una captura no valida el audio.
-2. Pantalla principal en temas claro y oscuro, con ubicación pública de prueba, fuente y fecha de los datos visibles.
-3. Pronóstico horario y sus estados reales de datos disponibles, ausentes o vencidos, cuando puedan reproducirse sin manipular la imagen.
-4. Dirección por niveles administrativos con una ubicación pública, sin domicilio ni coordenadas privadas.
-5. Notificación realmente recibida, mostrando su clasificación, fuente y hora; no fabricar una alerta para ilustrar la función.
-6. Widgets Material You y Hourly Trend instalados en el lanzador, identificando tamaño y versión; comprobar también texto grande.
-7. Pantalla Acerca de, opción de compartir y sección de aportes, ocultando cualquier dato personal.
-
-Registrar versión de ALERTA EC, versión de Android, fecha, tema y tamaño de texto de cada captura. Publicar únicamente pantallas existentes de esa instalación; las funciones ausentes deben seguir como pendientes. TalkBack, sonido y comportamiento de actualización requieren pruebas aparte.
+**El logotipo superior sí es el oficial de ALERTA EC.** No se utilizarán capturas del proyecto original Breezy Weather como si fueran pantallas propias. Ver el [plan de documentación y capturas](docs/CONTINUAR_AQUI.md).
 
 # ⬇️ Descarga de ALERTA EC
 
@@ -99,19 +92,9 @@ Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado 
 Se conservan los créditos, la licencia y las referencias del proyecto original. El bloque desplegable contiene documentación heredada: sus capacidades, políticas, contactos, canales de distribución y planes corresponden a Breezy Weather, no al estado validado de ALERTA EC. La [guía de instalación original](https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md) es una referencia de procedencia; para ALERTA EC utiliza las instrucciones de descarga anteriores.
 
 <details>
-<summary>Consultar capturas, Features y documentación heredada de Breezy Weather</summary>
+<summary>Consultar documentación histórica de Breezy Weather (proyecto original)</summary>
 
-### Capturas heredadas de Breezy Weather — no son capturas verificadas de ALERTA EC
-
-<div align="center">
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01-main-header-light.png" alt="Pantalla principal clara de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02-main-header-dark.png" alt="Pantalla principal oscura de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03-main-blocks-1.png" alt="Bloques meteorológicos, vista 1 de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-main-blocks-2.png" alt="Bloques meteorológicos, vista 2 de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-settings.png" alt="Ajustes de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-sources.png" alt="Fuentes de Breezy Weather; captura heredada" style="width: 300px" />
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-details.png" alt="Detalles de Breezy Weather; captura heredada" style="width: 300px" />
-</div>
+Las capturas originales, en inglés, pueden consultarse directamente en el [proyecto de origen](https://github.com/breezy-weather/breezy-weather). No se reproducen aquí como presentación de ALERTA EC.
 
 # ✨ Features de Breezy Weather — referencia heredada
 
