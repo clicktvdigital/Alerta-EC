@@ -884,6 +884,38 @@ Este TXT es un ANEXO nuevo de planificación que deja en pausa el plan anterior 
 - La documentación heredada de Breezy Weather permanece en su bloque histórico desplegable, separada de la presentación de ALERTA EC.
 <!-- /ALERTA_EC_README_CAPTURAS_2026_10_16 -->
 
+
+
+<!-- ALERTA_EC_PUBLIC_README_VISUAL_V1 -->
+## Presentación pública del README — revisión visual (2026-10-16)
+- README principal: retirar texto histórico largo en inglés, conservando créditos/licencia de Breezy Weather y referencia a su repositorio original.
+- Mostrar PayPhone, PayPal, Patreon y GitHub Sponsors como enlaces visuales con insignias grandes; **no afirmar que pagos estén probados**. El botón PayPhone lleva el nombre de marca, no un icono oficial no verificado.
+- Conservar logo original de ALERTA EC `artwork/alerta-ec/alerta-ec-master.png` e incluir un logo de CLICK TV DIGITAL facilitado por el creador en `artwork/alerta-ec/click-tv-digital-logo.jpg`.
+- Créditos oficiales: **Richard Ontaneda**, creador y desarrollador de ALERTA EC; fundador y creador de CLICK TV DIGITAL. No atribuir título académico «Ing.» en publicaciones formales.
+- Las secciones técnicas y el bloque de sincronización se mantienen intactos pero desplegables; se debe conservar la sincronización automática y las referencias legales.
+- El bloque Contributors de GitHub es controlado por GitHub y muestra avatares, no logos; el README incluye una sección propia de autoría.
+- Alerta EC v0.1.6 aún debe superar CI, prueba Android y publicación de la APK firmada. Ningún enlace de pagos ni captura nueva ha sido validado por esta actualización.
+<!-- /ALERTA_EC_PUBLIC_README_VISUAL_V1 -->
+
+
+<!-- ALERTA_EC_QR_APORTES_V1 -->
+## Métodos QR de aportes voluntarios (2026-10-16)
+- PayPhone, Banco Pichincha vía Deuna, Deuna y Binance Pay: QR compartidos por el fundador de CLICK TV DIGITAL; incorporados como recursos visuales locales y como enlaces en README y SupportSection.
+- Los QR se han reconocido técnicamente; antes de distribuir hay que confirmar destinatario, vigencia, usabilidad y pruebas Android/CI de la pantalla de aportes. Binance Pay requiere precaución por selección de red/moneda; la app no procesa pagos directamente.
+- No obligatorios ni vinculados con prioridad en alertas; no afirmar transacciones verificadas. No se publica API ni credenciales bancarias.
+- El diseñador de GitHub Contributors no puede sustituirse por logos empresariales; usar apartado propio de autoría.
+
+
+## Aportes accesibles en Android (16/10/2026)
+
+- Tarjetas con botones grandes para abrir el enlace HTTPS y consultar el QR; las cuentas Banco Pichincha y Deuna son distintas.
+- Marcas visuales de Pichincha, Deuna y Binance tomadas de las capturas facilitadas por el responsable del proyecto; PayPhone figura por nombre hasta contar con logotipo oficial verificado.
+- Al regresar de una aplicación externa, preguntar si el usuario pudo terminar; nunca considerar el regreso como comprobante de cobro.
+- Agradecer solo tras confirmación voluntaria del usuario; compartir con Android ACTION_SEND y opinión libre 1-5 estrellas por correo, sin tienda de reseñas.
+- Pendiente comprobar deep links de cada plataforma, tamaños de pantalla, lector de pantalla, navegación, Kotlin CI y APK Release antes de publicación.
+- El almacenamiento/confirmación de transacciones reales requeriría integración del proveedor, no se declara implementada.
+ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

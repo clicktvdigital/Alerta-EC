@@ -36,7 +36,7 @@ ALERTA EC es un proyecto derivado no oficial de [Breezy Weather](https://github.
 
 ## Características de ALERTA EC implementadas en código
 
-Esta lista describe el árbol de trabajo actual, incluidos cambios locales. No certifica compilación, pruebas en dispositivo ni disponibilidad en la última Release. La base meteorológica procede de Breezy Weather; los datos visibles dependen del proveedor, la ubicación y su vigencia.
+Esta tabla describe funciones presentes en el código del repositorio; no garantiza que hayan superado pruebas en dispositivo o que estén disponibles en la última Release. La base meteorológica procede de Breezy Weather; los datos visibles dependen del proveedor, la ubicación y su vigencia.
 
 | Característica | Evidencia de implementación y límites |
 | --- | --- |
@@ -60,7 +60,7 @@ El motor multiamenaza completo, SOS, reportes ciudadanos, mapas offline/relieve 
 - El valor predeterminado anterior `true` podía permitir audio sin activación explícita cuando el timbre, volumen y foco lo permitían. Esas barreras no sustituyen el consentimiento.
 - Revisión estática: omisión, final, pausa, destrucción y movimiento reducido detienen audio; pérdida de foco cancela pistas y libera reproductores. Silencio/vibración y volumen multimedia cero bloquean el inicio. No se cambió el reproductor ni la cronología.
 - Añadidas pruebas unitarias para preferencia ausente, valores guardados y ausencia de escrituras al leer; ampliada la cobertura de la política al modo vibración. No ejecutadas: Gradle no se ejecuta en Termux. Pendientes CI y pruebas de audio/foco/ciclo de vida en dispositivo; los cambios de timbre durante la reproducción no se monitorizan continuamente.
-- Se preservaron logo, CLICK TV DIGITAL, versión, applicationId, firma y cambios locales. Sin commit, push, tag ni Release.
+- Se preservaron el logo y la identidad de ALERTA EC; comprueba en GitHub Actions el resultado de CI y en Releases cuál es la última versión realmente disponible.
 
 ## 📱 Capturas oficiales de ALERTA EC
 
@@ -87,166 +87,62 @@ Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado 
 
 <hr />
 
-## Procedencia y documentación heredada de Breezy Weather
+## 📜 Procedencia, licencia y agradecimientos
 
-Se conservan los créditos, la licencia y las referencias del proyecto original. El bloque desplegable contiene documentación heredada: sus capacidades, políticas, contactos, canales de distribución y planes corresponden a Breezy Weather, no al estado validado de ALERTA EC. La [guía de instalación original](https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md) es una referencia de procedencia; para ALERTA EC utiliza las instrucciones de descarga anteriores.
+**ALERTA EC** es una adaptación independiente desarrollada dentro de **CLICK TV DIGITAL**, basada en [Breezy Weather](https://github.com/breezy-weather/breezy-weather). Agradecemos el trabajo de sus autores y colaboradores. Se conservan sus avisos de derechos de autor y la licencia [LGPL-3.0](LICENSE); la documentación original se consulta [en su repositorio](https://github.com/breezy-weather/breezy-weather). Esta aplicación **no** es una publicación de sus mantenedores.
+
+ALERTA EC tampoco está afiliada oficialmente al **ECU 911** ni a instituciones gubernamentales. Sus funciones de SOS remoto y rescate comunitario siguen en desarrollo y no sustituyen los servicios de emergencia.
+
+## ❤️ Apoya el desarrollo de ALERTA EC
+
+ALERTA EC es **gratuita y de código abierto**. Si deseas respaldar su mantenimiento, puedes realizar un aporte completamente voluntario. ☕🇪🇨
+
+<div align="center">
+  <a href="https://ppls.me/izAAuu8fptGHF6uZBV9L4Q" title="Apoyar con PayPhone">
+    <img src="https://img.shields.io/badge/PayPhone-DONAR-1678DA?style=for-the-badge&amp;logoColor=white" alt="Donar mediante PayPhone" height="48" />
+  </a>
+  &nbsp;
+  <a href="https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N" title="Apoyar con PayPal">
+    <img src="https://img.shields.io/badge/PayPal-DONAR-003087?style=for-the-badge&amp;logo=paypal&amp;logoColor=white" alt="Donar mediante PayPal" height="48" />
+  </a>
+  <br /><br />
+  <a href="https://www.patreon.com/clicktvdigital" title="Apoyar en Patreon">
+    <img src="https://img.shields.io/badge/Patreon-APOYAR-FF424D?style=for-the-badge&amp;logo=patreon&amp;logoColor=white" alt="Apoyar mediante Patreon" height="48" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/sponsors/clicktvdigital" title="Patrocinar mediante GitHub Sponsors">
+    <img src="https://img.shields.io/badge/GitHub%20Sponsors-PATROCINAR-EA4AAA?style=for-the-badge&amp;logo=githubsponsors&amp;logoColor=white" alt="Patrocinar mediante GitHub Sponsors" height="48" />
+  </a>
+</div>
+
+<p align="center"><small>Los botones enlazan con las plataformas indicadas; verifica el destinatario antes de completar un pago. La disponibilidad de cada método y las transacciones no han sido comprobadas en esta revisión.</small></p>
+
+
+### 🇪🇨 Aportes con QR desde Ecuador y el exterior
+
+Los siguientes códigos fueron compartidos por el responsable de CLICK TV DIGITAL. **Antes de donar, comprueba en la plataforma el destinatario y el importe.** La lectura del código no equivale a una transacción verificada.
+
+| Método | QR de aportes | Abrir el enlace |
+|---|---|---|
+| **PayPhone** | <img src="artwork/alerta-ec/donaciones/qr-payphone.png" alt="QR PayPhone para aportes" width="170" /> | [Abrir PayPhone](https://ppls.me/izAAuu8fptGHF6uZBV9L4Q) |
+| **Banco Pichincha / Deuna** | <img src="artwork/alerta-ec/donaciones/qr-pichincha.png" alt="QR de cobro de Banco Pichincha mediante Deuna" width="170" /> | [Abrir el cobro](https://pagar.deuna.app/H92p/person?id=v1e_WT373U4AKPZ46YWW) |
+| **Deuna** | <img src="artwork/alerta-ec/donaciones/qr-deuna.png" alt="QR Deuna para aportes" width="170" /> | [Abrir Deuna](https://pagar.deuna.app/H92p/person/payment?id=858a7565a7fa5e9bc2302b7836e1fdf2d8635300) |
+| **Binance Pay** | <img src="artwork/alerta-ec/donaciones/qr-binance.png" alt="QR Binance Pay para aportes" width="170" /> | [Abrir Binance Pay](https://app.binance.com/uni-qr/RMqefYgh) |
+
+Los enlaces de Banco Pichincha y Deuna utilizan infraestructura de Deuna. **Son aportes voluntarios; no sustituyen ni condicionan el acceso gratuito a ALERTA EC.**
+
+<!-- ALERTA_EC_QR_APORTES_2026_10_16_V1 -->
+**Desde un celular:** toca el enlace correspondiente al método de pago; no necesitas escanear tu propia pantalla.
+La aplicación también ofrecerá botones grandes para abrir enlaces, consultar QR y compartir ALERTA EC.
+**Volver a ALERTA EC no confirma un cobro:** se preguntará al usuario si desea indicar que completó su aporte;
+la valoración de 1 a 5 estrellas es voluntaria y se envía por correo, sin generar una reseña automática.
+<!-- ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2 -->
+
+
+**Los aportes no habilitan servicios exclusivos ni otorgan prioridad en emergencias.** El acceso a las funciones meteorológicas esenciales sigue siendo gratuito.
 
 <details>
-<summary>Consultar documentación histórica de Breezy Weather (proyecto original)</summary>
-
-Las capturas originales, en inglés, pueden consultarse directamente en el [proyecto de origen](https://github.com/breezy-weather/breezy-weather). No se reproducen aquí como presentación de ALERTA EC.
-
-# ✨ Features de Breezy Weather — referencia heredada
-
-- 🌤️ Weather data
-  - Daily and hourly forecasts up to 16 days
-  - Precipitation in the next hour
-  - Severe weather and precipitation alerts
-  - Temperature / Feels like temperature / Normals
-  - Precipitation
-  - Wind
-  - Air quality
-  - Pollen & Mold
-  - Humidity
-  - UV index
-  - Visibility
-  - Pressure
-  - Sun
-  - Moon
-- 📊 Visualization
-  - Detailed 24-hour charts
-  - Material 3 Expressive blocks
-- 🏭 More than 50 weather sources supported (<a href="docs/SOURCES.md">full list</a>)
-- 🧩 Large selection of widgets
-- 🖼️ Live wallpaper
-- 📦 Custom icon packs
-  - [Geometric Weather icon packs](https://github.com/breezy-weather/breezy-weather-icon-packs/blob/main/README.md)
-  - Chronus Weather icon packs
-- 🌙 Automatic dark mode
-- 🔁 Opt-in data sharing with other apps (such as Gadgetbridge)
-- <details><summary>🚹 Accessibility</summary>
-
-  - Localization
-    - Number formatting (different numeral systems, decimal separator, thousand separator)
-    - Unit formatting
-    - Alternate calendar
-  - Readability
-    - Good content descriptions for screen readers
-    - Navigation with screen readers: most things should work, features depending on drag & drop not yet supported
-    - Custom display settings: basic support
-</details>
-
-- <details><summary>🆓 Free and Open Source</summary>
-
-  - No proprietary blobs/dependencies
-  - Releases generated by GitHub actions, guaranteeing it matches the source code
-  - Fully works with Open-Meteo (FOSS source)
-  - Separate flavor with only sources hosted on FOSS networks
-</details>
-
-- <details><summary>🛡️ Privacy-friendly</summary>
-
-  - No personal data collected by the app ([link to app privacy policy](https://github.com/breezy-weather/breezy-weather/blob/main/PRIVACY.md))
-  - Multiple sources are available, with links to their privacy policies for transparency
-  - Current location is optional and not added by default
-  - If using current location, an IP location service can be used instead of GPS to send less accurate coordinates to weather source
-  - No trackers/automatic crash reporters
-</details>
-
-
-# 🛟 Help de Breezy Weather
-
-* [Frequently Asked Questions / Help](HELP.md)
-* [Main screen explanations](docs/HOMEPAGE.md)
-* [Weather sources comparison](docs/SOURCES.md)
-
-
-# 🤝 Contribute al proyecto Breezy Weather
-
-Pull requests are welcome. You can have a look at [issues opened to contributions](https://github.com/breezy-weather/breezy-weather/issues?q=is%3Aissue+is%3Aopen+label%3A%22Open+to+contributions%22). For other changes, please open an issue first to discuss what you would like to change.
-
-* [Contribution guide (includes a guide to create a new weather source)](CONTRIBUTING.md)
-
-## Features currently being worked on by a contributor
-
-- [Announcement](https://github.com/breezy-weather/breezy-weather/discussions/2089) - Make Breezy weather data available through a ContentProvider. Landed in v6.1.0. Currently in an experimental phase; feedback appreciated
-- [#10](https://github.com/breezy-weather/breezy-weather/issues/10) - “Add location” page needs a new design, in the spirit of Google Maps where you can select location points on the map, or search manually - No mockup done yet
-- Radar: currently studying feasibility with the [self-hostable LibreWRX](https://librewxr.net/) and the future [Open-Meteo radar](https://github.com/open-meteo/open-meteo/issues/1437).
-
-## Features lacking an active contributor
-
-- [#937](https://github.com/breezy-weather/breezy-weather/issues/937) - Widget overhaul (prerequisite for any new widget improvement) - Some mockups were done but no one is working on it anymore
-
-## Features that will not be implemented
-
-- Paid-only sources, too limited free-tier, or free-tier that requires privacy-invasive information (credit card info, phone number, etc)
-- Adding `standard` flavor or non-free sources to the F-Droid default repo: please use the `standard` flavor from a different store/source instead
-- Changes to the [background updates process](docs/UPDATES.md), including but not limited: options for refreshing less than every 30 minutes, every time you open the app, every time you tap on widget, every time you unlock your phone
-- “Circular sky” interface: you can set a fixed light/dark background globally from Main screen settings instead.
-- Publish to Google Play Store: please [check alternatives](INSTALL.md)
-- Allow different flavors to be installed in parallel
-- Implement features that are no longer available in latest Android versions
-- Backport features/fixes from latest Android versions to older Android versions
-- Donations: if you have extra money to spare, consider [donating to Open-Meteo](https://github.com/sponsors/open-meteo) to support infrastructure costs and future developments (we currently lack a libre and gratis worldwide alternative for the following features: [Reverse geocoding](https://github.com/open-meteo/geocoding-api/issues/6), [Alerts](https://github.com/open-meteo/open-meteo/issues/351), [Normals](https://github.com/open-meteo/open-meteo/issues/361))
-
-
-# 🌍 Translations de Breezy Weather
-
-Translation is done externally [on Weblate](https://hosted.weblate.org/projects/breezy-weather/breezy-weather-android/#information). Please read carefully project instructions if you want to help.
-
-[![Translation progress report](https://hosted.weblate.org/widget/breezy-weather/breezy-weather-android/multi-auto.svg)](https://hosted.weblate.org/projects/breezy-weather/breezy-weather-android/#information)
-
-English (and regional variants) and French translations are maintained by repo maintainers, but they are open to proofreading/improvements. You will need to make a pull request, as we didn’t find a way to make these languages in suggestion-only mode in Weblate (let us know if you find anything).
-
-For unit formatting, we use [Unicode data](https://www.unicode.org/cldr/charts/47/summary/root.html) as much as possible. If you believe there is an error, please [open a discussion](https://github.com/breezy-weather/breezy-weather/discussions/categories/general) with evidences that the changes you suggest is the recommendation for your language.
-
-
-# ✉️ Contactos de Breezy Weather
-
-* If you’d like to report a bug or suggest a new feature, GitHub discussions or issues are best for organization.
-* We’ve also created a Matrix/Element space with a number of different channels for more general discussion: [`#breezy-weather-space:matrix.org`](https://matrix.to/#/#breezy-weather-space:matrix.org).
-  * If you are not comfortable writing a GitHub discussion/issue in English, you can ask on the channel if someone can help you in your language.
-    * We also have a dedicated help channel in French: [`#breezy-weather-francais:matrix.org`](https://matrix.to/#/#breezy-weather-francais:matrix.org)
-  * If you’d prefer a direct channel link instead of a space link, here’s the main Breezy Weather Matrix channel: [`#breezy-weather:matrix.org`](https://matrix.to/#/#breezy-weather:matrix.org)
-
-
-# 📜 License original — LGPL-3.0
-
-* [GNU Lesser General Public License v3.0](/LICENSE)
-* This License does not grant any rights in the trademarks, service marks, or logos of any Contributor.
-* Misrepresentation of the origin of that material is prohibited, and modified versions of such material must be marked in reasonable ways as different from the original version.
-
-Before creating a fork, check if the intent action `nodomain.freeyourgadget.gadgetbridge.ACTION_GENERIC_WEATHER` can cover your need (for example, you want to re-use our weather data in your own customized widget). It can be enabled from Settings > Widgets & Live Wallpaper > Data sharing. You can also [help testing our `ContentProvider` exposing the full weather data of Breezy Weather](https://github.com/breezy-weather/breezy-weather/discussions/2089).
-
-Otherwise, remember to:
-
-- Respect the project’s LICENSE
-- Avoid confusion with the Breezy Weather app:
-  - Do NOT use the `breezy` flag when compiling releases you plan to distribute
-  - Change the app name in [`res_fork/values/strings.xml`](https://github.com/breezy-weather/breezy-weather/blob/main/app/src/res_fork/values/strings.xml)
-  - Change the app icons in the [`res_fork`](https://github.com/breezy-weather/breezy-weather/blob/main/app/src/res_fork) folders
-  - Avoid installation conflicts: change the `applicationId` in [`build.gradle.kts`](https://github.com/breezy-weather/breezy-weather/blob/main/app/build.gradle.kts#L25)
-
-</details>
-
-## ❤️ Apoya Alerta EC 🇪🇨
-
-Alerta EC es un proyecto independiente y de código abierto que busca mejorar el acceso a información meteorológica y alertas para las comunidades del Ecuador.
-
-¡Ayúdanos a mantener encendida la alerta y caliente el cafecito!
-
-Puedes apoyar voluntariamente su desarrollo mediante estos enlaces:
-
-- [PayPhone](https://ppls.me/izAAuu8fptGHF6uZBV9L4Q)
-- [PayPal](https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N)
-- [Patreon](https://www.patreon.com/clicktvdigital)
-- [GitHub Sponsors](https://github.com/sponsors/clicktvdigital)
-
-Las alertas meteorológicas y las futuras funciones SOS seguirán siendo gratuitas para todos. Las donaciones no otorgan prioridad en situaciones de emergencia.
-
-Los aportes son opcionales y no habilitan funciones meteorológicas esenciales de pago. No se han verificado transacciones de prueba.
-
-Alerta EC no está afiliada oficialmente a ECU 911 ni a instituciones gubernamentales.
+<summary>🧰 Consultar registro técnico, planes y avances históricos</summary>
 
 ## Ubicacion avanzada y referencias comunitarias
 
@@ -344,6 +240,26 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Version publica documentada: 0.1.4 / 104; mantener applicationId y certificado de produccion.
 - No publicar Release, tag ni APK nueva sin pruebas, firma verificada y autorizacion.
 - Actualizar README.md y docs/CONTINUAR_AQUI.md en cada avance; mantener cada proyecto en su propio repositorio.
+
+
+
+</details>
+
+
+## 👨‍💻 Autoría y equipo
+
+<div align="center">
+  <img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logotipo oficial de ALERTA EC" width="165" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="artwork/alerta-ec/click-tv-digital-logo.jpg" alt="Logotipo oficial de CLICK TV DIGITAL" width="155" />
+  <p><strong>Richard Ontaneda</strong></p>
+  <p>Creador y desarrollador de ALERTA EC · Fundador y creador de CLICK TV DIGITAL</p>
+  <p><strong>ALERTA EC 🇪🇨 — un proyecto de CLICK TV DIGITAL</strong></p>
+</div>
+
+La sección automática **Contributors** de GitHub muestra perfiles de las cuentas que aportaron commits; no admite sustituir sus avatares por logos personalizados. Por eso la identidad visual del proyecto está disponible aquí.
+
+<!-- ALERTA_EC_README_PUBLICO_2026_10_16 -->
 
 <!-- ALERTA_EC_AUTO_START -->
 
