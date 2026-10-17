@@ -414,7 +414,7 @@ private fun Header() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(R.drawable.ic_launcher_round),
+            painter = painterResource(R.drawable.alertaec_logo_acerca),
             contentDescription = null,
             modifier = Modifier.size(72.dp)
         )

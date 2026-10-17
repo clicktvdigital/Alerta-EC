@@ -46,6 +46,7 @@ class TranslatorItem(
 )
 
 val appContributors: Array<ContributorItem> = arrayOf(
+    ContributorItem("Richard Ontaneda", github = "clicktvdigital", contribution = R.string.alertaec_credit_developer),
     ContributorItem("Julien Papasian", github = "papjul"),
     ContributorItem(
         "WangDaYeeeeee",

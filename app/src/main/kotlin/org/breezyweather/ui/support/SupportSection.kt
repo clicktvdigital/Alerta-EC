@@ -94,6 +94,7 @@ internal fun SupportSection() {
     var mostrarGracias by rememberSaveable { mutableStateOf(false) }
     var valorar by rememberSaveable { mutableStateOf(false) }
     var estrellas by rememberSaveable { mutableIntStateOf(0) }
+    var montoSeleccionado by rememberSaveable { mutableIntStateOf(3) }
 
     // Pregunta opcional al regresar; no interpreta el retorno como un pago exitoso.
     DisposableEffect(lifecycleOwner, enlacePendiente, salioDePantalla) {
@@ -121,7 +122,28 @@ internal fun SupportSection() {
     }
 
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("❤️ Apoya ALERTA EC 🇪🇨", style = MaterialTheme.typography.titleLarge)
+        // ALERTA_EC_APOYOS_VISUALES_V017: portada cercana y sin prometer servicios de emergencia.
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("🇪🇨💚 Un pequeño gesto, una gran ayuda", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Invítame un café o un encebollado y ayúdame a seguir mejorando ALERTA EC para Ecuador. 🦅",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    "Gracias por apoyar este proyecto independiente de CLICK TV DIGITAL.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
         Text(
             "ALERTA EC es gratuita. Si deseas apoyar su desarrollo, elige una opción de aporte voluntario.",
             style = MaterialTheme.typography.bodyLarge
@@ -130,6 +152,56 @@ internal fun SupportSection() {
             "Al pagar, verifica el destinatario y el valor en tu aplicación bancaria. " +
                 "Ninguna donación da prioridad en emergencias.",
             style = MaterialTheme.typography.bodyMedium
+        )
+
+        // Importes orientativos: no se envían al enlace o QR de ningún proveedor.
+        Text("☕ ¿Con cuánto te gustaría colaborar?", style = MaterialTheme.typography.titleMedium)
+        val propuestas = listOf(
+            Triple("☕", "Invítame un café", 1),
+            Triple("🍲", "Un encebollado", 3),
+            Triple("💚", "Apoya el proyecto", 5),
+            Triple("🦅", "Impulsa ALERTA EC", 10),
+        )
+        propuestas.chunked(2).forEach { fila ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                fila.forEach { (emoji, nombre, monto) ->
+                    val seleccionado = montoSeleccionado == monto
+                    Button(
+                        onClick = { montoSeleccionado = monto },
+                        modifier = Modifier.weight(1f).heightIn(min = 86.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = if (seleccionado) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                (if (seleccionado) "✓ " else "") + "$emoji $nombre",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Text("USD $monto", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            "💛 Aporte sugerido: USD $montoSeleccionado. También puedes elegir otro importe " +
+                "si la plataforma de pago lo permite. Ningún valor se cobra ni se transfiere desde ALERTA EC.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            "Elige cómo deseas aportar. Verifica el destinatario y escribe o confirma el valor " +
+                "antes de autorizar cualquier pago.",
+            style = MaterialTheme.typography.bodyMedium,
         )
 
         apoyos.forEachIndexed { indice, apoyo ->
@@ -144,7 +216,7 @@ internal fun SupportSection() {
                                 contentScale = ContentScale.Fit
                             )
                         } else {
-                            Text("PayPhone", style = MaterialTheme.typography.titleLarge)
+                            Text("💳 PayPhone", style = MaterialTheme.typography.titleLarge)
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(apoyo.nombre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -153,11 +225,11 @@ internal fun SupportSection() {
                     Button(
                         onClick = { abrirPago(apoyo.url) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
-                    ) { Text("Abrir pago · ${apoyo.nombre}") }
+                    ) { Text("💚 Continuar con ${apoyo.nombre}") }
                     OutlinedButton(
                         onClick = { qrSeleccionado = indice },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                    ) { Text("Ver QR / copiar enlace") }
+                    ) { Text("📷 Ver QR y copiar enlace") }
                 }
             }
         }

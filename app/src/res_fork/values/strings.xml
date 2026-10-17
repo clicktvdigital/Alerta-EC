@@ -23,7 +23,7 @@
     <string name="alertaec_share_message">ALERTA EC 🇪🇨🦅: weather forecasts and alerts for Ecuador. Get it from the stable release: https://github.com/clicktvdigital/Alerta-EC/releases/latest</string>
     <string name="alertaec_credits_title">ALERTA EC credits</string>
     <string name="alertaec_credit_brand">ALERTA EC 🇪🇨🦅</string>
-    <string name="alertaec_credit_developer">Development and adaptation: Ing. Richard Ontaneda</string>
+    <string name="alertaec_credit_developer">Richard Ontaneda — creator and developer of ALERTA EC; founder of CLICK TV DIGITAL</string>
     <string name="alertaec_credit_company">CLICK TV DIGITAL</string>
     <string name="alertaec_hourly_highlight">+%1$d h · %2$s · %3$s</string>
     <string name="alertaec_hourly_rain">rain %1$s</string>
