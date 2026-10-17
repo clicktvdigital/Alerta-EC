@@ -56,7 +56,7 @@ private data class Apoyo(
 private val apoyos = listOf(
     Apoyo(
         "PayPhone", "Pago voluntario con PayPhone",
-        R.drawable.alertaec_qr_payphone, null,
+        R.drawable.alertaec_qr_payphone, R.drawable.alertaec_marca_payphone,
         "https://ppls.me/izAAuu8fptGHF6uZBV9L4Q"
     ),
     Apoyo(
@@ -77,9 +77,9 @@ private val apoyos = listOf(
 )
 
 private val otrosApoyos = listOf(
-    "PayPal" to "https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N",
-    "Patreon" to "https://www.patreon.com/clicktvdigital",
-    "GitHub Sponsors" to "https://github.com/sponsors/clicktvdigital"
+    Triple("PayPal", "https://www.paypal.com/ncp/payment/9XTVG6H4YU6JY", R.drawable.alertaec_marca_paypal),
+    Triple("Patreon", "https://www.patreon.com/clicktvdigital", R.drawable.alertaec_marca_patreon),
+    Triple("GitHub Sponsors", "https://github.com/sponsors/clicktvdigital", R.drawable.alertaec_marca_githubsponsors)
 )
 
 @Composable
@@ -235,11 +235,15 @@ internal fun SupportSection() {
         }
 
         Text("Otras formas de apoyar", style = MaterialTheme.typography.titleMedium)
-        otrosApoyos.forEach { (nombre, url) ->
+        otrosApoyos.forEach { (nombre, url, marca) ->
             OutlinedButton(
                 onClick = { abrirPago(url) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-            ) { Text("Abrir $nombre") }
+            ) {
+                Image(painterResource(marca), contentDescription = null, modifier = Modifier.size(32.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Abrir $nombre")
+            }
         }
         Button(
             onClick = { compartirAplicacion(context) },

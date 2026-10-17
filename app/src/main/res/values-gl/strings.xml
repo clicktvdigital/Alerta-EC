@@ -134,7 +134,7 @@
     <string name="settings_weather_sources_default_source">Fonte predeterminada para novas localizacións</string>
     <string name="settings_weather_source_unavailable">%s(non dispoñible)</string>
     <string name="settings_weather_sources_per_location_summary">Personalizar as fontes de datos meteorolóxicos utilizadas para esta localización</string>
-    <string name="settings_weather_source_freenet_disclaimer">Hai máis fontes meteorolóxicas dispoñibles noutras versións de Breezy Weather. Toque aquí para obter máis información.</string>
+    <string name="settings_weather_source_freenet_disclaimer">Hai máis fontes meteorolóxicas dispoñibles noutras versións de ALERTA EC. Toque aquí para obter máis información.</string>
     <string name="settings_source_default_value">Por defecto (sin modificar)</string>
     <string name="settings_weather_source_open_meteo_weather_models_best_match">Mellor combinación</string>
     <string name="settings_appearance">Aparencia</string>

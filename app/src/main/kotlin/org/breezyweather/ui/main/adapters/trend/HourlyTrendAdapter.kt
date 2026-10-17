@@ -58,7 +58,9 @@ class HourlyTrendAdapter(
         val provider = ResourcesProviderFactory.newInstance
         val tempUnit = SettingsManager.getInstance(activity).getTemperatureUnit(activity)
 
-        adapters = SettingsManager.getInstance(activity).hourlyTrendDisplayList.map {
+        adapters = SettingsManager.getInstance(activity).hourlyTrendDisplayList.sortedBy {
+            if (it == HourlyTrendDisplay.TAG_PRECIPITATION) 0 else 1
+        }.map {
             when (it) {
                 HourlyTrendDisplay.TAG_TEMPERATURE -> HourlyTemperatureAdapter(activity, location, provider, tempUnit)
                 HourlyTrendDisplay.TAG_AIR_QUALITY -> HourlyAirQualityAdapter(activity, location)

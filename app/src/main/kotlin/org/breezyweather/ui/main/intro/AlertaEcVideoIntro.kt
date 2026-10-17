@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.media.AudioManager
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -12,6 +13,7 @@ import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.VideoView
 import org.breezyweather.R
 
@@ -25,6 +27,7 @@ internal object AlertaEcVideoIntro {
     private var activeVideo: VideoView? = null
     private var activeRoot: FrameLayout? = null
     private var pendingTimeout: Runnable? = null
+    private var activePoster: ImageView? = null
 
     fun play(
         root: View,
@@ -49,12 +52,12 @@ internal object AlertaEcVideoIntro {
             animatorScale,
             animationsEnabled,
         )
+        stop()
         if (reduceMotion) {
             frame.visibility = View.GONE
             return true
         }
 
-        stop()
         val view = VideoView(context)
         activeVideo = view
         activeRoot = frame
@@ -70,10 +73,25 @@ internal object AlertaEcVideoIntro {
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
             frame.setBackgroundColor(Color.BLACK)
-            view.setBackgroundColor(Color.BLACK)
+            // SurfaceView necesita un fondo transparente para mostrar su superficie.
+            view.setBackgroundColor(Color.TRANSPARENT)
             frame.addView(
                 view,
                 0,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            val poster = ImageView(context).apply {
+                setImageResource(R.drawable.alertaec_logo_acerca)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setBackgroundColor(Color.BLACK)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+            activePoster = poster
+            frame.addView(
+                poster,
                 FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -87,11 +105,9 @@ internal object AlertaEcVideoIntro {
             // No dejar una pantalla negra si el dispositivo no puede decodificar el MP4.
             val timeout = Runnable { if (activeVideo === view) stop() }
             pendingTimeout = timeout
-            handler.postDelayed(timeout, 10_000L)
+            handler.postDelayed(timeout, 4_000L)
             view.setOnPreparedListener { player ->
                 if (activeVideo === view) {
-                    pendingTimeout?.let(handler::removeCallbacks)
-                    pendingTimeout = null
                     player.isLooping = false
                     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                     // Nueva preferencia: ON por defecto; sin depender del opt-in de sonidos anteriores.
@@ -99,7 +115,19 @@ internal object AlertaEcVideoIntro {
                         audioManager?.ringerMode == AudioManager.RINGER_MODE_NORMAL &&
                         ((audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0) > 0)
                     val volume = if (soundEnabled) 1f else 0f
-                    player.setVolume(volume, volume)
+                    // Preparado no significa que haya imagen. No reproducir audio a ciegas.
+                    player.setVolume(0f, 0f)
+                    player.setOnInfoListener { _, what, _ ->
+                        if (activeVideo === view && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                            (poster.parent as? ViewGroup)?.removeView(poster)
+                            activePoster = null
+                            pendingTimeout?.let(handler::removeCallbacks)
+                            // Límite también tras el primer fotograma: cubre bloqueos sin onError/onCompletion.
+                            handler.postDelayed(timeout, 30_000L)
+                            player.setVolume(volume, volume)
+                        }
+                        false
+                    }
                     runCatching { view.start() }.onFailure { stop() }
                 }
             }
@@ -122,6 +150,8 @@ internal object AlertaEcVideoIntro {
     fun stop() {
         pendingTimeout?.let(handler::removeCallbacks)
         pendingTimeout = null
+        activePoster?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        activePoster = null
         val view = activeVideo
         activeVideo = null
         val root = activeRoot

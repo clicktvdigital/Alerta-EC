@@ -39,6 +39,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,7 @@ import org.breezyweather.common.extensions.plus
 import org.breezyweather.common.extensions.withIOContext
 import org.breezyweather.common.extensions.withUIContext
 import org.breezyweather.common.utils.helpers.SnackbarHelper
+import org.breezyweather.data.appCreators
 import org.breezyweather.data.appContributors
 import org.breezyweather.data.appTranslators
 import org.breezyweather.ui.support.SupportSection
@@ -101,6 +103,7 @@ internal fun AboutScreen(
     val linkToOpen = rememberSaveable { mutableStateOf("") }
     val dialogLinkOpenState = rememberSaveable { mutableStateOf(false) }
 
+    val showCredits = rememberSaveable { mutableStateOf(false) }
     val locale = context.currentLocale
     val language = locale.language
     val languageWithCountry = locale.language + (if (!locale.country.isNullOrEmpty()) "_r" + locale.country else "")
@@ -330,66 +333,70 @@ internal fun AboutScreen(
             largeSeparatorItem()
             item { SupportSection() }
             largeSeparatorItem()
-            item { SectionTitle(stringResource(R.string.alertaec_credits_title)) }
-            item {
-                Column(modifier = Modifier.padding(dimensionResource(R.dimen.normal_margin))) {
-                    Text(
-                        text = stringResource(R.string.alertaec_credit_brand),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = stringResource(R.string.alertaec_credit_developer),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = stringResource(R.string.alertaec_credit_company),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            largeSeparatorItem()
-            item { SectionTitle(stringResource(R.string.about_contributors)) }
-            itemsIndexed(appContributors) { index, item ->
+            item { SectionTitle(stringResource(R.string.alertaec_creators_title)) }
+            itemsIndexed(appCreators) { index, item ->
                 ContributorView(
                     name = item.name,
                     contribution = item.contribution,
                     isFirst = index == 0,
-                    isLast = index == appContributors.lastIndex
+                    isLast = index == appCreators.lastIndex
                 ) {
                     linkToOpen.value = item.link
                     if (linkToOpen.value.isNotEmpty()) {
                         dialogLinkOpenState.value = true
                     }
                 }
-                if (index != appContributors.lastIndex) {
+                if (index != appCreators.lastIndex) {
                     SmallSeparatorItem()
                 }
             }
-
             largeSeparatorItem()
-            item { SectionTitle(stringResource(R.string.about_translators)) }
-            itemsIndexed(filteredTranslators) { index, item ->
-                ContributorView(
-                    name = item.name,
-                    isFirst = index == 0,
-                    isLast = index == filteredTranslators.lastIndex
-                ) {
-                    linkToOpen.value = when {
-                        !item.github.isNullOrEmpty() -> "https://github.com/${item.github}"
-                        !item.weblate.isNullOrEmpty() -> "https://hosted.weblate.org/user/${item.weblate}/"
-                        !item.mail.isNullOrEmpty() -> "mailto:${item.mail}"
-                        !item.url.isNullOrEmpty() -> item.url
-                        else -> ""
+            item {
+                TextButton(onClick = { showCredits.value = !showCredits.value }) {
+                    Text(stringResource(R.string.about_contributors) + " / " + stringResource(R.string.about_translators))
+                }
+            }
+            if (showCredits.value) {
+                item { SectionTitle(stringResource(R.string.about_contributors)) }
+                itemsIndexed(appContributors) { index, item ->
+                    ContributorView(
+                        name = item.name,
+                        contribution = item.contribution,
+                        isFirst = index == 0,
+                        isLast = index == appContributors.lastIndex
+                    ) {
+                        linkToOpen.value = item.link
+                        if (linkToOpen.value.isNotEmpty()) {
+                            dialogLinkOpenState.value = true
+                        }
                     }
-                    if (linkToOpen.value.isNotEmpty()) {
-                        dialogLinkOpenState.value = true
+                    if (index != appContributors.lastIndex) {
+                        SmallSeparatorItem()
                     }
                 }
-                if (index != filteredTranslators.lastIndex) {
-                    SmallSeparatorItem()
+
+                largeSeparatorItem()
+                item { SectionTitle(stringResource(R.string.about_translators)) }
+                itemsIndexed(filteredTranslators) { index, item ->
+                    ContributorView(
+                        name = item.name,
+                        isFirst = index == 0,
+                        isLast = index == filteredTranslators.lastIndex
+                    ) {
+                        linkToOpen.value = when {
+                            !item.github.isNullOrEmpty() -> "https://github.com/${item.github}"
+                            !item.weblate.isNullOrEmpty() -> "https://hosted.weblate.org/user/${item.weblate}/"
+                            !item.mail.isNullOrEmpty() -> "mailto:${item.mail}"
+                            !item.url.isNullOrEmpty() -> item.url
+                            else -> ""
+                        }
+                        if (linkToOpen.value.isNotEmpty()) {
+                            dialogLinkOpenState.value = true
+                        }
+                    }
+                    if (index != filteredTranslators.lastIndex) {
+                        SmallSeparatorItem()
+                    }
                 }
             }
 
@@ -424,7 +431,7 @@ private fun Header() {
                 .fillMaxWidth()
         )
         Text(
-            text = stringResource(R.string.brand_name),
+            text = stringResource(R.string.brand_name) + " · CLICK TV DIGITAL",
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.headlineSmall
         )

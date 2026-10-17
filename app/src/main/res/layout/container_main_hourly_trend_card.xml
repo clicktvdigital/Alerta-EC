@@ -44,7 +44,7 @@
             android:layout_width="match_parent"
             style="@style/content_text"
             tools:text="Rain Wednesday evening"
-            app:layout_constraintTop_toBottomOf="@+id/hourly_block_title" />
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_trendRecyclerView" />
 
         <TextView
             android:id="@+id/hourly_block_highlights"
@@ -67,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/hourly_block_highlights"
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_title"
             app:layout_constraintStart_toStartOf="@+id/hourly_block_title_icon" />
 
         <org.breezyweather.ui.common.widgets.trend.TrendRecyclerView

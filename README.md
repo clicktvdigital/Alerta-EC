@@ -4,8 +4,7 @@
 </div>
 
 <h1 align="center">ALERTA EC</h1>
-<p align="center"><strong>Richard Ontaneda — creador y desarrollador de ALERTA EC</strong></p>
-<p align="center">Fundador y creador de CLICK TV DIGITAL</p>
+<p align="center"><strong>CLICK TV DIGITAL</strong></p>
 
 <br />
 
@@ -93,6 +92,14 @@ Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado 
 
 ALERTA EC tampoco está afiliada oficialmente al **ECU 911** ni a instituciones gubernamentales. Sus funciones de SOS remoto y rescate comunitario siguen en desarrollo y no sustituyen los servicios de emergencia.
 
+## Siguiente actualización estable: preparación local (2026-10-17)
+
+Se corrigió el fondo opaco de la intro y se añadió portada hasta el primer fotograma, silencio hasta que haya imagen y recuperación por error/timeout. La gráfica horaria prioriza precipitación disponible y muestra el detalle debajo; el resumen cuadrado queda con las mediciones. Donativos incorpora logos locales y el nuevo PayPal. Acerca de destaca ALERTA EC / CLICK TV DIGITAL y permite desplegar atribuciones sin duplicar al desarrollador ni eliminar licencias.
+
+**Pendiente de CI y validación en Android.** El MP4 no se recodificó: la inspección binaria indica H.264 High 4.0, 720×1280 y 12,052 s; la decodificación local está bloqueada por una biblioteca de Termux. GitHub Actions queda preparado para decodificarlo y guardar primeros fotogramas en `intro-review`, además de las pruebas Kotlin. La disponibilidad HTTP de los enlaces no verifica pagos ni destinatarios. Banco Pichincha es el banco con recursos existentes; no se inventaron otros cobros.
+
+Se mantienen `com.clicktvdigital.alertaec`, versión 0.1.6 / 106 y firma de producción. No se compiló Android localmente ni se publicó. Consulta los [cambios, pruebas pendientes y procedimientos de recuperación](docs/CONTINUAR_AQUI.md#preparación-de-la-siguiente-actualización-estable--2026-10-17) y las [fuentes de marcas](artwork/alerta-ec/donaciones/MARCAS.md).
+
 ## ❤️ Apoya el desarrollo de ALERTA EC
 
 ALERTA EC es **gratuita y de código abierto**. Si deseas respaldar su mantenimiento, puedes realizar un aporte completamente voluntario. ☕🇪🇨
@@ -102,7 +109,7 @@ ALERTA EC es **gratuita y de código abierto**. Si deseas respaldar su mantenimi
     <img src="https://img.shields.io/badge/PayPhone-DONAR-1678DA?style=for-the-badge&amp;logoColor=white" alt="Donar mediante PayPhone" height="48" />
   </a>
   &nbsp;
-  <a href="https://www.paypal.com/ncp/payment/NKS3NQA6Q2Q5N" title="Apoyar con PayPal">
+  <a href="https://www.paypal.com/ncp/payment/9XTVG6H4YU6JY" title="Apoyar con PayPal">
     <img src="https://img.shields.io/badge/PayPal-DONAR-003087?style=for-the-badge&amp;logo=paypal&amp;logoColor=white" alt="Donar mediante PayPal" height="48" />
   </a>
   <br /><br />
