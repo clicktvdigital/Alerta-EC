@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 class CurrentLocationStoreTest {
     private fun store(values: MutableMap<String, Any> = mutableMapOf()): CurrentLocationStore {
@@ -74,7 +73,7 @@ class CurrentLocationStoreTest {
         store.altitudeMeters shouldBe null
         store.measuredAtMillis shouldBe null
         store.provider shouldBe null
-        assertThrows<IllegalArgumentException> { store.updateCurrentLocation(Double.NaN, 0.0) }
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) { store.updateCurrentLocation(Double.NaN, 0.0) }
         store.lastKnownLongitude shouldBe 3.0
         store.clearCurrentLocation()
         store.isUsable shouldBe false
