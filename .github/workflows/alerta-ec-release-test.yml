@@ -1,0 +1,128 @@
+name: Alerta EC - Prueba Release firmada sin publicar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-release:
+    if: github.repository == 'clicktvdigital/Alerta-EC'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validar etiqueta y version de Gradle
+        id: version
+        env:
+          RELEASE_TAG: "v0.1.7"
+        run: |
+          python3 - <<'PYVERSION'
+          import os
+          import re
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag):
+              raise SystemExit("La etiqueta debe tener formato estable vMAJOR.MINOR.PATCH")
+          gradle = Path("app/build.gradle.kts").read_text()
+          package = re.search(r'applicationId\s*=\s*"([^"]+)"', gradle)
+          name = re.search(r'versionName\s*=\s*"([^"]+)"', gradle)
+          code = re.search(r'versionCode\s*=\s*(\d+)', gradle)
+          if not (package and name and code):
+              raise SystemExit("No se pudieron leer applicationId/versionName/versionCode de Gradle")
+          tag_version = tag[1:]
+          if name.group(1) != tag_version:
+              raise SystemExit("La etiqueta no coincide con versionName de app/build.gradle.kts")
+          if package.group(1) != "com.clicktvdigital.alertaec":
+              raise SystemExit("applicationId no coincide con el paquete de produccion esperado")
+          if int(code.group(1)) != 107:
+              raise SystemExit("versionCode debe ser 107 para v0.1.7")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version={tag_version}\n")
+              output.write(f"version_code={code.group(1)}\n")
+          PYVERSION
+
+      - name: Preparar Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+
+      - name: Comprobar y configurar secretos de firma
+        env:
+          KEYSTORE_B64: ${{ secrets.ALERTAEC_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ALERTAEC_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ALERTAEC_KEY_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Falta uno o mas secretos obligatorios de firma (se omiten sus valores)." >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > app/alerta-ec-release.jks
+          test -s app/alerta-ec-release.jks
+          {
+            printf '%s\n' "alertaec.storeFile=alerta-ec-release.jks"
+            printf 'alertaec.storePassword=%s\n' "$STORE_PASSWORD"
+            printf '%s\n' "alertaec.keyAlias=alerta-ec"
+            printf 'alertaec.keyPassword=%s\n' "$KEY_PASSWORD"
+          } >> local.properties
+
+      - name: Compilar APK Release
+        run: ./gradlew :app:assembleBasicRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Verificar APK, firma, certificado e identidad
+        id: apk
+        env:
+          EXPECTED_CERT_SHA256: 06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e
+          EXPECTED_PACKAGE: com.clicktvdigital.alertaec
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+          EXPECTED_VERSION_CODE: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -eu
+          apk="app/build/outputs/apk/basic/release/app-basic-universal-release.apk"
+          test -s "$apk" || { echo "No se encontro el APK universal de Release." >&2; exit 1; }
+          build_tools="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools"
+          apksigner="$(find "$build_tools" -type f -name apksigner -perm -u+x | sort -V | tail -n 1)"
+          aapt="$(find "$build_tools" -type f -name aapt -perm -u+x | sort -V | tail -n 1)"
+          test -x "$apksigner" && test -x "$aapt" || { echo "Faltan apksigner/aapt del Android SDK." >&2; exit 1; }
+          "$apksigner" verify --verbose "$apk" >/dev/null
+          cert_sha256="$("$apksigner" verify --print-certs "$apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          if [ "$cert_sha256" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "El certificado del APK no coincide con el SHA-256 de produccion." >&2
+            exit 1
+          fi
+          badging="$("$aapt" dump badging "$apk")"
+          package_line="$(printf '%s\n' "$badging" | sed -n '1p')"
+          printf '%s\n' "$package_line" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId del APK no coincide con produccion." >&2; exit 1; }
+          apk_version="$(printf '%s\n' "$package_line" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
+          apk_code="$(printf '%s\n' "$package_line" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          test "$apk_version" = "$EXPECTED_VERSION" || { echo "versionName del APK no coincide con la etiqueta." >&2; exit 1; }
+          test "$apk_code" = "$EXPECTED_VERSION_CODE" || { echo "versionCode del APK no coincide con Gradle." >&2; exit 1; }
+          mkdir -p release-assets
+          cp "$apk" "release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk"
+          (cd release-assets && sha256sum "Alerta-EC-v${EXPECTED_VERSION}.apk" > "Alerta-EC-v${EXPECTED_VERSION}.apk.sha256")
+          echo "apk=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk" >> "$GITHUB_OUTPUT"
+          echo "checksum=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Entregar APK de prueba sin publicar Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: ALERTA-EC-v0.1.7-RELEASE-PRUEBA
+          path: |
+            release-assets/Alerta-EC-v0.1.7.apk
+            release-assets/Alerta-EC-v0.1.7.apk.sha256
+          if-no-files-found: error
+          retention-days: 7
