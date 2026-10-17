@@ -4,7 +4,6 @@ import android.content.Context
 import breezyweather.domain.location.model.LocationAddressInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Observable
-import org.breezyweather.BuildConfig
 import org.breezyweather.sources.SourceManager
 import javax.inject.Inject
 
@@ -15,7 +14,7 @@ class DetailedLocationProvider @Inject constructor(
     fun request(
         latitude: Double,
         longitude: Double,
-        sourceId: String = BuildConfig.DEFAULT_GEOCODING_SOURCE,
+        sourceId: String = "nominatim",
     ): Observable<DetailedLocationAddress> {
         val source = sourceManager.getReverseGeocodingSourceOrDefault(sourceId)
 

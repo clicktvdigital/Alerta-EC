@@ -37,7 +37,10 @@ object ActiveLocationController {
         val latitude = preferences.getString(KEY_LATITUDE, null)?.toDoubleOrNull() ?: return null
         val longitude = preferences.getString(KEY_LONGITUDE, null)?.toDoubleOrNull() ?: return null
         val timestamp = preferences.getLong(KEY_TIMESTAMP, 0L)
-        if (timestamp <= 0L) return null
+        val now = System.currentTimeMillis()
+        if (timestamp <= 0L || timestamp > now + 10_000L || now - timestamp > 120_000L) return null
+        if (!latitude.isFinite() || latitude !in -90.0..90.0) return null
+        if (!longitude.isFinite() || longitude !in -180.0..180.0) return null
 
         val altitude = preferences.getString(KEY_ALTITUDE, null)
             ?.takeIf { it.isNotBlank() }
