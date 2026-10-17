@@ -75,6 +75,9 @@ import org.breezyweather.common.bus.EventBus
 import org.breezyweather.common.extensions.conditional
 import org.breezyweather.common.extensions.doOnApplyWindowInsets
 import org.breezyweather.common.extensions.getThemeColor
+import org.breezyweather.common.extensions.hasNotificationPermission
+import org.breezyweather.background.forecast.TodayForecastNotificationJob
+import org.breezyweather.background.forecast.TomorrowForecastNotificationJob
 import org.breezyweather.common.extensions.hasPermission
 import org.breezyweather.common.extensions.isLandscape
 import org.breezyweather.common.extensions.isRtl
@@ -327,6 +330,15 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                     right = 0
                 )
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Resume enabled forecasts after the notification permission is granted.
+        if (hasNotificationPermission) {
+            TodayForecastNotificationJob.setupTask(this, false, keepExisting = true)
+            TomorrowForecastNotificationJob.setupTask(this, false, keepExisting = true)
         }
     }
 

@@ -106,7 +106,7 @@ class SettingsManager private constructor(
         set(value) {
             config.edit().putBoolean("app_update_check_switch", value).apply()
         }
-        get() = config.getBoolean("app_update_check_switch", false)
+        get() = config.getBoolean("app_update_check_switch", true)
 
     var isAppUpdateCheckPromptAlreadyAsked: Boolean
         set(value) {
@@ -152,7 +152,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("precipitation_notification_switch", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("precipitation_notification_switch", false)
+        get() = config.getBoolean("precipitation_notification_switch", true)
 
     var isAlertSoundEnabled: Boolean
         set(value) {
@@ -397,7 +397,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("timing_forecast_switch_today", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("timing_forecast_switch_today", false)
+        get() = config.getBoolean("timing_forecast_switch_today", true)
 
     var todayForecastTime: String
         set(value) {
@@ -413,7 +413,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("timing_forecast_switch_tomorrow", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("timing_forecast_switch_tomorrow", false)
+        get() = config.getBoolean("timing_forecast_switch_tomorrow", true)
 
     var tomorrowForecastTime: String
         set(value) {

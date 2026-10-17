@@ -105,7 +105,7 @@ class TomorrowForecastNotificationJob @AssistedInject constructor(
             return context.workManager.isRunning(TAG)
         }
 
-        fun setupTask(context: Context, nextDay: Boolean) {
+        fun setupTask(context: Context, nextDay: Boolean, keepExisting: Boolean = false) {
             val settings = SettingsManager.getInstance(context)
             if (settings.isTomorrowForecastEnabled) {
                 if (context.hasNotificationPermission) {
@@ -116,10 +116,12 @@ class TomorrowForecastNotificationJob @AssistedInject constructor(
                         )
                         .addTag(TAG)
                         .build()
-                    context.workManager.enqueueUniqueWork(TAG, ExistingWorkPolicy.REPLACE, request)
+                    context.workManager.enqueueUniqueWork(
+                        TAG,
+                        if (keepExisting) ExistingWorkPolicy.KEEP else ExistingWorkPolicy.REPLACE,
+                        request
+                    )
                     return
-                } else {
-                    settings.isTomorrowForecastEnabled = false
                 }
             }
             context.workManager.cancelUniqueWork(TAG)

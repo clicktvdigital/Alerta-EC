@@ -16,6 +16,11 @@
 
 package org.breezyweather.ui.main.adapters.main.holder
 
+import android.graphics.Typeface
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -126,14 +131,35 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 )
                 else -> context.getString(R.string.alertaec_hourly_unknown)
             }
-            context.getString(
-                R.string.alertaec_hourly_highlight,
-                highlight.offsetHours,
-                timeFormat.format(forecast.date),
-                (details + acquisitionText).joinToString(" · ")
-            )
+            SpannableStringBuilder().apply {
+                val heading = context.getString(
+                    R.string.alertaec_hourly_highlight,
+                    highlight.offsetHours,
+                    timeFormat.format(forecast.date),
+                    ""
+                ).trim().trimEnd('·').trimEnd()
+                append(heading)
+                setSpan(StyleSpan(Typeface.BOLD), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(
+                    ForegroundColorSpan(context.getThemeColor(com.google.android.material.R.attr.colorPrimary)),
+                    0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                if (details.isNotEmpty()) append("\n").append(details.joinToString(" · "))
+                append("\n")
+                val acquisitionStart = length
+                append(acquisitionText)
+                setSpan(
+                    ForegroundColorSpan(context.getThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)),
+                    acquisitionStart, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
         }
-        highlights.text = highlightLines.joinToString("\n")
+        highlights.text = SpannableStringBuilder().apply {
+            highlightLines.forEachIndexed { index, line ->
+                if (index > 0) append("\n\n")
+                append(line)
+            }
+        }
         highlights.visibility = View.VISIBLE
 
         // Keep missing-interval text available even when there is no series to chart.

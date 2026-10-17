@@ -48,6 +48,8 @@
 
         <TextView
             android:id="@+id/hourly_block_highlights"
+            android:lineSpacingExtra="4dp"
+            android:paddingBottom="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/large_margin"

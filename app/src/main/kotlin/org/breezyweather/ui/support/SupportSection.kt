@@ -6,6 +6,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -209,11 +213,9 @@ internal fun SupportSection() {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (apoyo.marca != null) {
-                            Image(
-                                painter = painterResource(apoyo.marca),
-                                contentDescription = "Marca de ${apoyo.nombre}",
-                                modifier = Modifier.size(width = 120.dp, height = 46.dp),
-                                contentScale = ContentScale.Fit
+                            PaymentBrand(
+                                resource = apoyo.marca,
+                                modifier = Modifier.size(width = 96.dp, height = 40.dp)
                             )
                         } else {
                             Text("💳 PayPhone", style = MaterialTheme.typography.titleLarge)
@@ -404,5 +406,53 @@ private fun enviarOpinion(context: Context, estrellas: Int) {
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         // No hay correo configurado; no se crea una reseña ficticia.
+    }
+}
+
+// Only the three legacy opaque wordmarks need their exterior white matte removed.
+// QR resources are never passed through this presentation helper.
+@Composable
+private fun PaymentBrand(resource: Int, modifier: Modifier = Modifier) {
+    val resources = LocalContext.current.resources
+    val legacy = resource == R.drawable.alertaec_marca_binance ||
+        resource == R.drawable.alertaec_marca_deuna ||
+        resource == R.drawable.alertaec_marca_pichincha
+    if (legacy) {
+        val bitmap = remember(resources, resource) {
+            val source = BitmapFactory.decodeResource(resources, resource)
+            val width = source.width
+            val height = source.height
+            val pixels = IntArray(width * height)
+            source.getPixels(pixels, 0, width, 0, 0, width, height)
+            val queue = ArrayDeque<Int>()
+            fun enqueue(index: Int) {
+                val color = pixels[index]
+                if (Color.alpha(color) != 0 && Color.red(color) >= 245 &&
+                    Color.green(color) >= 245 && Color.blue(color) >= 245
+                ) {
+                    pixels[index] = Color.TRANSPARENT
+                    queue.addLast(index)
+                }
+            }
+            for (x in 0 until width) {
+                enqueue(x)
+                enqueue((height - 1) * width + x)
+            }
+            for (y in 0 until height) {
+                enqueue(y * width)
+                enqueue(y * width + width - 1)
+            }
+            while (queue.isNotEmpty()) {
+                val index = queue.removeFirst()
+                if (index % width > 0) enqueue(index - 1)
+                if (index % width < width - 1) enqueue(index + 1)
+                if (index >= width) enqueue(index - width)
+                if (index < pixels.size - width) enqueue(index + width)
+            }
+            Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888).asImageBitmap()
+        }
+        Image(bitmap, contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
+    } else {
+        Image(painterResource(resource), contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
     }
 }

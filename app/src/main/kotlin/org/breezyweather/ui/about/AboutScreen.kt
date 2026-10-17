@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -357,6 +358,14 @@ internal fun AboutScreen(
                 }
             }
             if (showCredits.value) {
+                item {
+                    Text(
+                        text = stringResource(R.string.alertaec_base_credits),
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
                 item { SectionTitle(stringResource(R.string.about_contributors)) }
                 itemsIndexed(appContributors) { index, item ->
                     ContributorView(
@@ -417,7 +426,7 @@ internal fun AboutScreen(
 @Composable
 private fun Header() {
     Column(
-        modifier = Modifier.padding(24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
@@ -431,12 +440,22 @@ private fun Header() {
                 .fillMaxWidth()
         )
         Text(
-            text = stringResource(R.string.brand_name) + " · CLICK TV DIGITAL",
+            text = stringResource(R.string.brand_name),
+            textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.headlineSmall
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.alertaec_credit_company),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = versionFormatted,
+            textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium
         )

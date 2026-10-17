@@ -33,6 +33,22 @@
 
 ALERTA EC es un proyecto derivado no oficial de [Breezy Weather](https://github.com/breezy-weather/breezy-weather), desarrollado por **CLICK TV DIGITAL**. Conserva la licencia original y las atribuciones a sus autores y colaboradores. No es una publicación del equipo de Breezy Weather ni está afiliado oficialmente a ECU 911 o a instituciones gubernamentales. Consulta el [estado y los pendientes del proyecto](docs/CONTINUAR_AQUI.md).
 
+## Prueba previa a release posterior a v0.1.8 — 2026-10-17
+
+**Estado actual: código preparado localmente; APK todavía no compilado ni probado.** Esta sección prevalece sobre los registros históricos inferiores. Rama `alerta-ec`, versión base comprobada en Gradle **0.1.8 / 108**; no se incrementó versión ni se publicó release o tag. Sin commit ni push.
+
+- Notificaciones: actualizaciones, alertas graves, precipitaciones y pronósticos de hoy/mañana quedan habilitados si no existe una preferencia guardada. Se respetan los valores guardados, incluidos los desactivados. Los trabajos de pronóstico ya no guardan `false` al faltar permiso; al volver a la pantalla principal se reprograman si hay permiso y no están activos. El permiso Android, los horarios, la actualización en segundo plano y la disponibilidad de fuentes siguen siendo necesarios.
+- Acerca de: logo conservado, marca, CLICK TV DIGITAL y versión en renglones separados y centrados. Una única ficha de Richard Ontaneda con el texto «Fundador de CLICK TV DIGITAL, creador y desarrollador principal de ALERTA EC. 🇪🇨». Atribución a Breezy Weather y LGPL-3.0 en el desplegable junto a los créditos originales; acceso a licencias conservado.
+- Donativos: dimensiones de logos más equilibradas; los tres PNG antiguos eliminan en memoria el blanco exterior conectado a sus bordes. Se conservan los blancos interiores, recursos originales, enlaces, QR y comportamientos. Pendiente inspección visual de bordes y contraste en Android.
+- Detalle horario: gráfica encima, encabezado de desplazamiento/hora destacado, datos meteorológicos en otra línea y recepción debajo con color secundario del tema; separación entre intervalos, altura flexible y sin truncar texto. Se conservan unidades, estados y datos ausentes.
+- CI prepara `:app:assembleBasicDebug` y un artefacto `alerta-ec-prueba-post-v0.1.8-<SHA>` con retención de 7 días, además de las verificaciones existentes. Solo se ejecutará tras un push autorizado o PR; no crea Releases. Usa la variante `.debug` existente y firma de depuración: no sirve para comprobar actualización sobre producción. No se modificaron `applicationId`, keystore, firma de producción ni secretos.
+
+Verificación local: `git diff --check`, `python scripts/validate_alerta_ec.py`, parseo de los XML modificados y unicidad de sus claves de cadenas. No se ejecutó Gradle en Termux ni CI remoto. No hay APK nuevo disponible todavía.
+
+Prueba Android pendiente: instalación Debug limpia y valores predeterminados; desactivar opciones y comprobar persistencia tras reiniciar; denegar/conceder permiso y verificar planificación/entrega real de hoy y mañana; alertas y precipitación con fuente disponible; tema claro/oscuro, texto grande y TalkBack; logos sin halos o pérdida de detalle, apertura de enlaces y QR originales; datos horarios ausentes/antiguos, cambio de día y recepción. Comprobar también intro y regresiones registradas abajo. Antes de una release posterior hará falta un APK firmado de prueba y validar actualización conservando datos.
+
+Los archivos locales sin seguimiento `AGENTS.md` y `ALERTA_EC_GITHUB_CI_RELEASE_2026-10-14.txt` se conservan intactos. Siguiente paso: revisar diff, autorizar commit/push, esperar CI y descargar el APK de prueba; no crear tag final ni publicar hasta completar pruebas y recibir autorización.
+
 ## Características de ALERTA EC implementadas en código
 
 Esta tabla describe funciones presentes en el código del repositorio; no garantiza que hayan superado pruebas en dispositivo o que estén disponibles en la última Release. La base meteorológica procede de Breezy Weather; los datos visibles dependen del proveedor, la ubicación y su vigencia.
@@ -63,7 +79,7 @@ El motor multiamenaza completo, SOS, reportes ciudadanos, mapas offline/relieve 
 
 ## 📱 Capturas oficiales de ALERTA EC
 
-Las capturas verificadas de la aplicación se incorporarán después de instalar y probar la **Release estable v0.1.6** en Android. Mostraremos pantallas reales de ALERTA EC, preferentemente con una ubicación pública de Quito o Ecuador, sin divulgar domicilios ni datos personales.
+Las capturas verificadas de la aplicación se incorporarán después de instalar y probar la **compilación que se valide en Android** en Android. Mostraremos pantallas reales de ALERTA EC, preferentemente con una ubicación pública de Quito o Ecuador, sin divulgar domicilios ni datos personales.
 
 **El logotipo superior sí es el oficial de ALERTA EC.** No se utilizarán capturas del proyecto original Breezy Weather como si fueran pantallas propias. Ver el [plan de documentación y capturas](docs/CONTINUAR_AQUI.md).
 
@@ -92,7 +108,7 @@ Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado 
 
 ALERTA EC tampoco está afiliada oficialmente al **ECU 911** ni a instituciones gubernamentales. Sus funciones de SOS remoto y rescate comunitario siguen en desarrollo y no sustituyen los servicios de emergencia.
 
-## Siguiente actualización estable: preparación local (2026-10-17)
+## Registro histórico de preparación anterior (2026-10-17)
 
 Se corrigió el fondo opaco de la intro y se añadió portada hasta el primer fotograma, silencio hasta que haya imagen y recuperación por error/timeout. La gráfica horaria prioriza precipitación disponible y muestra el detalle debajo; el resumen cuadrado queda con las mediciones. Donativos incorpora logos locales y el nuevo PayPal. Acerca de destaca ALERTA EC / CLICK TV DIGITAL y permite desplegar atribuciones sin duplicar al desarrollador ni eliminar licencias.
 
