@@ -141,7 +141,7 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 append(heading)
                 setSpan(StyleSpan(Typeface.BOLD), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 setSpan(
-                    ForegroundColorSpan(context.getThemeColor(com.google.android.material.R.attr.colorPrimary)),
+                    ForegroundColorSpan(context.getThemeColor(androidx.appcompat.R.attr.colorPrimary)),
                     0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 if (details.isNotEmpty()) append("\n").append(details.joinToString(" · "))
