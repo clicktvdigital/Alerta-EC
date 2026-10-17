@@ -18,7 +18,6 @@ package org.breezyweather.background.forecast
 
 import android.app.Notification
 import android.content.Context
-import android.graphics.drawable.Icon
 import androidx.core.app.NotificationCompat
 import breezyweather.domain.location.model.Location
 import breezyweather.domain.weather.model.Daily
@@ -89,7 +88,7 @@ class ForecastNotificationNotifier(
         val temperatureUnit = SettingsManager.getInstance(context).getTemperatureUnit(context)
 
         val notification: Notification = with(completeNotificationBuilder) {
-            priority = NotificationCompat.PRIORITY_MAX
+            priority = NotificationCompat.PRIORITY_LOW
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setSubText(
                 if (today) {
@@ -98,7 +97,6 @@ class ForecastNotificationNotifier(
                     context.getString(R.string.daily_tomorrow_short)
                 }
             )
-            setDefaults(Notification.DEFAULT_SOUND or Notification.DEFAULT_VIBRATE)
             setAutoCancel(true)
             setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
             setSmallIcon(ResourceHelper.getDefaultMinimalXmlIconId(weatherCode, daytime))
@@ -131,22 +129,6 @@ class ForecastNotificationNotifier(
             )
         }.build()
 
-        if (weather.current?.weatherCode != null) {
-            try {
-                notification.javaClass
-                    .getMethod("setSmallIcon", Icon::class.java)
-                    .invoke(
-                        notification,
-                        ResourceHelper.getMinimalIcon(
-                            provider,
-                            weather.current!!.weatherCode!!,
-                            daytime
-                        )
-                    )
-            } catch (_: Exception) {
-                // do nothing.
-            }
-        }
 
         context.notify(
             if (today) Notifications.ID_TODAY_FORECAST else Notifications.ID_TOMORROW_FORECAST,

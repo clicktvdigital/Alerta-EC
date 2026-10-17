@@ -34,6 +34,7 @@
 
     <!-- notification. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-permission
         android:name="android.permission.READ_APP_SPECIFIC_LOCALES"
@@ -578,6 +579,12 @@
                 tools:node="remove" />
 
         </provider>
+
+            <activity
+            android:name=".ui.emergency.EmergencyCenterActivity"
+            android:exported="false"
+            android:label="Centro de Emergencias"
+            android:theme="@style/BreezyWeatherTheme" />
 
     </application>
 

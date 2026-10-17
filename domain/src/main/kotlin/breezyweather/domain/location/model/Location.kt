@@ -258,8 +258,25 @@ data class Location(
         return builder.toString()
     }
 
+    /** A local presentation label; never used to resolve coordinates or weather. */
+    val geographicName: String
+        get() = if (countryCode.equals("EC", ignoreCase = true)) {
+            listOf(customName?.takeIf { it.isNotBlank() } ?: district, admin4, city)
+                .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+                .distinctBy { it.lowercase(Locale.ROOT) }
+                .joinToString(", ")
+        } else {
+            customName?.takeIf { it.isNotBlank() } ?: cityAndDistrict
+        }
+
     val cityAndDistrict: String
         get() {
+            if (countryCode.equals("EC", ignoreCase = true)) {
+                return listOf(district, admin4, city)
+                    .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+                    .distinctBy { it.lowercase(Locale.ROOT) }
+                    .joinToString(", ")
+            }
             val builder = StringBuilder()
             if (city.isNotEmpty()) {
                 builder.append(city)
@@ -312,11 +329,21 @@ data class Location(
             admin2Code = locationAddressInfo.admin2Code ?: "",
             admin3 = locationAddressInfo.admin3 ?: "",
             admin3Code = locationAddressInfo.admin3Code ?: "",
-            admin4 = locationAddressInfo.admin4 ?: "",
+            admin4 = if (locationAddressInfo.countryCode.equals("EC", ignoreCase = true)) {
+                locationAddressInfo.cityDistrict ?: locationAddressInfo.admin4 ?: ""
+            } else {
+                locationAddressInfo.admin4 ?: ""
+            },
             admin4Code = locationAddressInfo.admin4Code ?: "",
             city = locationAddressInfo.city ?: "",
             cityId = locationAddressInfo.cityCode ?: "",
-            district = locationAddressInfo.district ?: "",
+            district = listOf(
+                locationAddressInfo.neighborhood,
+                locationAddressInfo.locality,
+                locationAddressInfo.quarter,
+                locationAddressInfo.cityDistrict,
+                locationAddressInfo.district,
+            ).firstOrNull { !it.isNullOrBlank() } ?: "",
             needsGeocodeRefresh = false
         )
     }

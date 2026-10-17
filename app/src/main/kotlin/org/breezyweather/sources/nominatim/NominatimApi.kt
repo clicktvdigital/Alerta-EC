@@ -45,6 +45,7 @@ interface NominatimApi {
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
         @Query("layer") layer: String = "address",
+        @Query("zoom") zoom: Int = 18,
         @Query("format") format: String = "jsonv2",
         @Query("addressdetails") addressDetails: Boolean = true,
     ): Observable<NominatimLocationResult>

@@ -23,18 +23,21 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
 import io.reactivex.rxjava3.core.Observable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.rx3.rxObservable
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.breezyweather.common.exceptions.LocationAccessOffException
 import org.breezyweather.common.exceptions.LocationException
+import org.breezyweather.common.extensions.hasPermission
 import org.breezyweather.common.source.LocationPositionWrapper
 import org.breezyweather.common.source.LocationSource
-import org.breezyweather.common.utils.helpers.LogHelper
 import javax.inject.Inject
+import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 @SuppressLint("MissingPermission")
@@ -43,70 +46,63 @@ class AndroidLocationService @Inject constructor() : LocationSource {
     override val id = "native"
     override val name = "Android"
 
-    private lateinit var locationManager: LocationManager
-    private lateinit var locationListener: LocationListenerCompat
+    override fun requestLocation(context: Context): Observable<LocationPositionWrapper> = rxObservable {
+        if (!hasPermissions(context)) throw LocationException()
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!LocationManagerCompat.isLocationEnabled(manager)) throw LocationAccessOffException()
+        val fine = context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        val providers = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            if (fine) add(LocationManager.GPS_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+        }.filter { it in manager.allProviders && manager.isProviderEnabled(it) }
+        if (providers.isEmpty()) throw LocationException()
 
-    private val bestProvider: String
-        get() = when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                locationManager.allProviders.contains(LocationManager.FUSED_PROVIDER) -> LocationManager.FUSED_PROVIDER
-            locationManager.allProviders.contains(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            locationManager.allProviders.contains(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            else -> LocationManager.PASSIVE_PROVIDER
-        }
-
-    override fun requestLocation(context: Context): Observable<LocationPositionWrapper> {
-        if (!hasPermissions(context)) {
-            LogHelper.log(msg = "Location permissions missing")
-            throw LocationException()
-        }
-
-        if (!this::locationManager.isInitialized) {
-            locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        }
-
-        if (!LocationManagerCompat.isLocationEnabled(locationManager)) {
-            LogHelper.log(msg = "Location service not enabled")
-            throw LocationAccessOffException()
-        }
-
-        return rxObservable {
-            locationListener = LocationListenerCompat {
-                clearLocationUpdates(locationListener)
-                val result = trySend(LocationPositionWrapper(longitude = it.longitude, latitude = it.latitude, altitude = if (it.hasAltitude()) it.altitude else null, accuracy = if (it.hasAccuracy()) it.accuracy else null))
-                if (!result.isSuccess) {
-                    close(LocationException())
+        val measured = withTimeoutOrNull(TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine<Location> { continuation ->
+                val listener = object : LocationListenerCompat {
+                    override fun onLocationChanged(location: Location) {
+                        if (isRecent(location) && continuation.isActive) {
+                            manager.removeUpdates(this)
+                            continuation.resume(location)
+                        }
+                    }
+                }
+                continuation.invokeOnCancellation { manager.removeUpdates(listener) }
+                try {
+                    LocationManagerCompat.requestLocationUpdates(
+                        manager,
+                        providers.first(),
+                        LocationRequestCompat.Builder(1000)
+                            .setQuality(
+                                if (fine) LocationRequestCompat.QUALITY_HIGH_ACCURACY
+                                else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
+                            )
+                            .build(),
+                        listener,
+                        Looper.getMainLooper()
+                    )
+                    if (!continuation.isActive) manager.removeUpdates(listener)
+                } catch (e: Exception) {
+                    manager.removeUpdates(listener)
+                    continuation.cancel(e)
                 }
             }
+        } ?: providers.mapNotNull { manager.getLastKnownLocation(it) }
+            .filter { isRecent(it) }
+            .maxByOrNull { it.elapsedRealtimeNanos }
+            ?: throw LocationException()
 
-            LocationManagerCompat.requestLocationUpdates(
-                locationManager,
-                bestProvider,
-                LocationRequestCompat.Builder(1000).apply {
-                    setQuality(LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
-                }.build(),
-                locationListener,
-                Looper.getMainLooper()
+        send(
+            LocationPositionWrapper(
+                latitude = measured.latitude,
+                longitude = measured.longitude,
+                altitude = if (measured.hasAltitude()) measured.altitude else null,
+                accuracy = if (measured.hasAccuracy()) measured.accuracy else null,
+                timestampMillis = measured.time,
+                provider = measured.provider
             )
-            delay(TIMEOUT_MILLIS)
-
-            // Fall back to the last known location if it failed to find the location in the given time frame
-            clearLocationUpdates(locationListener)
-            getLastKnownLocation(locationManager)?.let {
-                send(LocationPositionWrapper(latitude = it.latitude, longitude = it.longitude, altitude = if (it.hasAltitude()) it.altitude else null, accuracy = if (it.hasAccuracy()) it.accuracy else null))
-            } ?: run {
-                // Actually it’s a timeout, but it is more reasonable to say it failed to find location
-                throw LocationException()
-            }
-        }.doOnDispose {
-            if (this::locationListener.isInitialized) {
-                clearLocationUpdates(locationListener)
-            }
-        }
-    }
-
-    private fun clearLocationUpdates(listener: LocationListenerCompat) {
-        locationManager.removeUpdates(listener)
+        )
     }
 
     override val permissions: Array<String>
@@ -118,18 +114,11 @@ class AndroidLocationService @Inject constructor() : LocationSource {
     companion object {
         private val TIMEOUT_MILLIS = 15.seconds.inWholeMilliseconds
 
-        private fun getLastKnownLocation(
-            locationManager: LocationManager,
-        ): Location? {
-            val lastKnownFused = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
-            } else {
-                null
-            }
-            return lastKnownFused
-                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+        private fun isRecent(location: Location): Boolean {
+            val ageNanos = SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos
+            return ageNanos in 0..120_000_000_000L &&
+                location.latitude.isFinite() && location.latitude in -90.0..90.0 &&
+                location.longitude.isFinite() && location.longitude in -180.0..180.0
         }
     }
 }

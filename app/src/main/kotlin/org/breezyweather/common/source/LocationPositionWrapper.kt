@@ -22,4 +22,6 @@ data class LocationPositionWrapper(
     val longitude: Double,
     val altitude: Double? = null,
     val accuracy: Float? = null,
+    val timestampMillis: Long? = null,
+    val provider: String? = null,
 )

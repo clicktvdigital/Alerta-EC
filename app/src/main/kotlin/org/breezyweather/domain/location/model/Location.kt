@@ -30,6 +30,9 @@ fun Location.getPlace(context: Context, showCurrentPositionInPriority: Boolean =
     if (showCurrentPositionInPriority && isCurrentPosition) {
         return context.getString(R.string.location_current)
     }
+    if (countryCode.equals("EC", ignoreCase = true) && geographicName.isNotBlank()) {
+        return geographicName
+    }
     if (!customName.isNullOrEmpty()) {
         return customName!!
     }

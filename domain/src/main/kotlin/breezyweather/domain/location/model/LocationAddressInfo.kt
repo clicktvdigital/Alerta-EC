@@ -93,6 +93,9 @@ data class LocationAddressInfo(
     /** Neighborhood returned by the reverse-geocoding source. */
     val neighborhood: String? = null,
 
+    /** Named locality within a parish; not a confirmed neighborhood. */
+    val locality: String? = null,
+
     /** Quarter or local sector returned by the reverse-geocoding source. */
     val quarter: String? = null,
 

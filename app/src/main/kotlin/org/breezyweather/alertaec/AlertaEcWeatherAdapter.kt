@@ -49,13 +49,14 @@ object AlertaEcWeatherAdapter {
     )
 
     private fun fromHourlyForecast(hour: Hourly, location: Location): AlertaEcEvent? {
-        val precipitationMm = hour.precipitation?.total?.inMillimeters
-        val probability = hour.precipitationProbability?.total?.inPercent?.roundToInt()
-        val windKmh = hour.wind?.speed?.inKilometersPerHour
-        val gustKmh = hour.wind?.gusts?.inKilometersPerHour
+        val precipitationMm = hour.precipitation?.total?.inMillimeters?.takeIf { it.isFinite() && it >= 0 }
+        val probability = hour.precipitationProbability?.total?.inPercent?.takeIf { it.isFinite() && it in 0.0..100.0 }?.roundToInt()
+        val windKmh = hour.wind?.speed?.inKilometersPerHour?.takeIf { it.isFinite() && it >= 0 }
+        val gustKmh = hour.wind?.gusts?.inKilometersPerHour?.takeIf { it.isFinite() && it >= 0 }
         val codePhenomenon = hour.weatherCode?.let(::phenomenonFromWeatherCode)
 
         val phenomenon = when {
+            codePhenomenon == AlertaEcPhenomenon.THUNDERSTORM -> codePhenomenon
             precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
                 AlertaEcPhenomenon.HEAVY_RAIN
             codePhenomenon != null -> codePhenomenon
@@ -94,8 +95,8 @@ object AlertaEcWeatherAdapter {
             feelsLikeCelsius = hour.temperature?.feelsLikeTemperature?.inCelsius,
             windSpeedKmh = windKmh,
             windGustKmh = gustKmh,
-            windDirectionDegrees = hour.wind?.degree?.takeIf { it >= 0.0 }?.roundToInt(),
-            humidityPercent = hour.relativeHumidity?.inPercent?.roundToInt(),
+            windDirectionDegrees = hour.wind?.degree?.takeIf { it.isFinite() && it in 0.0..360.0 }?.roundToInt(),
+            humidityPercent = hour.relativeHumidity?.inPercent?.takeIf { it.isFinite() && it in 0.0..100.0 }?.roundToInt(),
             pressureHpa = hour.pressure?.inHectopascals,
             visibilityKm = hour.visibility?.inKilometers
         )
@@ -119,8 +120,8 @@ object AlertaEcWeatherAdapter {
         else -> null
     }
 
-    private fun phenomenonFromText(text: String): AlertaEcPhenomenon {
-        val value = text.lowercase()
+    internal fun phenomenonFromText(text: String): AlertaEcPhenomenon {
+        val value = text.lowercase(java.util.Locale.ROOT)
         return when {
             "tsunami" in value -> AlertaEcPhenomenon.TSUNAMI
             "sismo" in value || "terremoto" in value -> AlertaEcPhenomenon.EARTHQUAKE
@@ -128,18 +129,18 @@ object AlertaEcWeatherAdapter {
             "desliz" in value -> AlertaEcPhenomenon.LANDSLIDE
             "inund" in value -> AlertaEcPhenomenon.FLOOD
             "granizo" in value -> AlertaEcPhenomenon.HAIL
-            "tormenta" in value || "trueno" in value -> AlertaEcPhenomenon.THUNDERSTORM
-            "viento" in value -> AlertaEcPhenomenon.STRONG_WIND
+            "tormenta eléctrica" in value || "tormenta electrica" in value ||
+                "trueno" in value || "thunder" in value -> AlertaEcPhenomenon.THUNDERSTORM
+            "viento fuerte" in value || "strong wind" in value || "high wind" in value -> AlertaEcPhenomenon.STRONG_WIND
             "niebla" in value -> AlertaEcPhenomenon.FOG
             "incendio" in value -> AlertaEcPhenomenon.WILDFIRE
-            "lluvia" in value -> AlertaEcPhenomenon.RAIN
+            "lluvia" in value || "rain" in value -> AlertaEcPhenomenon.RAIN
             else -> AlertaEcPhenomenon.OTHER
         }
     }
 
     private fun locationName(location: Location): String =
-        location.district?.takeIf { it.isNotBlank() }
-            ?: location.city.takeIf { it.isNotBlank() }
-            ?: location.admin1
+        location.geographicName.takeIf { it.isNotBlank() }
+            ?: location.admin1?.takeIf { it.isNotBlank() }
             ?: location.country
 }

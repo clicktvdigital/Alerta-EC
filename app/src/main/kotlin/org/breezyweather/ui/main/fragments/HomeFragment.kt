@@ -198,6 +198,14 @@ class HomeFragment : MainModuleFragment() {
             when (menuItem.itemId) {
                 R.id.action_edit -> callback?.onEditIconClicked()
                 R.id.action_open_in_other_app -> callback?.onOpenInOtherAppIconClicked()
+                R.id.action_emergency_center -> {
+                    startActivity(
+                        android.content.Intent(
+                            requireContext(),
+                            org.breezyweather.ui.emergency.EmergencyCenterActivity::class.java
+                        )
+                    )
+                }
             }
             true
         }

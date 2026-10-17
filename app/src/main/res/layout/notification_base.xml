@@ -64,10 +64,10 @@
         <TextView
             android:id="@+id/notification_base_time"
             android:text="@string/widget_ellipsis"
-            android:textSize="@dimen/widget_time_text_size"
+            android:textSize="14sp"
             android:includeFontPadding="false"
             android:layout_marginEnd="@dimen/small_margin"
-            android:maxLines="1"
+            android:maxLines="2"
             android:ellipsize="end"
             style="@style/notification_subtitle_text"
             tools:text="Prague"

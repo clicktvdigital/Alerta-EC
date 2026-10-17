@@ -30,46 +30,53 @@ class CurrentLocationStore @Inject constructor(
 ) {
     private val config: ConfigStore = ConfigStore(context, CURRENT_LOCATION_STORE)
 
-    var lastKnownLongitude: Float
-        get() = config.getFloat(KEY_LAST_KNOWN_LONGITUDE, 0f)
-        private set(value) {
-            config.edit().putFloat(KEY_LAST_KNOWN_LONGITUDE, value).apply()
-        }
+    // Separate keys preserve compatibility with the former Float preferences.
+    val lastKnownLongitude: Double
+        get() = config.getString("longitude_double", null)?.toDoubleOrNull()
+            ?: config.getFloat(KEY_LAST_KNOWN_LONGITUDE, 0f).toDouble()
 
-    var lastKnownLatitude: Float
-        get() = config.getFloat(KEY_LAST_KNOWN_LATITUDE, 0f)
-        private set(value) {
-            config.edit().putFloat(KEY_LAST_KNOWN_LATITUDE, value).apply()
-        }
+    val lastKnownLatitude: Double
+        get() = config.getString("latitude_double", null)?.toDoubleOrNull()
+            ?: config.getFloat(KEY_LAST_KNOWN_LATITUDE, 0f).toDouble()
 
-    var lastSuccessfulRefresh: Long
+    val accuracyMeters: Float?
+        get() = config.getFloat("accuracy_meters", -1f).takeIf { it.isFinite() && it >= 0f }
+    val altitudeMeters: Double?
+        get() = config.getString("altitude_meters", null)?.toDoubleOrNull()?.takeIf { it.isFinite() }
+    val measuredAtMillis: Long?
+        get() = config.getLong("measured_at", 0).takeIf { it > 0 }
+    val provider: String?
+        get() = config.getString("provider", null)
+    val lastSuccessfulRefresh: Long
         get() = config.getLong(KEY_LAST_SUCCESSFUL_REFRESH, 0)
-        private set(value) {
-            config.edit().putLong(KEY_LAST_SUCCESSFUL_REFRESH, value).apply()
-        }
 
     val isUsable: Boolean
-        get() = lastKnownLatitude != 0f || lastKnownLongitude != 0f
+        get() = lastSuccessfulRefresh > 0 && lastKnownLatitude.isFinite() && lastKnownLongitude.isFinite() &&
+            lastKnownLatitude in -90.0..90.0 && lastKnownLongitude in -180.0..180.0
 
-    /**
-     * Store an updated current location
-     */
     fun updateCurrentLocation(
-        longitude: Float,
-        latitude: Float,
+        longitude: Double,
+        latitude: Double,
+        accuracy: Float? = null,
+        altitude: Double? = null,
+        timestampMillis: Long? = null,
+        provider: String? = null,
     ) {
-        lastKnownLongitude = longitude
-        lastKnownLatitude = latitude
-        lastSuccessfulRefresh = Date().time
+        require(latitude.isFinite() && latitude in -90.0..90.0)
+        require(longitude.isFinite() && longitude in -180.0..180.0)
+        config.edit()
+            .putString("longitude_double", longitude.toString())
+            .putString("latitude_double", latitude.toString())
+            .putFloat("accuracy_meters", accuracy?.takeIf { it.isFinite() && it >= 0f } ?: -1f)
+            .putString("altitude_meters", altitude?.takeIf { it.isFinite() }?.toString())
+            .putLong("measured_at", timestampMillis?.takeIf { it > 0 } ?: 0)
+            .putString("provider", provider)
+            .putLong(KEY_LAST_SUCCESSFUL_REFRESH, Date().time)
+            .apply()
     }
 
-    /**
-     * Call this when you no longer have any need for current location
-     */
     fun clearCurrentLocation() {
-        lastKnownLongitude = 0f
-        lastKnownLatitude = 0f
-        lastSuccessfulRefresh = 0
+        config.edit().clear().apply()
     }
 
     companion object {

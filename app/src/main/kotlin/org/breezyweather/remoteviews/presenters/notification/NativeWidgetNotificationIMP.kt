@@ -16,29 +16,21 @@
 
 package org.breezyweather.remoteviews.presenters.notification
 
+import org.breezyweather.common.options.appearance.CalendarHelper
+import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
+import java.util.Date
 import android.content.Context
-import org.breezyweather.common.extensions.currentLocale
-import java.text.SimpleDateFormat
-import android.graphics.drawable.Icon
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import breezyweather.domain.location.model.Location
-import org.breezyweather.R
-import org.breezyweather.common.extensions.formatMeasure
-import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
 import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.extensions.toBitmap
-import org.breezyweather.common.options.appearance.CalendarHelper
-import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.settings.SettingsManager
-import org.breezyweather.domain.weather.model.getName
-import org.breezyweather.domain.weather.model.getStrength
 import org.breezyweather.remoteviews.Notifications
 import org.breezyweather.remoteviews.presenters.AbstractRemoteViewsPresenter
 import org.breezyweather.ui.theme.resource.ResourceHelper
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
-import java.util.Date
 
 object NativeWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
     fun buildNotificationAndSendIt(
@@ -60,37 +52,11 @@ object NativeWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         }
         val temperature = if (tempIcon) tempFeelsLikeOrAir else null
 
-        val subtitle = StringBuilder()
-        subtitle.append(location.getPlace(context))
-        if (CalendarHelper.getAlternateCalendarSetting(context) != null) {
-            subtitle.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-                .append(Date().getFormattedMediumDayAndMonthInAdditionalCalendar(location, context))
-        } else {
-            location.weather!!.base.currentUpdateTime?.takeIf { it.time in 1..System.currentTimeMillis() }?.let {
-                subtitle.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-                    .append(
-                        context.getString(
-                            R.string.alertaec_notification_cached_at,
-                            SimpleDateFormat("dd/MM/yyyy HH:mm z", context.currentLocale).apply {
-                                timeZone = location.timeZone
-                            }.format(it)
-                        )
-                    )
-            }
-        }
-
-        val contentTitle = StringBuilder()
-        if (tempFeelsLikeOrAir != null) {
-            contentTitle.append(tempFeelsLikeOrAir.formatMeasure(context, temperatureUnit))
-        }
-        if (!current.weatherText.isNullOrEmpty()) {
-            if (contentTitle.toString().isNotEmpty()) contentTitle.append(" – ")
-            contentTitle.append(current.weatherText)
-        }
+        val summary = NotificationForecastSummary(context, location)
 
         val notification = context.notificationBuilder(Notifications.CHANNEL_WIDGET).apply {
             priority = NotificationCompat.PRIORITY_MAX
-            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             if (temperature != null) {
                 setSmallIcon(
                     IconCompat.createWithBitmap(
@@ -113,34 +79,18 @@ object NativeWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     ).toBitmap()
                 )
             }
-            setSubText(subtitle.toString())
-            setContentTitle(contentTitle.toString())
-            if (current.airQuality?.isIndexValid == true) {
-                setContentText(context.getString(R.string.air_quality) + " – " + current.airQuality!!.getName(context))
+            if (CalendarHelper.getAlternateCalendarSetting(context) != null) {
+                setSubText(summary.interval + " · " + Date().getFormattedMediumDayAndMonthInAdditionalCalendar(location, context))
             } else {
-                current.wind?.getStrength(context)?.let { strength ->
-                    setContentText(context.getString(R.string.wind) + " – " + strength)
-                }
+                setSubText(summary.interval)
             }
+            setContentTitle("${summary.phenomenon} · ${summary.place}")
+            setContentText(summary.compact)
+            setStyle(NotificationCompat.BigTextStyle().bigText(summary.details))
             setOngoing(persistent)
             setOnlyAlertOnce(true)
             setContentIntent(getWeatherPendingIntent(context, location, Notifications.ID_WIDGET))
         }.build()
-
-        if (!tempIcon) {
-            current.weatherCode?.let { weatherCode ->
-                try {
-                    notification.javaClass
-                        .getMethod("setSmallIcon", Icon::class.java)
-                        .invoke(
-                            notification,
-                            ResourceHelper.getMinimalIcon(provider, weatherCode, daytime)
-                        )
-                } catch (ignore: Exception) {
-                    // do nothing.
-                }
-            }
-        }
 
         context.notify(Notifications.ID_WIDGET, notification)
     }

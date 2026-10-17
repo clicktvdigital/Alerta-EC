@@ -55,3 +55,14 @@ jobs:
 
       - name: Verificar compilacion Kotlin Release
         run: ./gradlew :app:compileBasicReleaseKotlin --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Compilar APK de prueba previa a release
+        run: ./gradlew :app:assembleBasicDebug --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Guardar APK de prueba (sin publicar release)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: alerta-ec-prueba-post-v0.1.8-${{ github.sha }}
+          path: app/build/outputs/apk/basic/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7

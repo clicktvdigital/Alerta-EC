@@ -284,6 +284,27 @@ La sección automática **Contributors** de GitHub muestra perfiles de las cuent
 
 <!-- ALERTA_EC_README_PUBLICO_2026_10_16 -->
 
+
+
+## Ubicación local y notificaciones
+
+El nombre meteorológico prioriza barrio o sector explícito devuelto por geocodificación, después parroquia/distrito y ciudad. No se presupone Atucucho a partir de Cochapamba. En las preferencias de cada ubicación, incluida la actual, puedes definir una etiqueta manual: no cambia las coordenadas del pronóstico y debes revisarla al desplazarte.
+
+Los resúmenes horarios muestran fenómeno, lugar, intervalo, probabilidad, precipitación acumulada y temperatura; las alertas y el estilo nativo separan los detalles en la vista expandida. Se mantienen canales, permisos y preferencias. Un intervalo ya iniciado no se presenta como futuro.
+
+Cambios pendientes de compilación y validación visual en Android; las comprobaciones locales son estáticas. Consulta los límites de precisión y las pruebas pendientes en [CONTINUAR_AQUI](docs/CONTINUAR_AQUI.md).
+
+### Revisión de GPS y precisión meteorológica (2026-10-17)
+
+La actualización conserva coordenadas originales y metadatos de Android, evita volver al punto anterior por fallos de geocodificación y muestra precisión, altitud y hora en preferencias de ubicación. Incluye límites/caché de Nominatim y mantiene la etiqueta manual independiente del GPS. La resolución del clima no equivale a precisión GPS; no se confirmó radar de barrio ni se añadió una fuente hiperlocal. Consulta [hallazgos, fuentes y pruebas pendientes](docs/ALERTA_EC_GPS_METEOROLOGIA.md). Sin compilación ni validación Android todavía.
+
+
+### Iconos y vibración de notificaciones
+
+Los avisos meteorológicos usan iconos pequeños vectoriales monocromáticos según el fenómeno; se conserva el logotipo ALERTA EC. Las instalaciones nuevas separan pronósticos discretos, precipitación con vibración corta y alertas oficiales graves/extremas con patrones diferenciados. Las instalaciones existentes conservan sus canales y preferencias: no se migran automáticamente a canales que puedan eludir un bloqueo. La vibración depende de permisos, ajustes individuales, silencio, No molestar y hardware.
+
+Se reutiliza la ubicación barrio, parroquia, ciudad sin inventar Atucucho, Cochapamba o Quito. Se limita la repetición de avisos y no se convierte un pronóstico de lluvia en una alerta oficial grave. Consulta el [diagnóstico, restablecimiento manual y pruebas pendientes](docs/CONTINUAR_AQUI.md#notificaciones-android-iconos-y-vibración-2026-10-17).
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

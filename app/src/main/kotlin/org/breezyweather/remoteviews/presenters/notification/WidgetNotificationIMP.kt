@@ -17,7 +17,6 @@
 package org.breezyweather.remoteviews.presenters.notification
 
 import android.content.Context
-import android.graphics.drawable.Icon
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -32,7 +31,6 @@ import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.options.NotificationStyle
 import org.breezyweather.common.options.NotificationTextColor
-import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.getIndex
@@ -50,7 +48,6 @@ import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.unit.formatting.format
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.TemperatureUnit
-import java.text.SimpleDateFormat
 
 object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
 
@@ -101,7 +98,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
 
         val notification = context.notificationBuilder(Notifications.CHANNEL_WIDGET).apply {
             priority = NotificationCompat.PRIORITY_MAX
-            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             if (temperature != null) {
                 setSmallIcon(
                     IconCompat.createWithBitmap(
@@ -141,25 +138,6 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             setOnlyAlertOnce(true)
         }.build()
 
-        if (!tempIcon) {
-            current.weatherCode?.let { weatherCode ->
-                try {
-                    notification.javaClass
-                        .getMethod("setSmallIcon", Icon::class.java)
-                        .invoke(
-                            notification,
-                            ResourceHelper.getMinimalIcon(
-                                provider,
-                                weatherCode,
-                                dayTime
-                            )
-                        )
-                } catch (ignore: Exception) {
-                    // do nothing.
-                }
-            }
-        }
-
         context.notify(Notifications.ID_WIDGET, notification)
     }
 
@@ -175,20 +153,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
     ): RemoteViews {
         val current = location.weather?.current ?: return views
 
-        val temperature = if (isWidgetNotificationUsingFeelsLike) {
-            current.temperature?.feelsLikeTemperature ?: current.temperature?.temperature
-        } else {
-            current.temperature?.temperature
-        }
-        val receivedAt = location.weather?.base?.currentUpdateTime
-        val timeStr = if (receivedAt != null && receivedAt.time in 1..System.currentTimeMillis()) {
-            val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm z", context.currentLocale).apply {
-                timeZone = location.timeZone
-            }
-            context.getString(R.string.alertaec_notification_cached_at, formatter.format(receivedAt))
-        } else {
-            context.getString(R.string.alertaec_notification_cached_details)
-        }
+        val summary = NotificationForecastSummary(context, location)
 
         views.apply {
             current.weatherCode?.let { weatherCode ->
@@ -203,25 +168,12 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     )
                 )
             }
-            temperature?.let {
-                setTextViewText(
-                    R.id.notification_base_realtimeTemp,
-                    it.formatMeasure(
-                        context,
-                        temperatureUnit,
-                        valueWidth = UnitWidth.NARROW,
-                        unitWidth = UnitWidth.NARROW
-                    )
-                )
-            }
-            // Keep the place readable in the compact view; AQI belongs in the expanded details.
-            setTextViewText(R.id.notification_base_aqiAndWind, location.getPlace(context))
-            setTextViewText(
-                R.id.notification_base_weather,
-                NotificationWeatherText.nonBlank(current.weatherText)
-                    ?: context.getString(R.string.alertaec_notification_conditions_missing)
-            )
-            setTextViewText(R.id.notification_base_time, timeStr.toString())
+            setTextViewText(R.id.notification_base_realtimeTemp, summary.temperatureText)
+            setTextViewText(R.id.notification_base_aqiAndWind, summary.place)
+            setTextViewText(R.id.notification_base_weather, summary.phenomenon)
+            setTextViewText(R.id.notification_base_time, summary.metrics)
+            setContentDescription(R.id.notification_base, "${summary.phenomenon} · ${summary.place} · ${summary.compact}")
+
         }
 
         return views
@@ -263,6 +215,14 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         } ?: views.setViewVisibility(R.id.notification_big_feels_like, android.view.View.GONE)
 
         val conditionParts = mutableListOf<String>()
+        weather.hourlyForecast.firstOrNull {
+            it.date.time > System.currentTimeMillis() - 3_600_000L
+        }?.acquiredAt?.let {
+            conditionParts.add("Recibido: " + java.text.DateFormat.getDateTimeInstance().apply {
+                timeZone = location.timeZone
+            }.format(it))
+        }
+        conditionParts.add("Fuente: ${location.forecastSource}")
         weather.current?.relativeHumidity?.let {
             conditionParts.add(context.getString(R.string.humidity) + ": " + it.formatPercent(context, UnitWidth.NARROW))
         }

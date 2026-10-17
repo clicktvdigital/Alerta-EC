@@ -873,4 +873,8 @@
     <string name="alertaec_notification_forecast_rain">Lluvia prevista</string>
     <string name="alertaec_notification_cached_at">Guardado: %1$s</string>
     <string name="alertaec_base_credits">Basado en Breezy Weather. Se conservan los derechos de sus autores y colaboradores y la licencia LGPL-3.0. Las licencias de dependencias se pueden consultar en Acerca de.</string>
+    <string name="alertaec_local_label_help">Etiqueta manual; no confirma el barrio ni cambia las coordenadas del pronóstico. Revísala al desplazarte.</string>
+    <string name="notification_channel_precipitation">Precipitación</string>
+    <string name="notification_channel_severe">Alertas meteorológicas graves</string>
+    <string name="notification_channel_extreme">Alertas meteorológicas extremas</string>
 </resources>

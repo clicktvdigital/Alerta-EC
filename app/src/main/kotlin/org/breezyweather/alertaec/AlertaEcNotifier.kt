@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import breezyweather.domain.location.model.Location
@@ -19,7 +20,6 @@ import org.breezyweather.unit.temperature.Temperature.Companion.celsius
 
 object AlertaEcNotifier {
 
-    private const val CHANNEL_ALERT = "alert"
     private const val ID_BASE = 4000
     private const val ID_RANGE = 1000
 
@@ -30,38 +30,45 @@ object AlertaEcNotifier {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
 
+        val manager = NotificationManagerCompat.from(context)
+        val channel = org.breezyweather.remoteviews.Notifications.weatherChannel(context, "forecast")
+        if (!manager.areNotificationsEnabled() || manager.getNotificationChannel(channel)?.importance == 0) return
+
         // OFFICIAL_EVENT ya se envía desde remoteviews.Notifications.
         val events = AlertaEcWeatherAdapter.fromLocation(location, nowMillis)
             .filter { AlertaEcNotificationPolicy.shouldNotify(it, nowMillis) }
 
         val newEvents = AlertaEcEventDeduplicator.filterNewEvents(context, events)
         newEvents.forEach { event ->
-            sendNotification(context, location, event)
+            sendNotification(context, location, event, nowMillis)
             AlertaEcEventDeduplicator.markNotified(context, event)
         }
     }
 
-    private fun sendNotification(context: Context, location: Location, event: AlertaEcEvent) {
+    private fun sendNotification(context: Context, location: Location, event: AlertaEcEvent, nowMillis: Long) {
         val notificationId = ID_BASE + ((event.id.hashCode() and Int.MAX_VALUE) % ID_RANGE)
         val stateLabel = AlertaEcNotificationPolicy.stateLabel(event.state)
         val settings = SettingsManager.getInstance(context)
         val temperatureUnit = settings.getTemperatureUnit(context)
 
+        val interval = event.startTimeMillis?.let {
+            AlertaEcNotificationText.interval(it, nowMillis, location.timeZone)
+        } ?: "Hora no disponible"
+        val compact = buildList {
+            add(event.precipitationProbabilityPercent?.takeIf { it in 0..100 }
+                ?.let { "Prob. $it%" } ?: "Prob. —")
+            add(event.precipitationAccumulationMm?.takeIf { it.isFinite() && it >= 0 }
+                ?.let { String.format("%.1f mm", it) } ?: "Precip. —")
+            add(event.temperatureCelsius?.takeIf { it.isFinite() }?.let {
+                it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)
+            } ?: "Temp. —")
+        }.joinToString(" · ")
         val details = buildList {
-            event.locationName?.let { add(it) }
-            event.precipitationAccumulationMm?.let { add(String.format("Acumulación del intervalo: %.1f mm", it)) }
-            event.precipitationProbabilityPercent?.let { add("$it% de probabilidad") }
-            event.temperatureCelsius?.let {
-                add("Temperatura: ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}")
-            }
-            event.feelsLikeCelsius?.let {
+            add("$stateLabel · ${event.headline}")
+            add("$interval · $compact")
+            add("Precipitación: acumulación del intervalo horario; no intensidad instantánea.")
+            event.feelsLikeCelsius?.takeIf { it.isFinite() }?.let {
                 add("Sensación térmica: ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}")
-            }
-            event.startTimeMillis?.let {
-                val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).apply {
-                    timeZone = location.timeZone
-                }.format(java.util.Date(it))
-                add("Hora prevista: $time")
             }
             event.windSpeedKmh?.let { add(String.format("viento %.0f km/h", it)) }
             event.windSpeedKmh?.let { add(String.format("%.1f m/s", it / 3.6)) }
@@ -80,9 +87,9 @@ object AlertaEcNotifier {
                 }.format(java.util.Date(it))
                 add(context.getString(R.string.alertaec_hourly_acquired_at, updatedTime))
             }
-        }.joinToString(" · ")
+        }.joinToString("\n")
 
-        val title = "$stateLabel · ${event.headline}"
+        val title = "${event.phenomenon.spokenName} · ${event.locationName ?: "Ubicación no disponible"}"
         val content = details.ifBlank { event.description ?: event.phenomenon.spokenName }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -92,11 +99,14 @@ object AlertaEcNotifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = context.notificationBuilder(CHANNEL_ALERT).apply {
-            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            setSmallIcon(R.drawable.ic_alert)
+        val notification = context.notificationBuilder(
+            org.breezyweather.remoteviews.Notifications.weatherChannel(context, "forecast")
+        ).apply {
+            setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            setSmallIcon(AlertaEcNotificationAppearance.icon(event.phenomenon))
             setContentTitle(title)
-            setContentText(content)
+            setSubText(interval)
+            setContentText(compact)
             setStyle(NotificationCompat.BigTextStyle().bigText(content))
             setAutoCancel(true)
             setOnlyAlertOnce(true)

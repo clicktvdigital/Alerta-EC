@@ -125,7 +125,7 @@ class RefreshHelper @Inject constructor(
         val locationSource = SettingsManager.getInstance(context).locationSource
         val locationService = sourceManager.getLocationSourceOrDefault(locationSource)
         val errors = mutableListOf<RefreshError>()
-        if (!context.isOnline()) {
+        if (locationService is HttpSource && !context.isOnline()) {
             errors.add(RefreshError(RefreshErrorType.NETWORK_UNAVAILABLE))
         }
         if (locationService.permissions.isNotEmpty()) {
@@ -163,10 +163,14 @@ class RefreshHelper @Inject constructor(
                     throw LocationException()
                 }
 
-            // Some sources do not accept more than 6 decimals, so truncating it here
+            // Keep the measured point; source-specific formatting belongs in each API adapter.
             currentLocationStore.updateCurrentLocation(
-                longitude = result.longitude.roundDecimals(6)!!.toFloat(),
-                latitude = result.latitude.roundDecimals(6)!!.toFloat()
+                longitude = result.longitude,
+                latitude = result.latitude,
+                accuracy = result.accuracy,
+                altitude = result.altitude,
+                timestampMillis = result.timestampMillis,
+                provider = result.provider
             )
 
             return emptyList()
@@ -263,7 +267,7 @@ class RefreshHelper @Inject constructor(
                                 SourceFeature.REVERSE_GEOCODING
                             )
                         )
-                        location
+                        locationWithUpdatedCoordinates
                     } else if (reverseGeocodingService.id != BuildConfig.DEFAULT_GEOCODING_SOURCE &&
                         !it.hasValidCountryCode
                     ) {
@@ -282,7 +286,7 @@ class RefreshHelper @Inject constructor(
                                 SourceFeature.REVERSE_GEOCODING
                             )
                         )
-                        location
+                        locationWithUpdatedCoordinates
                     } else {
                         needsCountryCodeRefresh = reverseGeocodingService.knownAmbiguousCountryCodes?.any { cc ->
                             it.countryCode.equals(cc, ignoreCase = true)
@@ -323,23 +327,12 @@ class RefreshHelper @Inject constructor(
                             needsSavingToDb = true
                         }
                     } catch (_: Throwable) {
-                        /*
-                         * Returns the original location
-                         * Previously, we used to return the new coordinates without the reverse geocoding,
-                         * leading to issues when reverse geocoding fails (because the mandatory countryCode
-                         * -for some sources- would be missing)
-                         * However, if both the reverse geocoding source + the offline fallback reverse geocoding
-                         * source are failing, it safes to assume that the longitude and latitude are completely
-                         * junky and should be discarded
-                         */
-                        location
+                        // Address failure does not invalidate a measured position.
+                        locationWithUpdatedCoordinates
                     }
                 } else {
-                    /*
-                     * Returns the original location
-                     * Same comment as above
-                     */
-                    location
+                    // Keep the measured point even when no address is available.
+                    locationWithUpdatedCoordinates
                 }
             }
         } else {
@@ -447,9 +440,23 @@ class RefreshHelper @Inject constructor(
             .requestNearestLocation(context, currentLocation.latitude, currentLocation.longitude)
             .map { locationList ->
                 if (locationList.isNotEmpty()) {
+                    val address = locationList[0]
+                    val addressLatitude = address.latitude
+                    val addressLongitude = address.longitude
+                    // Validate source coordinates before preserving the forecast coordinates.
+                    if (addressLatitude != null && addressLongitude != null &&
+                        (!addressLatitude.isFinite() || !addressLongitude.isFinite() ||
+                            addressLatitude !in -90.0..90.0 || addressLongitude !in -180.0..180.0 ||
+                            SphericalUtil.computeDistanceBetween(
+                                LatLng(addressLatitude, addressLongitude),
+                                LatLng(currentLocation.latitude, currentLocation.longitude)
+                            ) > REVERSE_GEOCODING_DISTANCE_LIMIT)
+                    ) {
+                        throw ReverseGeocodingException()
+                    }
                     currentLocation.toLocationWithAddressInfo(
                         context.currentLocale,
-                        locationList[0],
+                        address,
                         overwriteCoordinates = false
                     )
                 } else {

@@ -17,12 +17,17 @@
 package org.breezyweather.sources.nominatim
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.compose.ui.text.input.KeyboardType
 import breezyweather.domain.location.model.LocationAddressInfo
 import breezyweather.domain.source.SourceContinent
 import breezyweather.domain.source.SourceFeature
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Observable
+import kotlinx.coroutines.rx3.awaitFirst
+import kotlinx.coroutines.rx3.rxObservable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
@@ -32,7 +37,6 @@ import org.breezyweather.common.preference.EditTextPreference
 import org.breezyweather.common.preference.Preference
 import org.breezyweather.common.source.ConfigurableSource
 import org.breezyweather.common.source.HttpSource
-import org.breezyweather.common.source.LocationSearchSource
 import org.breezyweather.common.source.ReverseGeocodingSource
 import org.breezyweather.domain.settings.SourceConfigStore
 import org.breezyweather.sources.nominatim.json.NominatimAddress
@@ -49,12 +53,12 @@ import javax.inject.Named
  */
 class NominatimService @Inject constructor(
     @ApplicationContext context: Context,
-    @Named("JsonClient") client: Retrofit.Builder,
-) : HttpSource(), LocationSearchSource, ReverseGeocodingSource, ConfigurableSource {
+    @Named("JsonClient") private val client: Retrofit.Builder,
+) : HttpSource(), ReverseGeocodingSource, ConfigurableSource {
 
     override val id = "nominatim"
     override val name = "Nominatim"
-    override val locationSearchAttribution =
+    private val locationSearchAttribution =
         "Nominatim • Data © OpenStreetMap contributors, ODbL 1.0. https://osm.org/copyright"
     override val privacyPolicyUrl = "https://osmfoundation.org/wiki/Privacy_Policy"
     override val continent = SourceContinent.WORLDWIDE
@@ -67,48 +71,61 @@ class NominatimService @Inject constructor(
         "OpenStreetMap" to "https://osm.org/",
         "https://osm.org/copyright" to "https://osm.org/copyright"
     )
-    private val mApi by lazy {
-        client
-            .baseUrl(instance!!)
-            .build()
-            .create(NominatimApi::class.java)
-    }
-
     private val userAgent = BreezyWeather.instance.userAgent
 
-    override fun requestLocationSearch(
-        context: Context,
-        query: String,
-    ): Observable<List<LocationAddressInfo>> {
-        return mApi.searchLocations(
-            acceptLanguage = context.currentLocale.toLanguageTag(),
-            userAgent = userAgent,
-            q = query,
-            limit = 20
-        ).map { results ->
-            results.mapNotNull {
-                convertLocation(it)
-            }
-        }
-    }
-
+    // Deliberately not a LocationSearchSource: public Nominatim forbids autocomplete.
     override fun requestNearestLocation(
         context: Context,
         latitude: Double,
         longitude: Double,
-    ): Observable<List<LocationAddressInfo>> {
-        return mApi.getReverseLocation(
-            acceptLanguage = context.currentLocale.toLanguageTag(),
-            userAgent = userAgent,
-            lat = latitude,
-            lon = longitude
-        ).map {
-            if (it.address?.countryCode == null || it.address.countryCode.isEmpty()) {
-                throw InvalidLocationException()
+    ): Observable<List<LocationAddressInfo>> = rxObservable {
+        require(latitude.isFinite() && latitude in -90.0..90.0)
+        require(longitude.isFinite() && longitude in -180.0..180.0)
+        val endpoint = instance!!
+        val language = context.currentLocale.toLanguageTag()
+        val key = "$endpoint|$language|$latitude|$longitude"
+        val result = requestMutex.withLock {
+            val now = SystemClock.elapsedRealtime()
+            reverseCache.entries.removeAll { now - it.value.first >= CACHE_TTL_MILLIS }
+            reverseCache[key]?.second ?: run {
+                // No queue of periodic lookups, and failed requests also consume the interval.
+                if (now < retryAfterMillis ||
+                    (lastRequestMillis != null && now - lastRequestMillis!! < MIN_REQUEST_INTERVAL_MILLIS)
+                ) {
+                    throw IllegalStateException("Nominatim lookup throttled; try later")
+                }
+                lastRequestMillis = now
+                val response = try {
+                    client.baseUrl(endpoint).build().create(NominatimApi::class.java)
+                        .getReverseLocation(
+                            acceptLanguage = language,
+                            userAgent = userAgent,
+                            lat = latitude,
+                            lon = longitude
+                        ).awaitFirst()
+                } catch (e: retrofit2.HttpException) {
+                    if (e.code() == 429 || e.code() == 503 || e.code() == 403) {
+                        val retryHeader = e.response()?.headers()?.get("Retry-After")
+                        val seconds = retryHeader?.toLongOrNull()?.coerceIn(0, 604800)
+                        val dateDelay = runCatching {
+                            java.time.ZonedDateTime.parse(
+                                retryHeader, java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME
+                            ).toInstant().toEpochMilli() - System.currentTimeMillis()
+                        }.getOrNull() ?: 0L
+                        val minimum = if (e.code() == 403) CACHE_TTL_MILLIS else 15 * 60_000L
+                        retryAfterMillis = SystemClock.elapsedRealtime() +
+                            maxOf(minimum, seconds?.times(1000) ?: dateDelay.coerceAtLeast(0))
+                    }
+                    throw e
+                }
+                val address = convertLocation(response) ?: throw InvalidLocationException()
+                listOf(address).also {
+                    if (reverseCache.size >= 32) reverseCache.remove(reverseCache.keys.first())
+                    reverseCache[key] = SystemClock.elapsedRealtime() to it
+                }
             }
-
-            listOf(convertLocation(it)!!)
         }
+        send(result)
     }
 
     private fun convertLocation(locationResult: NominatimLocationResult): LocationAddressInfo? {
@@ -118,33 +135,18 @@ class NominatimService @Inject constructor(
             val countryCode = getNonAmbiguousCountryCode(locationResult.address)
             val address = requireNotNull(locationResult.address)
 
-            // Ecuador: cityDistrict suele representar la parroquia urbana.
-            // No mezclar quarter/sector con la parroquia en el titulo principal.
-            val preferredDistrict = if (countryCode.equals("EC", ignoreCase = true)) {
-                address.cityDistrict
-                    ?: address.neighbourhood
-                    ?: address.quarter
-                    ?: address.district
-                    ?: address.borough
-                    ?: address.suburb
-                    ?: address.subdivision
-                    ?: address.allotments
-                    ?: address.hamlet
-                    ?: address.croft
-                    ?: address.isolatedDwelling
-            } else {
-                address.neighbourhood
-                    ?: address.allotments
-                    ?: address.quarter
-                    ?: address.hamlet
-                    ?: address.croft
-                    ?: address.isolatedDwelling
-                    ?: address.cityDistrict
-                    ?: address.district
-                    ?: address.borough
-                    ?: address.suburb
-                    ?: address.subdivision
-            }
+            // Explicit neighborhood and sector precede administrative fallbacks.
+            val preferredDistrict = listOf(
+                address.neighbourhood,
+                address.quarter,
+                address.cityDistrict,
+                address.district,
+                address.borough,
+                address.suburb,
+            ).firstOrNull { !it.isNullOrBlank() }
+
+            val parishLocality = countryCode.equals("EC", ignoreCase = true) &&
+                !address.cityDistrict.isNullOrBlank() && !address.county.isNullOrBlank()
 
             LocationAddressInfo(
                 latitude = locationResult.lat.toDoubleOrNull(),
@@ -156,9 +158,12 @@ class NominatimService @Inject constructor(
                 admin2 = locationResult.address.county,
                 admin2Code = getAdmin2CodeForCountry(locationResult.address, countryCode),
                 admin3 = locationResult.address.municipality,
-                city = locationResult.address.village
-                    ?: locationResult.address.town
-                    ?: locationResult.address.city,
+                city = if (parishLocality) {
+                    listOf(address.city, address.town, address.county).firstOrNull { !it.isNullOrBlank() }
+                } else {
+                    address.village ?: address.town ?: address.city
+                },
+                locality = address.village.takeIf { parishLocality },
                 district = preferredDistrict,
                 road = locationResult.address.road,
                 houseNumber = locationResult.address.houseNumber,
@@ -328,6 +333,12 @@ class NominatimService @Inject constructor(
     )
 
     companion object {
+        private val requestMutex = Mutex()
+        private val reverseCache = linkedMapOf<String, Pair<Long, List<LocationAddressInfo>>>()
+        private var lastRequestMillis: Long? = null
+        private var retryAfterMillis = 0L
+        private const val MIN_REQUEST_INTERVAL_MILLIS = 60_000L
+        private const val CACHE_TTL_MILLIS = 24 * 60 * 60 * 1000L
         private const val NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/"
     }
 }

@@ -62,7 +62,7 @@ class WindViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 )
             }
 
-            wind.degree?.let { degree ->
+            wind.degree?.takeIf { it.isFinite() && (it in 0.0..360.0 || it == -1.0) }?.let { degree ->
                 if (degree != -1.0) {
                     windDirectionView.visibility = View.VISIBLE
                     windDirectionView.setImageDrawable(
@@ -79,19 +79,20 @@ class WindViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 windDirectionView.visibility = View.GONE
             }
 
-            windDetailView.text = if (wind.speed != null && wind.gusts != null && wind.gusts!! > wind.speed!!) {
-                context.getString(R.string.wind_gusts_short) +
-                    context.getString(R.string.colon_separator) +
-                    wind.gusts!!.formatMeasure(context, valueWidth = UnitWidth.NARROW)
-            } else {
-                wind.getDirection(context, short = true)?.let {
-                    if (wind.degree!! in 0.0..360.0) {
-                        context.getString(R.string.wind_origin, it)
-                    } else {
-                        it
+            windDetailView.text = buildList {
+                if (wind.speed != null && wind.gusts != null && wind.gusts!! > wind.speed!!) {
+                    add(
+                        context.getString(R.string.wind_gusts_short) +
+                            context.getString(R.string.colon_separator) +
+                            wind.gusts!!.formatMeasure(context, valueWidth = UnitWidth.NARROW)
+                    )
+                }
+                wind.degree?.takeIf { it.isFinite() && (it in 0.0..360.0 || it == -1.0) }?.let { degree ->
+                    wind.getDirection(context, short = true)?.let {
+                        add(if (degree in 0.0..360.0) context.getString(R.string.wind_origin, it) else it)
                     }
-                } ?: ""
-            }
+                }
+            }.joinToString(" · ")
         }
 
         itemView.contentDescription = talkBackBuilder.toString()

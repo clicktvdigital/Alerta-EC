@@ -20,7 +20,6 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
-import android.os.Build
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
@@ -35,6 +34,8 @@ import breezyweather.domain.location.model.Location
 import breezyweather.domain.weather.model.Alert
 import breezyweather.domain.weather.model.Weather
 import breezyweather.domain.weather.reference.AlertSeverity
+import org.breezyweather.alertaec.AlertaEcNotificationAppearance
+import org.breezyweather.alertaec.AlertaEcWeatherAdapter
 import org.breezyweather.R
 import org.breezyweather.common.extensions.buildNotificationChannel
 import org.breezyweather.common.extensions.buildNotificationChannelGroup
@@ -42,7 +43,6 @@ import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.cancelNotification
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.utils.helpers.IntentHelper
-import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.ConfigStore
 import org.breezyweather.domain.settings.SettingsManager
@@ -97,18 +97,11 @@ object Notifications {
     // private const val KEY_PRECIPITATION_LOCATION_KEY = "PRECIPITATION_LOCATION_KEY"
     // private const val KEY_PRECIPITATION_DATE = "PRECIPITATION_DATE"
 
-    private val deprecatedChannels = listOf(
-        "normally"
-    )
-
     /**
      * Initialize channels so that the user can disable them, even if didn’t receive a notification yet
      */
     fun createChannels(context: Context) {
         val notificationManager = NotificationManagerCompat.from(context)
-
-        // Delete old notification channels
-        deprecatedChannels.forEach(notificationManager::deleteNotificationChannel)
 
         notificationManager.createNotificationChannelGroupsCompat(
             listOf(
@@ -118,14 +111,53 @@ object Notifications {
             )
         )
 
+
+        // Keep existing installations on their original channel: no preference bypass.
+        if (notificationManager.getNotificationChannel(CHANNEL_ALERT) == null) {
+            notificationManager.createNotificationChannelsCompat(
+                listOf(
+                    Triple(
+                        AlertaEcNotificationAppearance.PRECIPITATION,
+                        R.string.notification_channel_precipitation,
+                        longArrayOf(0, 180)
+                    ),
+                    Triple(
+                        AlertaEcNotificationAppearance.SEVERE,
+                        R.string.notification_channel_severe,
+                        longArrayOf(0, 350, 180, 350)
+                    ),
+                    Triple(
+                        AlertaEcNotificationAppearance.EXTREME,
+                        R.string.notification_channel_extreme,
+                        longArrayOf(0, 500, 200, 500, 200, 500)
+                    )
+                ).map { (id, name, pattern) ->
+                    val importance = if (id == AlertaEcNotificationAppearance.PRECIPITATION) {
+                        IMPORTANCE_DEFAULT
+                    } else {
+                        IMPORTANCE_HIGH
+                    }
+                    buildNotificationChannel(id, importance) {
+                        setName(context.getString(name))
+                        setGroup(GROUP_BREEZY_WEATHER)
+                        setVibrationEnabled(true)
+                        setVibrationPattern(pattern)
+                    }
+                }
+            )
+        }
+
+
         notificationManager.createNotificationChannelsCompat(
             listOf(
                 buildNotificationChannel(CHANNEL_ALERT, IMPORTANCE_HIGH) {
                     setName(context.getString(R.string.notification_channel_alerts))
                     setGroup(GROUP_BREEZY_WEATHER)
                 },
-                buildNotificationChannel(CHANNEL_FORECAST, IMPORTANCE_DEFAULT) {
+                buildNotificationChannel(CHANNEL_FORECAST, IMPORTANCE_LOW) {
                     setName(context.getString(R.string.notification_channel_forecast))
+                    setVibrationEnabled(false)
+                    setSound(null, null)
                     setGroup(GROUP_BREEZY_WEATHER)
                 },
                 buildNotificationChannel(CHANNEL_WIDGET, IMPORTANCE_DEFAULT) {
@@ -149,9 +181,14 @@ object Notifications {
                 buildNotificationChannel(CHANNEL_APP_UPDATE, IMPORTANCE_DEFAULT) {
                     setName(context.getString(R.string.notification_channel_app_updates))
                 }
-            )
+            ).filter { notificationManager.getNotificationChannel(it.id) == null }
         )
     }
+
+    internal fun weatherChannel(context: Context, requested: String): String =
+        if (NotificationManagerCompat.from(context)
+                .getNotificationChannel(AlertaEcNotificationAppearance.PRECIPITATION) != null
+        ) requested else CHANNEL_ALERT
 
     private fun getNotificationBuilder(
         context: Context,
@@ -160,8 +197,9 @@ object Notifications {
         subtitle: String,
         content: CharSequence?,
         intent: PendingIntent,
+        channel: String = CHANNEL_ALERT,
     ): NotificationCompat.Builder {
-        return context.notificationBuilder(CHANNEL_ALERT).apply {
+        return context.notificationBuilder(channel).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setSmallIcon(iconId)
             setContentTitle(title)
@@ -182,39 +220,27 @@ object Notifications {
         val weather = location.weather
         if (weather == null || !SettingsManager.getInstance(context).isAlertPushEnabled) return
 
-        val alertList = mutableListOf<Alert>()
-        if (oldResult == null) {
-            alertList.addAll(weather.alertList)
-        } else {
-            val idSet = mutableSetOf<String>()
-            val desSet = mutableSetOf<String>()
-            for (alert in oldResult.alertList.filter {
-                it.severity != AlertSeverity.MINOR
-            }) {
-                idSet.add(alert.alertId)
-                desSet.add(
-                    alert.headline?.ifEmpty {
-                        context.getString(R.string.alert)
-                    } ?: context.getString(R.string.alert)
-                )
-            }
-            for (alert in weather.alertList.filter {
-                it.severity != AlertSeverity.MINOR
-            }) {
-                if (!idSet.contains(alert.alertId) &&
-                    !desSet.contains(
-                        alert.headline?.ifEmpty {
-                            context.getString(R.string.alert)
-                        } ?: context.getString(R.string.alert)
-                    )
-                ) {
-                    alertList.add(alert)
-                }
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val config = ConfigStore(context, PREFERENCE_NOTIFICATION)
+        val remembered = config.getStringSet("OFFICIAL_EVENTS", emptySet()).orEmpty().toMutableSet()
+        val now = System.currentTimeMillis()
+        val alerts = weather.alertList.distinctBy { it.alertId }.filter { alert ->
+            alert.severity != AlertSeverity.MINOR &&
+                (alert.endDate?.time?.let { it > now } ?: true) &&
+                oldResult?.alertList?.none {
+                    it.alertId == alert.alertId && it.severity == alert.severity && it.headline == alert.headline
+                } != false
+        }
+        alerts.forEach { alert ->
+            val key = "${location.formattedId}|${alert.alertId}|${alert.severity}|${alert.startDate?.time}"
+            val channel = weatherChannel(context, AlertaEcNotificationAppearance.officialChannel(alert.severity))
+            val manager = NotificationManagerCompat.from(context)
+            if (key !in remembered && manager.getNotificationChannel(channel)?.importance != 0) {
+                sendAlertNotification(context, location, alert, alerts.size > 1)
+                remembered.add(key)
             }
         }
-        alertList.forEach { alert ->
-            sendAlertNotification(context, location, alert, alertList.size > 1)
-        }
+        config.edit().putStringSet("OFFICIAL_EVENTS", remembered.toList().takeLast(200).toSet()).apply()
     }
 
     private fun sendAlertNotification(
@@ -251,18 +277,19 @@ object Notifications {
         val description = alert.description?.replace("\n", "<br />")?.parseAsHtml() ?: ""
         val builder = getNotificationBuilder(
             context,
-            R.drawable.ic_alert,
+            AlertaEcNotificationAppearance.icon(AlertaEcWeatherAdapter.phenomenonFromText(alert.headline.orEmpty())),
             alert.headline?.ifEmpty {
                 context.getString(R.string.alert)
             } ?: context.getString(R.string.alert),
-            time ?: "",
+            location.geographicName,
             description,
             PendingIntent.getActivity(
                 context,
                 notificationId,
                 IntentHelper.buildMainActivityShowAlertsIntent(location, alert.alertId),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
+            ),
+            weatherChannel(context, AlertaEcNotificationAppearance.officialChannel(alert.severity))
         ).setStyle(
             NotificationCompat.BigTextStyle()
                 .setBigContentTitle(
@@ -275,6 +302,7 @@ object Notifications {
         )
         if (inGroup) {
             builder.setGroup(ALERT_GROUP_KEY)
+            builder.setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         }
         return builder.build()
     }
@@ -288,7 +316,8 @@ object Notifications {
     ): Notification {
         return context.notificationBuilder(CHANNEL_ALERT).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            setSmallIcon(R.drawable.ic_alert)
+            setSmallIcon(R.drawable.ic_notification_weather)
+            setSilent(true)
             setContentTitle(
                 alert.headline?.ifEmpty {
                     context.getString(R.string.alert)
@@ -340,22 +369,33 @@ object Notifications {
         }
 
         if (location.weather!!.hasMinutelyPrecipitation) {
+            val config = ConfigStore(context, PREFERENCE_NOTIFICATION)
+            val key = "PRECIPITATION_LAST_${location.formattedId}"
+            val now = System.currentTimeMillis()
+            val last = config.getLong(key, 0)
+            val quietUpdate = last > 0 && now - last < 30 * 60 * 1000L
             context.notify(
                 ID_PRECIPITATION,
                 getNotificationBuilder(
                     context,
-                    R.drawable.ic_precipitation,
+                    R.drawable.ic_notification_rain,
                     location.weather!!.getMinutelyTitle(context),
-                    location.getPlace(context),
+                    location.geographicName,
                     location.weather!!.getMinutelyDescription(context, location),
                     PendingIntent.getActivity(
                         context,
                         ID_PRECIPITATION,
                         IntentHelper.buildMainActivityIntent(location),
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                    )
-                ).build()
+                    ),
+                    weatherChannel(context, AlertaEcNotificationAppearance.PRECIPITATION)
+                ).apply {
+                    if (quietUpdate) setSilent(true)
+                }.build()
             )
+            if (!quietUpdate && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                config.edit().putLong(key, now).apply()
+            }
             /*config.edit()
                 .putString(KEY_PRECIPITATION_LOCATION_KEY, location.formattedId)
                 .putLong(KEY_PRECIPITATION_DATE, System.currentTimeMillis())

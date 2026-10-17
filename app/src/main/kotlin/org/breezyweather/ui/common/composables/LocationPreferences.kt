@@ -16,6 +16,7 @@
 
 package org.breezyweather.ui.common.composables
 
+import android.Manifest
 import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import breezyweather.domain.location.model.Location
 import breezyweather.domain.source.SourceContinent
 import breezyweather.domain.source.SourceFeature
@@ -56,6 +58,7 @@ import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
 import org.breezyweather.common.extensions.currentLocale
+import org.breezyweather.common.extensions.hasPermission
 import org.breezyweather.common.source.ConfigurableSource
 import org.breezyweather.common.source.HttpSource
 import org.breezyweather.common.source.NonFreeNetSource
@@ -118,6 +121,51 @@ fun LocationPreference(
                 onClose(null)
             }
         }
+        if (location.isCurrentPosition) {
+            val fix = org.breezyweather.domain.settings.CurrentLocationStore(context)
+            val samePoint = fix.isUsable && fix.lastKnownLatitude == location.latitude &&
+                fix.lastKnownLongitude == location.longitude
+            Text(
+                text = buildString {
+                    append("Coordenadas del clima: ${location.latitude}, ${location.longitude}")
+                    append("\nPermiso de ubicación: ")
+                    append(
+                        when {
+                            context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) -> "precisa"
+                            context.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) -> "aproximada"
+                            else -> "no concedido; datos guardados"
+                        }
+                    )
+                    if (samePoint) {
+                        append("\nPrecisión de ubicación (GPS/red): ")
+                        append(fix.accuracyMeters?.let { "±$it m (estimada)" } ?: "no disponible")
+                        append("\nAltitud del dispositivo: ")
+                        append(fix.altitudeMeters?.let { "$it m (referencia del proveedor)" } ?: "no disponible")
+                        append("\nHora de la medición (UTC): ")
+                        append(fix.measuredAtMillis?.let { java.time.Instant.ofEpochMilli(it).toString() }
+                            ?: "no disponible")
+                        fix.measuredAtMillis?.let {
+                            val ageSeconds = (System.currentTimeMillis() - it) / 1000
+                            append("\nAntigüedad al abrir: ")
+                            append(if (ageSeconds >= 0) "$ageSeconds s" else "reloj del dispositivo inconsistente")
+                            if (ageSeconds > 120) append(" · última posición guardada; actualizar ubicación")
+                        }
+                        append("\nProveedor de ubicación: ${fix.provider ?: "no informado"}")
+                    } else {
+                        append("\nPrecisión, altitud y hora: sin medición asociada a estas coordenadas")
+                    }
+                    append("\nFuente meteorológica: ${location.forecastSource}")
+                    append("\nResolución meteorológica: no informada; depende del modelo")
+                    append(" y no equivale a la precisión GPS.")
+                    append(" No se confirma resolución de barrio ni desplazamiento de lluvia.")
+                    if (location.forecastSource == "openmeteo") {
+                        append(" En Ecuador, los intervalos de 15 min pueden ser interpolados de datos horarios.")
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
         PreferenceView(
             titleId = R.string.settings_weather_sources,
             iconId = R.drawable.ic_factory,
@@ -128,17 +176,15 @@ fun LocationPreference(
         ) {
             dialogWeatherSourcesOpenState.value = true
         }
-        if (!location.isCurrentPosition || sourcesWithPreferencesScreen.isNotEmpty()) {
-            PreferenceView(
-                titleId = R.string.settings_per_location,
-                iconId = R.drawable.ic_settings,
-                summaryId = R.string.settings_per_location_summary,
-                colors = ListItemDefaults.colors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                dialogAdditionalLocationPreferencesOpenState.value = true
-            }
+        PreferenceView(
+            titleId = R.string.settings_per_location,
+            iconId = R.drawable.ic_settings,
+            summaryId = R.string.settings_per_location_summary,
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent
+            )
+        ) {
+            dialogAdditionalLocationPreferencesOpenState.value = true
         }
         PreferenceView(
             titleId = R.string.settings_global,
@@ -200,30 +246,29 @@ fun LocationPreference(
                         modifier = Modifier
                             .verticalScroll(rememberScrollState())
                     ) {
-                        if (!location.isCurrentPosition) {
-                            SectionHeader(title = stringResource(R.string.settings_section_general))
-                            EditTextPreferenceView(
-                                title = stringResource(R.string.location_custom_name),
-                                summary = { _, value ->
-                                    value.ifEmpty { location.cityAndDistrict }
-                                },
-                                content = location.customName.let {
-                                    if (it.isNullOrEmpty()) location.cityAndDistrict else it
-                                },
-                                onValueChanged = {
-                                    if (it != location.cityAndDistrict && it != location.customName) {
-                                        customName.value = it
-                                        hasChangedPreferences.value = true
-                                    } else if ((it == location.cityAndDistrict || it.isEmpty()) &&
-                                        !location.customName.isNullOrEmpty()
-                                    ) {
-                                        customName.value = ""
-                                        hasChangedPreferences.value = true
-                                    }
+                        SectionHeader(title = stringResource(R.string.settings_section_general))
+                        EditTextPreferenceView(
+                            title = stringResource(R.string.location_custom_name),
+                            summary = { _, value ->
+                                value.ifEmpty { location.cityAndDistrict } + " · " +
+                                    context.getString(R.string.alertaec_local_label_help)
+                            },
+                            content = location.customName.let {
+                                if (it.isNullOrEmpty()) location.cityAndDistrict else it
+                            },
+                            onValueChanged = {
+                                if (it != location.cityAndDistrict && it != location.customName) {
+                                    customName.value = it
+                                    hasChangedPreferences.value = true
+                                } else if ((it == location.cityAndDistrict || it.isEmpty()) &&
+                                    !location.customName.isNullOrEmpty()
+                                ) {
+                                    customName.value = ""
+                                    hasChangedPreferences.value = true
                                 }
-                            )
-                            SectionFooter()
-                        }
+                            }
+                        )
+                        SectionFooter()
 
                         sourcesWithPreferencesScreen.forEach { preferenceSource ->
                             SectionHeader(title = preferenceSource.name)

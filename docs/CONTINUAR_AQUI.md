@@ -1,5 +1,29 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+## Revisión GPS/Nominatim/meteorología — 2026-10-17
+
+Estado actualizado y límites en [ALERTA_EC_GPS_METEOROLOGIA.md](ALERTA_EC_GPS_METEOROLOGIA.md). Esta revisión sustituye la descripción anterior de GPS sin cambios: ahora se conserva Double, precisión/altitud/hora, se limita la edad del fallback y se mantienen coordenadas ante fallo de geocodificación. Hay caché y control de frecuencia de Nominatim, panel GPS en preferencias y dirección de viento junto a ráfagas. No hay nueva cobertura de radar ni proveedor de lluvia integrado. Los antecedentes Atucucho/Cochapamba que siguen abajo son históricos, no una consulta actual. Sin compilación, CI, commit, push ni Release; tests Kotlin/Android pendientes.
+
+
+## Ubicación y notificaciones meteorológicas — 2026-10-17
+
+Implementación local, sin compilación ni prueba Android. Nominatim y la conversión al modelo persistente priorizan `neighborhood`, `quarter`, parroquia/distrito y después ciudad. Se eliminó la inferencia que convertía una ciudad o distrito ambiguo en barrio. El nombre depende de los datos devueltos para las coordenadas: **no se ha confirmado Atucucho**, ni se añadió un nombre o polígono fijo. Android Geocoder solo proporciona `subLocality`, que no se presenta como un barrio certificado. Natural Earth y fuentes sin detalle pueden seguir mostrando una zona amplia. Las ubicaciones guardadas requieren nueva geocodificación para recibir el nombre actualizado.
+
+En preferencias de cada ubicación se permite editar el nombre también para la ubicación actual. Es una etiqueta local manual, marcada «(manual)» en el resumen meteorológico; no verifica el barrio ni modifica latitud/longitud. Hay que revisarla al desplazarse. Se conserva la persistencia existente de `customName`, sin migración de base de datos.
+
+Alertas horarias y notificación nativa: fenómeno y lugar en título, intervalo en subtítulo, probabilidad, acumulación en mm y temperatura en contenido compacto; detalles en `NotificationCompat.BigTextStyle`. Los estilos personalizados y multiciudad conservan su selección y muestran el resumen horario en su cabecera, con métricas en hasta dos líneas y descripción accesible. Sus vistas expandidas y apertura de la ubicación conservan el acceso a datos adicionales. Datos ausentes se muestran con raya, no con cero. La temperatura respeta la unidad configurada y la preferencia de sensación térmica en widgets. El icono térmico existente sigue representando las condiciones actuales. El intervalo iniciado dice «Desde»; uno vencido, «Intervalo pasado»; solo uno futuro dice «Prev.», con fecha si cambia de día. La recepción pertenece al detalle, no a la hora prevista.
+
+Se conservan canales, permisos, deduplicación, preferencias y apertura de detalles. Referencia de API: [notificaciones expandibles de Android](https://developer.android.com/develop/ui/compose/notifications/expanded). Se usa visibilidad privada para los resúmenes modificados y se elimina la reflexión para cambiar iconos: se mantiene `setSmallIcon` oficial. No se añaden peticiones ni registros de coordenadas. Android puede truncar el contenido según dispositivo y tamaño de letra; falta comprobar la legibilidad real y TalkBack.
+
+Auditoría GPS: `AndroidLocationService` entrega coordenadas y precisión, prioriza proveedor fusionado/red y conserva el fallback a última posición; no se alteraron permisos ni frecuencia. La comprobación de distancia de geocodificación ahora valida las coordenadas del proveedor antes de conservar las del pronóstico; el límite existente de 50 km es una comprobación de resultado distante, **no una certificación de barrio ni de precisión GPS**. `overwriteCoordinates = false` permanece. GPS aproximado, caché antigua o cartografía incompleta no permiten prometer identificación de barrio.
+
+Verificación local: `git diff --check`, `python scripts/validate_alerta_ec.py` y parseo XML/unicidad de claves. Se añadieron pruebas Kotlin para prioridades, conservación de coordenadas/etiqueta, ausencia de barrio inventado y horas pasadas; **no ejecutadas** en Termux. Pendiente CI autorizado y pruebas Android: Atucucho/Cochapamba con coordenadas consentidas, geocodificación sin barrio/fallida, GPS aproximado, desplazamiento con etiqueta manual, datos horarios ausentes/antiguos, medianoche, unidades, todos los estilos, fuentes grandes, TalkBack y pantalla bloqueada. No se consultó una ubicación privada a servicios externos.
+
+Archivos: `AlertaEcNotifier.kt`, `AlertaEcWeatherAdapter.kt`, nuevo `AlertaEcNotificationText.kt`; `EcuadorAddressMapper.kt`, `RefreshHelper.kt`, `NominatimService.kt`, modelo de dominio `Location.kt`, `LocationPreferences.kt`; los tres presentadores `*WidgetNotificationIMP.kt`, nuevo `NotificationForecastSummary.kt`, `notification_base.xml`, cadenas `values`/`values-es`; tres pruebas nuevas `EcuadorAddressMapperTest`, `LocationAddressPriorityTest`, `AlertaEcNotificationTextTest`; README y este documento.
+
+Se conservan cambios locales previos en los dos workflows y `app/build.gradle.kts`, así como los archivos locales sin seguimiento. No se modificaron versiones, firma, secretos ni AGENTS.md. Sin Gradle, commit, push ni Release.
+
+
 ## Prueba previa a release posterior a v0.1.8 — 2026-10-17
 
 **Estado actual: código preparado localmente; APK todavía no compilado ni probado.** Esta sección prevalece sobre los registros históricos inferiores. Rama `alerta-ec`, versión base comprobada en Gradle **0.1.8 / 108**; no se incrementó versión ni se publicó release o tag. Sin commit ni push.
@@ -997,6 +1021,36 @@ ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2
 - El texto para compartir da prioridad al enlace principal del repositorio y mantiene Releases y Obtainium. La vista previa en redes depende de metadatos y caché externos.
 - Los créditos muestran «Richard Ontaneda — creador y desarrollador de ALERTA EC; fundador y creador de CLICK TV DIGITAL», sin título académico.
 - Pendiente comprobar en dispositivo y CI antes de publicar una futura versión; la v0.1.6 publicada no se modifica.
+
+
+
+
+## Notificaciones Android: iconos y vibración (2026-10-17)
+
+Los iconos pequeños son vectores blancos sobre fondo transparente: lluvia, tormenta eléctrica, viento fuerte y advertencia meteorológica. Se seleccionan por el fenómeno disponible; una tormenta genérica no implica rayos. El logotipo ALERTA EC se conserva. Los pronósticos diarios mantienen los vectores mínimos nativos y ya no sustituyen el icono pequeño mediante paquetes externos.
+
+Diagnóstico: faltaba `android.permission.VIBRATE` y el canal compartido `alert` no habilitaba vibración ni patrón. Además, Android conserva el comportamiento de los canales creados anteriormente; cambiar el código no restablece sus preferencias.
+
+En instalaciones nuevas:
+
+| Canal | Importancia | Patrón solicitado, en milisegundos |
+| --- | --- | --- |
+| `forecast` | Baja, discreta | Sin sonido ni vibración |
+| `weather_precipitation` | Predeterminada | 0, 180 |
+| `weather_severe` | Alta | 0, 350, 180, 350 |
+| `weather_extreme` | Alta | 0, 500, 200, 500, 200, 500 |
+
+El primer valor es la espera; los siguientes alternan vibración y pausa. Solo la severidad SEVERE/EXTREME del proveedor oficial selecciona canales graves. Los pronósticos horarios, incluso con lluvia abundante, usan el canal informativo. No hay llamadas directas al vibrador, evasión de No molestar ni cambios del modo silencio. POST_NOTIFICATIONS, bloqueo de la aplicación, ajustes del canal, No molestar y el dispositivo pueden impedir sonido o vibración; no se garantiza que vibre.
+
+**Instalaciones existentes:** si ya existe `alert`, se conserva su ruta para los avisos que lo usaban y no se crean canales alternativos para eludir sus ajustes. Los canales existentes no se reconfiguran ni se eliminan. Mantener pulsada una notificación → Ajustes → categoría permite revisar importancia, sonido y vibración según el fabricante. El usuario puede habilitar vibración en el canal antiguo, pero sus categorías seguirán compartidas. Para probar la separación y patrones predeterminados se necesita una instalación limpia sin canales anteriores, preferiblemente en un dispositivo/perfil de pruebas. Antes de desinstalar, exportar los datos que se quieran conservar: se pueden perder ubicaciones y preferencias; una restauración de Android puede recuperar los ajustes antiguos. Eliminar y recrear el mismo ID no garantiza restablecerlo. La aplicación no realiza ese restablecimiento automáticamente.
+
+La precipitación actualiza un ID estable, usa `setOnlyAlertOnce` y silencia reenvíos dentro de 30 minutos por ubicación. Los pronósticos conservan su deduplicación por evento. Las alertas oficiales descartan vencidas y menores, recuerdan hasta 200 claves por ubicación/ID/severidad/inicio y permiten cambios de severidad. El resumen de grupo es silencioso. La memoria es acotada: cambios de identificadores del proveedor o eventos desalojados pueden volver a avisar.
+
+Los avisos horarios, oficiales y de precipitación usan `geographicName`: barrio, parroquia, ciudad, omitiendo datos ausentes y duplicados. Atucucho, Cochapamba, Quito aparece únicamente si esos datos están disponibles en la dirección resuelta o en una etiqueta manual; este cambio no agrega nombres ni modifica coordenadas.
+
+Validación local: `python3 scripts/validate_alerta_ec.py`, `git diff --check` y análisis XML de manifiesto, traducciones y cuatro vectores monocromáticos. Se añadieron pruebas `AlertaEcNotificationAppearanceTest` para iconos, severidad oficial y tormenta genérica. No se ejecutaron pruebas Kotlin, compilación, instalación ni CI. Pendiente: ejecutar pruebas unitarias en un entorno Android preparado y comprobar en dispositivo instalación limpia/actualización, permiso denegado, canales bloqueados o personalizados, No molestar, silencio, vibración desactivada, repetición, escalamiento oficial y ubicación sin datos/manual. Conservar las pruebas previas de frescura, deduplicación y jerarquía geográfica.
+
+Referencia: [canales de notificación de Android](https://developer.android.com/develop/ui/views/notifications/channels). No se modificaron versión, applicationId, firma, secretos ni logotipo en esta tarea; se preservaron los cambios locales anteriores. Sin compilación pesada, commit, push ni Release.
 
 <!-- ALERTA_EC_AUTO_START -->
 

@@ -344,7 +344,7 @@ class PirateWeatherService @Inject constructor(
                     minuteInterval = if (i < minutelyResult.size - 1) {
                         ((minutelyResult[i + 1].time - minutelyForecast.time) / 60).toDouble().roundToInt()
                     } else {
-                        ((minutelyForecast.time - minutelyResult[i - 1].time) / 60).toDouble().roundToInt()
+                        if (i > 0) ((minutelyForecast.time - minutelyResult[i - 1].time) / 60).toDouble().roundToInt() else 1
                     },
                     precipitationIntensity = if (metric) {
                         minutelyForecast.precipIntensity?.millimeters

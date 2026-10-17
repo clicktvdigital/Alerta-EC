@@ -7,30 +7,9 @@ object EcuadorAddressMapper {
     fun fromAddressInfo(address: LocationAddressInfo): DetailedLocationAddress {
         val isEcuador = address.countryCode.equals("EC", ignoreCase = true)
 
-        val localCity = address.city?.takeUnless {
-            isEcuador && it.equals(address.admin2, ignoreCase = true)
-        }
-
-        val neighborhood = if (isEcuador) {
-            firstNonBlank(
-                address.neighborhood,
-                localCity,
-                address.quarter,
-                address.district,
-            )
-        } else {
-            firstNonBlank(
-                address.neighborhood,
-                address.quarter,
-                address.district,
-            )
-        }
-
-        val sector = if (isEcuador) {
-            firstNonBlank(address.quarter, address.district)
-        } else {
-            address.quarter
-        }
+        // A city or ambiguous district is not evidence of a neighborhood.
+        val neighborhood = firstNonBlank(address.neighborhood)
+        val sector = firstNonBlank(address.quarter)
 
         val parish = if (isEcuador) {
             firstNonBlank(address.cityDistrict, address.admin3)

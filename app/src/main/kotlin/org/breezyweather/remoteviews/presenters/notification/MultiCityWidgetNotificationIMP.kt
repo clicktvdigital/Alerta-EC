@@ -17,24 +17,18 @@
 package org.breezyweather.remoteviews.presenters.notification
 
 import android.content.Context
-import android.graphics.drawable.Icon
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import breezyweather.domain.location.model.Location
 import org.breezyweather.R
-import org.breezyweather.common.extensions.formatMeasure
-import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
 import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.options.NotificationTextColor
-import org.breezyweather.common.options.appearance.CalendarHelper
 import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
-import org.breezyweather.domain.weather.model.getName
-import org.breezyweather.domain.weather.model.getStrength
 import org.breezyweather.domain.weather.model.getTrendFeelsLikeTemperature
 import org.breezyweather.domain.weather.model.getTrendTemperature
 import org.breezyweather.remoteviews.Notifications
@@ -42,9 +36,7 @@ import org.breezyweather.remoteviews.presenters.AbstractRemoteViewsPresenter
 import org.breezyweather.ui.theme.resource.ResourceHelper
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
-import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.TemperatureUnit
-import java.util.Date
 
 object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
     fun buildNotificationAndSendIt(
@@ -71,7 +63,7 @@ object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         }
         val notification = context.notificationBuilder(Notifications.CHANNEL_WIDGET).apply {
             priority = NotificationCompat.PRIORITY_MAX
-            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             if (temperature != null) {
                 setSmallIcon(
                     IconCompat.createWithBitmap(
@@ -110,21 +102,6 @@ object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             setOnlyAlertOnce(true)
         }.build()
 
-        if (!tempIcon) {
-            current.weatherCode?.let { weatherCode ->
-                try {
-                    notification.javaClass
-                        .getMethod("setSmallIcon", Icon::class.java)
-                        .invoke(
-                            notification,
-                            ResourceHelper.getMinimalIcon(provider, weatherCode, dayTime)
-                        )
-                } catch (_: Exception) {
-                    // do nothing.
-                }
-            }
-        }
-
         context.notify(Notifications.ID_WIDGET, notification)
     }
 
@@ -139,17 +116,7 @@ object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
     ): RemoteViews {
         val current = location.weather?.current ?: return views
 
-        val temperature = if (isWidgetNotificationUsingFeelsLike) {
-            current.temperature?.feelsLikeTemperature ?: current.temperature?.temperature
-        } else {
-            current.temperature?.temperature
-        }
-        val timeStr = StringBuilder()
-        timeStr.append(location.getPlace(context))
-        if (CalendarHelper.getAlternateCalendarSetting(context) != null) {
-            timeStr.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-                .append(Date().getFormattedMediumDayAndMonthInAdditionalCalendar(location, context))
-        }
+        val summary = NotificationForecastSummary(context, location)
 
         views.apply {
             current.weatherCode?.let { weatherCode ->
@@ -164,36 +131,12 @@ object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     )
                 )
             }
-            temperature?.let {
-                setTextViewText(
-                    R.id.notification_base_realtimeTemp,
-                    it.formatMeasure(
-                        context,
-                        temperatureUnit,
-                        valueWidth = UnitWidth.NARROW,
-                        unitWidth = UnitWidth.NARROW
-                    )
-                )
-            }
-            if (current.airQuality?.isIndexValid == true) {
-                setTextViewText(
-                    R.id.notification_base_aqiAndWind,
-                    context.getString(R.string.air_quality) + " – " + current.airQuality!!.getName(context)
-                )
-            } else {
-                current.wind?.getStrength(context)?.let { strength ->
-                    setTextViewText(
-                        R.id.notification_base_aqiAndWind,
-                        context.getString(R.string.wind) + " – " + strength
-                    )
-                }
-            }
-            setTextViewText(
-                R.id.notification_base_weather,
-                NotificationWeatherText.nonBlank(current.weatherText)
-                    ?: context.getString(R.string.alertaec_notification_conditions_missing)
-            )
-            setTextViewText(R.id.notification_base_time, timeStr.toString())
+            setTextViewText(R.id.notification_base_realtimeTemp, summary.temperatureText)
+            setTextViewText(R.id.notification_base_aqiAndWind, summary.place)
+            setTextViewText(R.id.notification_base_weather, summary.phenomenon)
+            setTextViewText(R.id.notification_base_time, summary.metrics)
+            setContentDescription(R.id.notification_base, "${summary.phenomenon} · ${summary.place} · ${summary.compact}")
+
         }
 
         return views

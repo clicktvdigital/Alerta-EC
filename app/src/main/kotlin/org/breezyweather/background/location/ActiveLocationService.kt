@@ -35,14 +35,18 @@ class ActiveLocationService : Service(), LocationListenerCompat {
             return START_NOT_STICKY
         }
 
-        startForegroundMode()
-
         if (!hasLocationPermission()) {
             stopSelf()
             return START_NOT_STICKY
         }
 
-        startTracking()
+        try {
+            startForegroundMode()
+            if (!startTracking()) return START_NOT_STICKY
+        } catch (_: SecurityException) {
+            stopTracking()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
@@ -84,19 +88,26 @@ class ActiveLocationService : Service(), LocationListenerCompat {
         )
     }
 
-    private fun startTracking() {
-        val provider = when {
-            locationManager.allProviders.contains(LocationManager.GPS_PROVIDER) ->
-                LocationManager.GPS_PROVIDER
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                locationManager.allProviders.contains(LocationManager.FUSED_PROVIDER) ->
-                LocationManager.FUSED_PROVIDER
-            else -> LocationManager.NETWORK_PROVIDER
+    private fun startTracking(): Boolean {
+        val fine = ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val provider = buildList {
+            if (fine) add(LocationManager.GPS_PROVIDER)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+        }.firstOrNull { it in locationManager.allProviders && locationManager.isProviderEnabled(it) }
+        if (provider == null) {
+            stopTracking()
+            return false
         }
 
         val request = LocationRequestCompat.Builder(UPDATE_INTERVAL_MS)
             .setMinUpdateIntervalMillis(MIN_UPDATE_INTERVAL_MS)
-            .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
+            .setQuality(
+                if (fine) LocationRequestCompat.QUALITY_HIGH_ACCURACY
+                else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
+            )
             .build()
 
         LocationManagerCompat.requestLocationUpdates(
@@ -106,6 +117,7 @@ class ActiveLocationService : Service(), LocationListenerCompat {
             this,
             Looper.getMainLooper()
         )
+        return true
     }
 
     override fun onLocationChanged(location: Location) {
