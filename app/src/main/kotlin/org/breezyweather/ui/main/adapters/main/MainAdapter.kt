@@ -35,6 +35,7 @@ import org.breezyweather.ui.main.adapters.main.holder.AirQualityViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.AlertViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.ClockViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.DailyViewHolder
+import org.breezyweather.ui.main.adapters.main.holder.DonationsViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.FooterViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.HeaderViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.HourlyViewHolder
@@ -167,6 +168,16 @@ class MainAdapter(
                 }
                 mViewTypeList.add(getViewType(c))
             }
+            // El acceso a aportes aparece tras el primer pronóstico; las alertas conservan prioridad.
+            val forecastPosition = mViewTypeList.indexOfFirst {
+                it == ViewType.HOURLY || it == ViewType.DAILY
+            }
+            val donationPosition = if (forecastPosition >= 0) {
+                forecastPosition + 1
+            } else {
+                mViewTypeList.indexOf(ViewType.HEADER) + 1
+            }
+            mViewTypeList.add(donationPosition, VIEW_TYPE_DONATIONS)
             mViewTypeList.add(ViewType.FOOTER)
         }
         for (i in 0..mViewTypeList.size) {
@@ -196,6 +207,7 @@ class MainAdapter(
         ViewType.SUN -> SunViewHolder(parent)
         ViewType.MOON -> MoonViewHolder(parent)
         ViewType.CLOCK -> ClockViewHolder(parent)
+        VIEW_TYPE_DONATIONS -> DonationsViewHolder(ComposeView(parent.context))
         ViewType.FOOTER -> FooterViewHolder(ComposeView(parent.context))
         else -> FooterViewHolder(ComposeView(parent.context))
     }
@@ -273,6 +285,7 @@ class MainAdapter(
             ViewType.HEADER,
             ViewType.ALERT,
             ViewType.FOOTER,
+            VIEW_TYPE_DONATIONS,
 
             // TODO: #1972 - Remove below when we have figured out how to avoid the touch conflict with the chart
             ViewType.DAILY,
@@ -338,6 +351,8 @@ class MainAdapter(
     })
 
     companion object {
+        private const val VIEW_TYPE_DONATIONS = -2
+
         private fun getViewType(cardDisplay: CardDisplay): Int = when (cardDisplay) {
             CardDisplay.CARD_NOWCAST -> ViewType.PRECIPITATION_NOWCAST
             CardDisplay.CARD_DAILY_FORECAST -> ViewType.DAILY
