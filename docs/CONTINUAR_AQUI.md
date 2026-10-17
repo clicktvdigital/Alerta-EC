@@ -916,6 +916,14 @@ Este TXT es un ANEXO nuevo de planificación que deja en pausa el plan anterior 
 - El almacenamiento/confirmación de transacciones reales requeriría integración del proveedor, no se declara implementada.
 ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2
 
+
+
+<!-- ALERTA_EC_COMPARTIR_CREDITOS_2026_10_16 -->
+### Compartir y créditos — siguiente versión (v0.1.7)
+- El texto para compartir da prioridad al enlace principal del repositorio y mantiene Releases y Obtainium. La vista previa en redes depende de metadatos y caché externos.
+- Los créditos muestran «Richard Ontaneda — creador y desarrollador de ALERTA EC; fundador y creador de CLICK TV DIGITAL», sin título académico.
+- Pendiente comprobar en dispositivo y CI antes de publicar una futura versión; la v0.1.6 publicada no se modifica.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
