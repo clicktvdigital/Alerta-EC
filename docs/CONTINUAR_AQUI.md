@@ -1,5 +1,41 @@
 # ALERTA EC — CONTINUAR AQUÍ
 
+## Reparación integral v0.1.7 — avance parcial del 2026-10-16
+
+Estado: cambios locales en código; NO compilados ni probados en Android. La orden integral NO está terminada. Esta sección es más reciente que los estados históricos inferiores. No se modificó versión, applicationId, firma, preferencias ni v0.1.6; no se ejecutaron commit, push, tags, Releases o Gradle.
+
+### Hallazgos comprobados
+- Rama `alerta-ec`; inicialmente solo estaban sin seguimiento `AGENTS.md` y `ALERTA_EC_GITHUB_CI_RELEASE_2026-10-14.txt`, conservados sin cambios.
+- `OpenMeteoService.requestWeather` agrupa CURRENT, FORECAST y MINUTELY en `mForecastApi.getWeather`. Un error puede registrarse en las tres funcionalidades. No demuestra tres peticiones ni una caída del proveedor o problema de VPN.
+- `RefreshHelper` procesa errores por funcionalidad y la adquisición horaria existe en `HourlyAcquisition`. Falta completar la auditoría de persistencia, cancelación, timeouts, datos vacíos y reintentos; no se cambiaron peticiones ni sus límites.
+- La notificación persistente se construye en `remoteviews/presenters/notification/WidgetNotificationIMP.kt`, con variantes Native y MultiCity; no es `AlertaEcNotifier`. La ruta oficial es `remoteviews/Notifications`.
+- `UV.getShortDescription` devuelve una cadena vacía si falta el índice. El consumidor añadía `UV:` incluso entonces. El layout compacto también conserva un texto de espera cuando no se asigna condición.
+- `Base.refreshTime` es un intento de refresco; `currentUpdateTime` es la marca disponible para condiciones actuales. La variante Native usaba la primera.
+
+### Cambios reales y archivos
+- `WidgetNotificationIMP.kt`: condición ausente explícita, ubicación en la segunda línea compacta, AQI conservado en detalle expandido solo con índice válido, UV ausente/inválido omitido (cero válido), viento vacío omitido, etiquetas de humedad/viento/sensación/lluvia prevista traducibles y apertura de la ubicación concreta. La fecha de condiciones guardadas incluye día, hora y zona; marcas ausentes/futuras se indican como desconocidas. No se afirma actualidad usando la hora del intento.
+- `NativeWidgetNotificationIMP.kt`: usa `currentUpdateTime`, muestra fecha y zona cuando no hay calendario alternativo, conserva temperatura en el título aunque también exista icono térmico y abre la ubicación concreta.
+- Nuevo `NotificationWeatherText.kt`: validación de textos vacíos e índices UV finitos no negativos.
+- Nuevo `app/src/test/kotlin/org/breezyweather/remoteviews/presenters/notification/NotificationWeatherTextTest.kt`: casos nulos, blancos, español/inglés, UV cero, negativo, NaN e infinitos. Pendientes de ejecutar en CI.
+- `values/strings.xml` y `values-es/strings.xml`: cinco recursos nuevos para condición ausente, fecha desconocida, fecha guardada, sensación y lluvia prevista.
+- Este documento registra el avance. README revisado: ya contiene logo propio, autoría, LGPL, Releases, Obtainium y aportes; sin cambios en esta fase.
+
+### Verificación y límites
+- Ejecutados correctamente: `git diff --check`, `python scripts/validate_alerta_ec.py`, parseo XML de ambos strings y comprobación de unicidad de las cinco claves nuevas; comprobaciones estáticas de integración para validación UV, ausencia de condición, fecha de condiciones y PendingIntent. Esto NO demuestra compilación o comportamiento Android.
+- No ejecutados: pruebas Kotlin, Gradle, CI, APK ni validación visual. `.github/workflows/alerta-ec-ci.yml` ya declara `:app:testBasicDebugUnitTest` y `:app:compileBasicReleaseKotlin`; ejecutarlos en una etapa posterior autorizada, sin publicación.
+- No existe garantía de que One UI no trunque. La variante MultiCity no se modificó. Quedan por completar la escala/origen del AQI, antigüedad independiente de sus componentes, ausencia completa de Current y coherencia de datos horarios/diarios guardados. La variante Native conserva su tratamiento del calendario alternativo.
+- Prueba manual pendiente sobre v0.1.6, conservando firma y datos: comparar estilo nativo y horario/diario, expandir notificación, probar texto grande y TalkBack, condición ausente, viento vacío, UV nulo/cero, fecha antigua/futura, dos ubicaciones y pulsación de notificación. No existen capturas verificadas de este cambio.
+
+### Pendientes de la orden integral
+1. A: auditoría completa del refresco y caché; reintentos acotados solo transitorios; pruebas 200, timeout, cancelación, errores parciales/vacíos. Revisar específicamente los catch de Throwable de RefreshHelper antes de cambiar cancelación.
+2. A4/C4: comprobar fuente, cobertura territorial verificable, vigencia, recepción y deduplicación de alertas. No se verificó el aviso del Litoral ni se declaró caducado o pertinente para Quito.
+3. B: cuatro filas compactas +1/+2/+3/+6, adquisición sin repetición, acceso visible a reordenación persistente, medianoche y texto grande. Sin cambios en esta fase.
+4. C: completar todas las variantes, fuente/escala AQI y antigüedad por dato; añadir pruebas de contenido renderizado y zona horaria.
+5. D: resumen horario opt-in, planificación/cancelación, silencio y deduplicación. No implementado.
+6. E: iconos, intro/insets, créditos y auditoría de PayPhone/QR/retorno bancario. No modificados ni validados en esta fase.
+7. F: CI y pruebas en dispositivo antes de proponer v0.1.7. La versión permanece intacta; no publicar ni alterar historial durante la auditoría pendiente.
+
+
 ## Corrección de consentimiento de audio — v0.1.6 (2026-10-15)
 
 - Corregida la lectura de `sound_enabled`: una preferencia ausente significa sonido apagado. Inicio, etiqueta del control y alternancia usan la misma lectura; solo el botón guarda la elección. Los valores `true` y `false` ya guardados se conservan, sin migración ni sobrescritura.

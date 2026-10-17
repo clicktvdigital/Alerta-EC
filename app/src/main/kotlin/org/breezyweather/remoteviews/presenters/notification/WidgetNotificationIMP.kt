@@ -27,20 +27,17 @@ import org.breezyweather.R
 import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.formatPercent
 import org.breezyweather.common.extensions.formatMeasure
-import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
 import org.breezyweather.common.extensions.getHour
 import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.options.NotificationStyle
 import org.breezyweather.common.options.NotificationTextColor
-import org.breezyweather.common.options.appearance.CalendarHelper
 import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.getIndex
 import org.breezyweather.domain.weather.model.getName
 import org.breezyweather.domain.weather.model.getShortDescription
-import org.breezyweather.domain.weather.model.getStrength
 import org.breezyweather.domain.weather.model.getTrendFeelsLikeTemperature
 import org.breezyweather.domain.weather.model.getTrendTemperature
 import org.breezyweather.domain.weather.model.getWeek
@@ -53,7 +50,7 @@ import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.unit.formatting.format
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.TemperatureUnit
-import java.util.Date
+import java.text.SimpleDateFormat
 
 object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
 
@@ -127,7 +124,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     isWidgetNotificationUsingFeelsLike
                 )
             )
-            setContentIntent(getWeatherPendingIntent(context, null, Notifications.ID_WIDGET))
+            setContentIntent(getWeatherPendingIntent(context, location, Notifications.ID_WIDGET))
             setCustomBigContentView(
                 buildBigView(
                     context,
@@ -183,11 +180,14 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         } else {
             current.temperature?.temperature
         }
-        val timeStr = StringBuilder()
-        timeStr.append(location.getPlace(context))
-        if (CalendarHelper.getAlternateCalendarSetting(context) != null) {
-            timeStr.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-                .append(Date().getFormattedMediumDayAndMonthInAdditionalCalendar(location, context))
+        val receivedAt = location.weather?.base?.currentUpdateTime
+        val timeStr = if (receivedAt != null && receivedAt.time in 1..System.currentTimeMillis()) {
+            val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm z", context.currentLocale).apply {
+                timeZone = location.timeZone
+            }
+            context.getString(R.string.alertaec_notification_cached_at, formatter.format(receivedAt))
+        } else {
+            context.getString(R.string.alertaec_notification_cached_details)
         }
 
         views.apply {
@@ -214,25 +214,13 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     )
                 )
             }
-            if (current.airQuality?.isIndexValid == true) {
-                setTextViewText(
-                    R.id.notification_base_aqiAndWind,
-                    context.getString(R.string.air_quality) + " – " + current.airQuality!!.getName(context)
-                )
-            } else {
-                current.wind?.getStrength(context)?.let { strength ->
-                    setTextViewText(
-                        R.id.notification_base_aqiAndWind,
-                        context.getString(R.string.wind) + " – " + strength
-                    )
-                }
-            }
-            if (!current.weatherText.isNullOrEmpty()) {
-                setTextViewText(
-                    R.id.notification_base_weather,
-                    current.weatherText
-                )
-            }
+            // Keep the place readable in the compact view; AQI belongs in the expanded details.
+            setTextViewText(R.id.notification_base_aqiAndWind, location.getPlace(context))
+            setTextViewText(
+                R.id.notification_base_weather,
+                NotificationWeatherText.nonBlank(current.weatherText)
+                    ?: context.getString(R.string.alertaec_notification_conditions_missing)
+            )
             setTextViewText(R.id.notification_base_time, timeStr.toString())
         }
 
@@ -264,7 +252,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         weather.current?.temperature?.feelsLikeTemperature?.let { feelsLike ->
             views.setTextViewText(
                 R.id.notification_big_feels_like,
-                "Sensación: " + feelsLike.formatMeasure(
+                context.getString(R.string.alertaec_notification_feels_like) + ": " + feelsLike.formatMeasure(
                     context,
                     temperatureUnit,
                     valueWidth = UnitWidth.NARROW,
@@ -276,10 +264,10 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
 
         val conditionParts = mutableListOf<String>()
         weather.current?.relativeHumidity?.let {
-            conditionParts.add("Humedad: " + it.formatPercent(context, UnitWidth.NARROW))
+            conditionParts.add(context.getString(R.string.humidity) + ": " + it.formatPercent(context, UnitWidth.NARROW))
         }
         weather.nextHourlyForecast.firstOrNull()?.precipitationProbability?.total?.let {
-            conditionParts.add("Lluvia: " + it.formatPercent(context, UnitWidth.NARROW))
+            conditionParts.add(context.getString(R.string.alertaec_notification_forecast_rain) + ": " + it.formatPercent(context, UnitWidth.NARROW))
         }
         if (conditionParts.isNotEmpty()) {
             views.setTextViewText(R.id.notification_big_conditions, conditionParts.joinToString(" · "))
@@ -289,10 +277,11 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         }
 
         val windUvParts = mutableListOf<String>()
-        weather.current?.wind?.getShortDescription(context)?.let {
-            windUvParts.add("Viento: " + it)
+        NotificationWeatherText.nonBlank(weather.current?.wind?.getShortDescription(context))?.let {
+            windUvParts.add(context.getString(R.string.wind) + ": " + it)
         }
-        weather.current?.uV?.getShortDescription(context)?.let {
+        weather.current?.uV?.takeIf { NotificationWeatherText.validUv(it.index) }
+            ?.getShortDescription(context)?.let {
             windUvParts.add("UV: " + it)
         }
         if (windUvParts.isNotEmpty()) {
@@ -305,9 +294,9 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         val airQuality = weather.current?.airQuality
         val airQualityIndex = airQuality?.getIndex()
         val airQualityName = airQuality?.getName(context)
-        if (airQualityIndex != null || airQualityName != null) {
+        if (airQuality?.isIndexValid == true && airQualityIndex != null) {
             val airQualityParts = mutableListOf<String>()
-            airQualityName?.let { airQualityParts.add("Aire: " + it) }
+            airQualityName?.let { airQualityParts.add(context.getString(R.string.air_quality) + ": " + it) }
             airQualityIndex?.let { airQualityParts.add("AQI " + it.format(decimals = 0, context.currentLocale)) }
             views.setTextViewText(
                 R.id.notification_big_air_quality,

@@ -41,7 +41,7 @@
 
         <TextView
             android:id="@+id/notification_base_weather"
-            android:text="@string/widget_refreshing"
+            android:text="@string/alertaec_notification_conditions_missing"
             android:textSize="@dimen/title_text_size"
             android:includeFontPadding="false"
             android:layout_marginEnd="@dimen/small_margin"

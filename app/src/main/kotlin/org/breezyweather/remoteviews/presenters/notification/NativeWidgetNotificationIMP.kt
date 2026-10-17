@@ -17,6 +17,8 @@
 package org.breezyweather.remoteviews.presenters.notification
 
 import android.content.Context
+import org.breezyweather.common.extensions.currentLocale
+import java.text.SimpleDateFormat
 import android.graphics.drawable.Icon
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -24,8 +26,6 @@ import breezyweather.domain.location.model.Location
 import org.breezyweather.R
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.common.extensions.getFormattedMediumDayAndMonthInAdditionalCalendar
-import org.breezyweather.common.extensions.getFormattedTime
-import org.breezyweather.common.extensions.is12Hour
 import org.breezyweather.common.extensions.notificationBuilder
 import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.extensions.toBitmap
@@ -66,16 +66,21 @@ object NativeWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             subtitle.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
                 .append(Date().getFormattedMediumDayAndMonthInAdditionalCalendar(location, context))
         } else {
-            location.weather!!.base.refreshTime?.let {
+            location.weather!!.base.currentUpdateTime?.takeIf { it.time in 1..System.currentTimeMillis() }?.let {
                 subtitle.append(context.getString(org.breezyweather.unit.R.string.locale_separator))
-                    .append(context.getString(R.string.notification_refreshed_at))
-                    .append(" ")
-                    .append(it.getFormattedTime(location, context, context.is12Hour))
+                    .append(
+                        context.getString(
+                            R.string.alertaec_notification_cached_at,
+                            SimpleDateFormat("dd/MM/yyyy HH:mm z", context.currentLocale).apply {
+                                timeZone = location.timeZone
+                            }.format(it)
+                        )
+                    )
             }
         }
 
         val contentTitle = StringBuilder()
-        if (!tempIcon && tempFeelsLikeOrAir != null) {
+        if (tempFeelsLikeOrAir != null) {
             contentTitle.append(tempFeelsLikeOrAir.formatMeasure(context, temperatureUnit))
         }
         if (!current.weatherText.isNullOrEmpty()) {
@@ -119,7 +124,7 @@ object NativeWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             }
             setOngoing(persistent)
             setOnlyAlertOnce(true)
-            setContentIntent(getWeatherPendingIntent(context, null, Notifications.ID_WIDGET))
+            setContentIntent(getWeatherPendingIntent(context, location, Notifications.ID_WIDGET))
         }.build()
 
         if (!tempIcon) {

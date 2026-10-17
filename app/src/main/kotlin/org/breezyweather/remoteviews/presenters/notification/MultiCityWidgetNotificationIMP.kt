@@ -188,12 +188,11 @@ object MultiCityWidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                     )
                 }
             }
-            if (!current.weatherText.isNullOrEmpty()) {
-                setTextViewText(
-                    R.id.notification_base_weather,
-                    current.weatherText
-                )
-            }
+            setTextViewText(
+                R.id.notification_base_weather,
+                NotificationWeatherText.nonBlank(current.weatherText)
+                    ?: context.getString(R.string.alertaec_notification_conditions_missing)
+            )
             setTextViewText(R.id.notification_base_time, timeStr.toString())
         }
 

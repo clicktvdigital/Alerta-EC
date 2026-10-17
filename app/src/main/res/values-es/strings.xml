@@ -866,4 +866,9 @@
     <string name="alertaec_widget_hourly_rain">%1$s mm en esta hora</string>
     <string name="alertaec_widget_no_rain_data">No hay datos de pronóstico de precipitación a corto plazo</string>
     <string name="alertaec_widget_hourly_forecast">Pronóstico por hora</string>
+    <string name="alertaec_notification_conditions_missing">Condiciones no disponibles</string>
+    <string name="alertaec_notification_cached_details">Hora de recepción del tiempo desconocida</string>
+    <string name="alertaec_notification_feels_like">Sensación</string>
+    <string name="alertaec_notification_forecast_rain">Lluvia prevista</string>
+    <string name="alertaec_notification_cached_at">Guardado: %1$s</string>
 </resources>
