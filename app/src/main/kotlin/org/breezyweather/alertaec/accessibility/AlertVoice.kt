@@ -162,7 +162,7 @@ object AlertVoice {
                     return@post
                 }
                 tts.setAudioAttributes(attributes)
-                tts.setSpeechRate(AlertVoicePolicy.speechRate(SettingsManager.getInstance(activity).alertVoiceRate))
+                tts.setSpeechRate(AlertVoicePolicy.speechRate(1.0f))
                 tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) = Unit
                     override fun onDone(utteranceId: String?) { finish("Prueba de voz finalizada.") }
