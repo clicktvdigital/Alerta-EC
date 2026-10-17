@@ -23,7 +23,10 @@ object AlertaEcIntroController {
     internal fun isSoundEnabled(preferences: SharedPreferences): Boolean =
         preferences.getBoolean(PREF_SOUND_ENABLED, false)
 
-    fun stop() = IntroAudioPlayback.stop()
+    fun stop() {
+        AlertaEcVideoIntro.stop()
+        IntroAudioPlayback.stop()
+    }
 
     fun play(
         root: View,
@@ -43,6 +46,15 @@ object AlertaEcIntroController {
         reducedMotionControl: View,
         soundControl: View,
     ) {
+        if (AlertaEcVideoIntro.play(
+                root = root,
+                visualLayers = listOf(terrain, volcano, wildfire, waterHazard, landslide, storm, seismicRing, flash, condor, logo, title, brand),
+                skip = skip,
+                reducedMotionControl = reducedMotionControl,
+                soundControl = soundControl,
+            )
+        ) return
+
         val preferences = root.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val systemAnimatorScale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             Settings.Global.getFloat(root.context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
