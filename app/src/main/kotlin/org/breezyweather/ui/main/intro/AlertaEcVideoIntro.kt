@@ -72,7 +72,7 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
-            frame.setBackgroundColor(Color.BLACK)
+            frame.setBackgroundColor(Color.rgb(0,87,184))
             // SurfaceView necesita un fondo transparente para mostrar su superficie.
             view.setBackgroundColor(Color.TRANSPARENT)
             frame.addView(
@@ -86,7 +86,7 @@ internal object AlertaEcVideoIntro {
             val poster = ImageView(context).apply {
                 setImageResource(R.drawable.alertaec_logo_acerca)
                 scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setBackgroundColor(Color.BLACK)
+                setBackgroundColor(Color.rgb(0,87,184))
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             activePoster = poster
@@ -131,7 +131,25 @@ internal object AlertaEcVideoIntro {
                     runCatching { view.start() }.onFailure { stop() }
                 }
             }
-            view.setOnCompletionListener { if (activeVideo === view) stop() }
+            view.setOnCompletionListener {
+                if (activeVideo === view) {
+                    pendingTimeout?.let(handler::removeCallbacks)
+                    pendingTimeout = null
+                    skip.visibility = View.GONE
+                    view.visibility = View.GONE
+                    val endingPoster = ImageView(context).apply {
+                        setImageResource(R.drawable.alertaec_logo_acerca)
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        setBackgroundColor(Color.rgb(0, 87, 184))
+                    }
+                    activePoster = endingPoster
+                    frame.addView(endingPoster, FrameLayout.LayoutParams(-1, -1))
+                    skip.bringToFront()
+                    val finish = Runnable { if (activeVideo === view) stop() }
+                    pendingTimeout = finish
+                    handler.postDelayed(finish, 1500L)
+                }
+            }
             view.setOnErrorListener { _, _, _ ->
                 if (activeVideo === view) stop()
                 true

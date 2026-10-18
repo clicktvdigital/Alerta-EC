@@ -182,7 +182,7 @@ class SettingsManager private constructor(
         }
         get() = UpdateInterval.getInstance(
             config.getString("refresh_rate", null)
-                ?: (if (BreezyWeather.instance.debugMode) "never" else "1:00")
+                ?: "1:00"
         )
 
     var ignoreUpdatesWhenBatteryLow: Boolean
@@ -234,7 +234,7 @@ class SettingsManager private constructor(
         get() = TemperatureUnit.getUnit(config.getString("temperature_unit", "auto") ?: "auto")
 
     fun getTemperatureUnit(context: Context): TemperatureUnit {
-        return temperatureUnit ?: TemperatureUnit.getDefaultUnit(context.currentLocale)
+        return temperatureUnit ?: TemperatureUnit.CELSIUS
     }
 
     var distanceUnit: DistanceUnit?
@@ -245,7 +245,7 @@ class SettingsManager private constructor(
         get() = DistanceUnit.getUnit(config.getString("distance_unit", "auto") ?: "auto")
 
     fun getDistanceUnit(context: Context): DistanceUnit {
-        return distanceUnit ?: DistanceUnit.getDefaultUnit(context.currentLocale)
+        return distanceUnit ?: DistanceUnit.KILOMETER
     }
 
     var precipitationUnit: PrecipitationUnit?
@@ -256,7 +256,7 @@ class SettingsManager private constructor(
         get() = PrecipitationUnit.getUnit(config.getString("precipitation_unit", "auto") ?: "auto")
 
     fun getPrecipitationUnit(context: Context): PrecipitationUnit {
-        return precipitationUnit ?: PrecipitationUnit.getDefaultUnit(context.currentLocale)
+        return precipitationUnit ?: PrecipitationUnit.MILLIMETER
     }
 
     fun getSnowfallUnit(context: Context): PrecipitationUnit {
@@ -271,7 +271,7 @@ class SettingsManager private constructor(
         get() = SpeedUnit.getUnit(config.getString("speed_unit", "auto") ?: "auto")
 
     fun getSpeedUnit(context: Context): SpeedUnit {
-        return speedUnit ?: SpeedUnit.getDefaultUnit(context.currentLocale)
+        return speedUnit ?: SpeedUnit.METER_PER_SECOND
     }
 
     var pressureUnit: PressureUnit?
@@ -282,7 +282,7 @@ class SettingsManager private constructor(
         get() = PressureUnit.getUnit(config.getString("pressure_unit", "auto") ?: "auto")
 
     fun getPressureUnit(context: Context): PressureUnit {
-        return pressureUnit ?: PressureUnit.getDefaultUnit(context.currentLocale)
+        return pressureUnit ?: PressureUnit.HECTOPASCAL
     }
 
     // appearance.
