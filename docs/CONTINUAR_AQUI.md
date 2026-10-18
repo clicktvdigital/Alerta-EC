@@ -1052,6 +1052,17 @@ Validación local: `python3 scripts/validate_alerta_ec.py`, `git diff --check` y
 
 Referencia: [canales de notificación de Android](https://developer.android.com/develop/ui/views/notifications/channels). No se modificaron versión, applicationId, firma, secretos ni logotipo en esta tarea; se preservaron los cambios locales anteriores. Sin compilación pesada, commit, push ni Release.
 
+
+
+## Seguimiento motor de recomendaciones dinamicas - 2026-10-18
+- Implementado localmente: consejos contextuales por lluvia, temperatura y viento.
+- Integrado localmente: AlertaEcNotifier utiliza forEvent(event).
+- Cinco pruebas unitarias escritas, pendientes de ejecucion en GitHub Actions.
+- Comprobacion estructural aprobada; funcionalidad aun no certificada.
+- Pendiente: evitar duplicacion de consejos, integrar pantalla principal y resumen diario.
+- Pendiente: validar notificaciones inmediatas, urgentes, voz, vibracion, distritos y cobertura nacional.
+- No publicar version estable hasta CI, prueba en telefono y autorizacion.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO

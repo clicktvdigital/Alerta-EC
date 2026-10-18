@@ -20,10 +20,10 @@ import org.breezyweather.unit.temperature.Temperature.Companion.celsius
 
 object AlertaEcNotifier {
 
-    private const val ID_BASE = 4000
+    private const val ID_BASE = 5000
     private const val ID_RANGE = 1000
 
-    fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis()) {
+    fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis(), fromQueueWorker: Boolean = false) {
         if (!SettingsManager.getInstance(context).isAlertPushEnabled) return
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -38,15 +38,48 @@ object AlertaEcNotifier {
         val events = AlertaEcWeatherAdapter.fromLocation(location, nowMillis)
             .filter { AlertaEcNotificationPolicy.shouldNotify(it, nowMillis) }
 
+        AlertaEcNotificationQueueStore.saveLocation(context, location.formattedId)
         val newEvents = AlertaEcEventDeduplicator.filterNewEvents(context, events)
-        newEvents.forEach { event ->
+        val priority = AlertaEcNotificationQueuePolicy.priority(newEvents)
+        priority.forEach { event ->
             sendNotification(context, location, event, nowMillis)
             AlertaEcEventDeduplicator.markNotified(context, event)
+        }
+
+        val informational = AlertaEcNotificationQueuePolicy.informational(newEvents, nowMillis)
+        AlertaEcNotificationQueueStore.enqueue(context, informational.map { it.id })
+        AlertaEcNotificationQueueStore.nextValid(context, events, nowMillis)
+        if (AlertaEcNotificationQueuePolicy.canShowNext(
+                AlertaEcNotificationQueueStore.lastShownAt(context), nowMillis
+            )
+        ) {
+            AlertaEcNotificationQueueStore.nextValid(context, events, nowMillis)?.let { event ->
+                sendNotification(context, location, event, nowMillis)
+                AlertaEcEventDeduplicator.markNotified(context, event)
+                AlertaEcNotificationQueueStore.remove(context, event.id)
+                AlertaEcNotificationQueueStore.markShown(context, nowMillis)
+
+            }
+        }
+        if (!fromQueueWorker && AlertaEcNotificationQueueStore.pending(context).isNotEmpty()) {
+            val remainingMillis = (AlertaEcNotificationQueuePolicy.nextEligibleAt(
+                AlertaEcNotificationQueueStore.lastShownAt(context)
+            ) - nowMillis).coerceAtLeast(0L)
+            AlertaEcNotificationQueueScheduler.schedule(
+                context, (remainingMillis + 999L) / 1000L
+            )
         }
     }
 
     private fun sendNotification(context: Context, location: Location, event: AlertaEcEvent, nowMillis: Long) {
-        val notificationId = ID_BASE + ((event.id.hashCode() and Int.MAX_VALUE) % ID_RANGE)
+        val notificationId = if (
+            event.severity == AlertaEcSeverity.INFORMATION ||
+            event.severity == AlertaEcSeverity.ADVISORY
+        ) {
+            ID_BASE
+        } else {
+            ID_BASE + 1 + ((event.id.hashCode() and Int.MAX_VALUE) % (ID_RANGE - 1))
+        }
         val stateLabel = AlertaEcNotificationPolicy.stateLabel(event.state)
         val settings = SettingsManager.getInstance(context)
         val temperatureUnit = settings.getTemperatureUnit(context)
@@ -89,8 +122,12 @@ object AlertaEcNotifier {
             }
         }.joinToString("\n")
 
-        val title = "${event.phenomenon.spokenName} · ${event.locationName ?: "Ubicación no disponible"}"
-        val content = details.ifBlank { event.description ?: event.phenomenon.spokenName }
+        val title = "${event.headline} · ${event.locationName ?: "Ubicación no disponible"}"
+        val advice = AlertaEcRecommendations.forEvent(event)
+        val content = listOfNotNull(
+            details.ifBlank { event.description ?: event.phenomenon.spokenName },
+            advice.takeIf { event.state != AlertaEcEventState.OFFICIAL_EVENT }?.let { "Consejo preventivo: $it" }
+        ).joinToString("\n")
 
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -110,6 +147,23 @@ object AlertaEcNotifier {
             setStyle(NotificationCompat.BigTextStyle().bigText(content))
             setAutoCancel(true)
             setOnlyAlertOnce(true)
+            if (event.severity == AlertaEcSeverity.INFORMATION || event.severity == AlertaEcSeverity.ADVISORY) {
+                setTimeoutAfter(30_000L)
+                val dismissIntent = android.content.Intent(
+                    context,
+                    org.breezyweather.background.receiver.NotificationReceiver::class.java
+                ).apply {
+                    action = org.breezyweather.background.receiver.NotificationReceiver.ACTION_ALERTA_EC_DISMISSED
+                }
+                setDeleteIntent(
+                    PendingIntent.getBroadcast(
+                        context,
+                        notificationId,
+                        dismissIntent,
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                )
+            }
             setContentIntent(pendingIntent)
             addAction(
                 android.R.drawable.ic_menu_view,
