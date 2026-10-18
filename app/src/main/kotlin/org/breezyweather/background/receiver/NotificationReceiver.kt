@@ -44,6 +44,11 @@ class NotificationReceiver : BroadcastReceiver() {
         when (intent.action) {
             // Cancel weather update and dismiss notification
             ACTION_CANCEL_WEATHER_UPDATE -> cancelWeatherUpdate(context)
+            ACTION_ALERTA_EC_DISMISSED -> {
+                if (org.breezyweather.alertaec.AlertaEcNotificationQueueStore.pending(context).isNotEmpty()) {
+                    org.breezyweather.alertaec.AlertaEcNotificationQueueScheduler.schedule(context, 0L, appendToChain = true)
+                }
+            }
         }
     }
 
@@ -68,6 +73,7 @@ class NotificationReceiver : BroadcastReceiver() {
     companion object {
         private const val NAME = "NotificationReceiver"
 
+        internal const val ACTION_ALERTA_EC_DISMISSED = "$ID.$NAME.ALERTA_EC_DISMISSED"
         private const val ACTION_CANCEL_WEATHER_UPDATE = "$ID.$NAME.CANCEL_WEATHER_UPDATE"
 
         /**
