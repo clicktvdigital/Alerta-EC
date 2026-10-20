@@ -65,18 +65,41 @@ class CurrentLocationStoreTest {
     }
 
     @Test
-    fun missingMetadataReplacesOldReadingAndClearRemovesPosition() {
+    fun missingMetadataRetainsOldReadingAndClearRemovesPosition() {
         val store = store()
         store.updateCurrentLocation(1.0, 2.0, 5f, 100.0, 1700000000000, "gps")
+        val refreshBeforeRejectedUpdate = store.lastSuccessfulRefresh
         store.updateCurrentLocation(3.0, 4.0)
+
+        store.lastKnownLatitude shouldBe 1.0
+        store.lastKnownLongitude shouldBe 2.0
+        store.accuracyMeters shouldBe 5f
+        store.altitudeMeters shouldBe 100.0
+        store.measuredAtMillis shouldBe 1700000000000L
+        store.provider shouldBe "gps"
+        store.lastSuccessfulRefresh shouldBe refreshBeforeRejectedUpdate
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) { store.updateCurrentLocation(Double.NaN, 0.0) }
+
+        store.clearCurrentLocation()
+        store.isUsable shouldBe false
+        store.lastKnownLongitude shouldBe 0.0
         store.accuracyMeters shouldBe null
         store.altitudeMeters shouldBe null
         store.measuredAtMillis shouldBe null
         store.provider shouldBe null
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) { store.updateCurrentLocation(Double.NaN, 0.0) }
-        store.lastKnownLongitude shouldBe 3.0
-        store.clearCurrentLocation()
-        store.isUsable shouldBe false
-        store.lastKnownLongitude shouldBe 0.0
+    }
+
+    @Test
+    fun newerTimestampReplacesOlderReading() {
+        val store = store()
+        store.updateCurrentLocation(1.0, 2.0, 5f, 100.0, 1700000000000, "gps")
+        store.updateCurrentLocation(3.0, 4.0, 8f, 120.0, 1700000001000, "network")
+
+        store.lastKnownLatitude shouldBe 3.0
+        store.lastKnownLongitude shouldBe 4.0
+        store.accuracyMeters shouldBe 8f
+        store.altitudeMeters shouldBe 120.0
+        store.measuredAtMillis shouldBe 1700000001000L
+        store.provider shouldBe "network"
     }
 }

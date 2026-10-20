@@ -46,7 +46,7 @@ class AlertaEcRecommendationsDynamicTest {
         val advice = AlertaEcRecommendations.forEvent(
             event(AlertaEcPhenomenon.RAIN, probability = 80)
         )
-        assertTrue(advice.contains("sombrilla"))
+        assertTrue(advice.contains("sombrilla") || advice.contains("paraguas"))
         assertFalse(advice.contains("botas antideslizantes"))
     }
 

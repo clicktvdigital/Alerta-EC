@@ -61,7 +61,7 @@ internal object AlertaEcRecommendations {
         val uniqueTips = tips.filterNot { tip ->
             val text = tip.lowercase()
             normalized.contains(text) ||
-                (text.contains("chompa") && listOf("chompa", "ropa abrigada", "ropa por capas").any(normalized::contains)) ||
+                (text.contains("chompa") && listOf("chompa", "ropa por capas").any(normalized::contains)) ||
                 (text.contains("sombrero") && listOf("sombrero", "gorra", "ropa ligera").any(normalized::contains)) ||
                 (text.startsWith("lleva sombrilla") && normalized.contains("paraguas")) ||
                 (text.contains("ráfagas") && listOf("ráfagas", "objetos que puedan caer").any(normalized::contains))
