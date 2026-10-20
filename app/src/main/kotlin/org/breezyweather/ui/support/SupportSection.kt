@@ -6,15 +6,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Color
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,10 +34,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -65,17 +64,17 @@ private val apoyos = listOf(
     ),
     Apoyo(
         "Banco Pichincha", "Cuenta de Banco Pichincha · cobro por Deuna",
-        R.drawable.alertaec_qr_pichincha, R.drawable.alertaec_marca_pichincha,
+        R.drawable.alertaec_qr_pichincha, R.drawable.alertaec_marca_pichincha_profesional,
         "https://pagar.deuna.app/H92p/person?id=v1e_WT373U4AKPZ46YWW"
     ),
     Apoyo(
         "Deuna", "Cuenta Deuna independiente de Banco Pichincha",
-        R.drawable.alertaec_qr_deuna, R.drawable.alertaec_marca_deuna,
+        R.drawable.alertaec_qr_deuna, R.drawable.alertaec_marca_deuna_combinada,
         "https://pagar.deuna.app/H92p/person/payment?id=858a7565a7fa5e9bc2302b7836e1fdf2d8635300"
     ),
     Apoyo(
         "Binance Pay", "Aporte mediante Binance Pay",
-        R.drawable.alertaec_qr_binance, R.drawable.alertaec_marca_binance,
+        R.drawable.alertaec_qr_binance, R.drawable.alertaec_marca_binance_limpia,
         "https://app.binance.com/uni-qr/RMqefYgh"
     )
 )
@@ -211,18 +210,18 @@ internal fun SupportSection() {
         apoyos.forEachIndexed { indice, apoyo ->
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (apoyo.marca != null) {
-                            PaymentBrand(
-                                resource = apoyo.marca,
-                                modifier = Modifier.size(width = 96.dp, height = 40.dp)
+                    if (apoyo.marca != null) {
+                        PaymentBrand(
+                            resource = apoyo.marca,
+                            modifier = Modifier.fillMaxWidth().height(
+                                if (apoyo.nombre == "PayPhone") 56.dp else 76.dp
                             )
-                        } else {
-                            Text("💳 PayPhone", style = MaterialTheme.typography.titleLarge)
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(apoyo.nombre, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        )
                     }
+                    Text(
+                        apoyo.nombre,
+                        style = MaterialTheme.typography.titleLarge,
+                    )
                     Text(apoyo.explicacion, style = MaterialTheme.typography.bodyMedium)
                     Button(
                         onClick = { abrirPago(apoyo.url) },
@@ -242,8 +241,12 @@ internal fun SupportSection() {
                 onClick = { abrirPago(url) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
             ) {
-                Image(painterResource(marca), contentDescription = null, modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.width(12.dp))
+                Image(
+                    painter = painterResource(marca),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                )
+                Spacer(modifier = Modifier.width(14.dp))
                 Text("Abrir $nombre")
             }
         }
@@ -251,10 +254,6 @@ internal fun SupportSection() {
             onClick = { compartirAplicacion(context) },
             modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
         ) { Text("Compartir ALERTA EC con familiares y amigos") }
-        TextButton(
-            onClick = { preguntarAlVolver = true },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-        ) { Text("Ya regresé de mi aplicación de pago") }
     }
 
     if (qrSeleccionado in apoyos.indices) {
@@ -335,7 +334,12 @@ internal fun SupportSection() {
                     Text("Elige libremente de 1 a 5 estrellas. Tu valoración no se publicará automáticamente.")
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         (1..5).forEach { numero ->
-                            TextButton(onClick = { estrellas = numero }) {
+                            TextButton(
+                                onClick = { estrellas = numero },
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Calificar con $numero de 5 estrellas"
+                                },
+                            ) {
                                 Text(if (numero <= estrellas) "★" else "☆", fontSize = 27.sp)
                             }
                         }
@@ -409,50 +413,13 @@ private fun enviarOpinion(context: Context, estrellas: Int) {
     }
 }
 
-// Only the three legacy opaque wordmarks need their exterior white matte removed.
-// QR resources are never passed through this presentation helper.
+// Los recursos de marca ya incluyen transparencia; no modificar pixeles en tiempo de ejecucion.
 @Composable
 private fun PaymentBrand(resource: Int, modifier: Modifier = Modifier) {
-    val resources = LocalContext.current.resources
-    val legacy = resource == R.drawable.alertaec_marca_binance ||
-        resource == R.drawable.alertaec_marca_deuna ||
-        resource == R.drawable.alertaec_marca_pichincha
-    if (legacy) {
-        val bitmap = remember(resources, resource) {
-            val source = BitmapFactory.decodeResource(resources, resource)
-            val width = source.width
-            val height = source.height
-            val pixels = IntArray(width * height)
-            source.getPixels(pixels, 0, width, 0, 0, width, height)
-            val queue = ArrayDeque<Int>()
-            fun enqueue(index: Int) {
-                val color = pixels[index]
-                if (Color.alpha(color) != 0 && Color.red(color) >= 245 &&
-                    Color.green(color) >= 245 && Color.blue(color) >= 245
-                ) {
-                    pixels[index] = Color.TRANSPARENT
-                    queue.addLast(index)
-                }
-            }
-            for (x in 0 until width) {
-                enqueue(x)
-                enqueue((height - 1) * width + x)
-            }
-            for (y in 0 until height) {
-                enqueue(y * width)
-                enqueue(y * width + width - 1)
-            }
-            while (queue.isNotEmpty()) {
-                val index = queue.removeFirst()
-                if (index % width > 0) enqueue(index - 1)
-                if (index % width < width - 1) enqueue(index + 1)
-                if (index >= width) enqueue(index - width)
-                if (index < pixels.size - width) enqueue(index + width)
-            }
-            Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888).asImageBitmap()
-        }
-        Image(bitmap, contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
-    } else {
-        Image(painterResource(resource), contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
-    }
+    Image(
+        painter = painterResource(resource),
+        contentDescription = null,
+        modifier = modifier,
+        contentScale = ContentScale.Fit,
+    )
 }

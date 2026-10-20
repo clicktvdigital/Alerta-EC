@@ -1339,6 +1339,7 @@
     <string name="knmi_weather_text_hail_with_sun" translatable="false">Hail with some sun</string>
     <string name="knmi_weather_text_slippery_due_to_sleet" translatable="false">Slipperiness due to sleet</string>
     <string name="knmi_weather_text_fog" translatable="false">@string/common_weather_text_fog</string>
+    <string name="alertaec_preventive_advice">Preventive advice: %1$s</string>
     <string name="alertaec_widget_rain_forecast">Rain forecast</string>
     <string name="alertaec_widget_rain_window">Forecast rain %1$s–%2$s: %3$s mm accumulated, peak rate %4$s mm/h</string>
     <string name="alertaec_widget_no_rain">No rain indicated in the available short-term forecast</string>
@@ -1364,4 +1365,5 @@
     <string name="notification_channel_precipitation">Precipitation</string>
     <string name="notification_channel_severe">Severe weather alerts</string>
     <string name="notification_channel_extreme">Extreme weather alerts</string>
+    <string name="alertaec_autosupport_title">Centro de ayuda y autosoporte</string>
 </resources>

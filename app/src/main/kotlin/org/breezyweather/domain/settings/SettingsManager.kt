@@ -60,8 +60,8 @@ class SettingsManager private constructor(
 
         const val DEFAULT_CARD_DISPLAY = "hourly_forecast" +
             "&nowcast" +
-            "&precipitation" +
             "&daily_forecast" +
+            "&precipitation" +
             "&wind" +
             "&air_quality" +
             "&pollen" +

@@ -126,7 +126,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                 buildBigView(
                     context,
                     RemoteViews(context.packageName, R.layout.notification_big),
-                    settings.widgetNotificationStyle === NotificationStyle.DAILY,
+                    false, // ALERTA EC: próximas cinco horas
                     provider,
                     location,
                     temperatureUnit,

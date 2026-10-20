@@ -50,6 +50,13 @@ class CurrentLocationStore @Inject constructor(
     val lastSuccessfulRefresh: Long
         get() = config.getLong(KEY_LAST_SUCCESSFUL_REFRESH, 0)
 
+    val isRecent: Boolean
+        get() {
+            val measured = measuredAtMillis ?: return false
+            val age = System.currentTimeMillis() - measured
+            return isUsable && age >= 0L && age <= 120_000L
+        }
+
     val isUsable: Boolean
         get() = lastSuccessfulRefresh > 0 && lastKnownLatitude.isFinite() && lastKnownLongitude.isFinite() &&
             lastKnownLatitude in -90.0..90.0 && lastKnownLongitude in -180.0..180.0
@@ -64,22 +71,33 @@ class CurrentLocationStore @Inject constructor(
     ) {
         require(latitude.isFinite() && latitude in -90.0..90.0)
         require(longitude.isFinite() && longitude in -180.0..180.0)
-        config.edit()
-            .putString("longitude_double", longitude.toString())
-            .putString("latitude_double", latitude.toString())
-            .putFloat("accuracy_meters", accuracy?.takeIf { it.isFinite() && it >= 0f } ?: -1f)
-            .putString("altitude_meters", altitude?.takeIf { it.isFinite() }?.toString())
-            .putLong("measured_at", timestampMillis?.takeIf { it > 0 } ?: 0)
-            .putString("provider", provider)
-            .putLong(KEY_LAST_SUCCESSFUL_REFRESH, Date().time)
-            .apply()
+        synchronized(LOCATION_WRITE_LOCK) {
+            val incomingTimestamp = timestampMillis?.takeIf { it > 0L }
+            val storedTimestamp = runCatching {
+                config.getLong("measured_at", 0L)
+            }.getOrDefault(0L)
+            if (incomingTimestamp == null && storedTimestamp > 0L) return
+            if (incomingTimestamp != null && storedTimestamp > 0L && incomingTimestamp < storedTimestamp) return
+            config.edit()
+                .putString("longitude_double", longitude.toString())
+                .putString("latitude_double", latitude.toString())
+                .putFloat("accuracy_meters", accuracy?.takeIf { it.isFinite() && it >= 0f } ?: -1f)
+                .putString("altitude_meters", altitude?.takeIf { it.isFinite() }?.toString())
+                .putLong("measured_at", incomingTimestamp ?: 0L)
+                .putString("provider", provider)
+                .putLong(KEY_LAST_SUCCESSFUL_REFRESH, Date().time)
+                .apply()
+        }
     }
 
     fun clearCurrentLocation() {
-        config.edit().clear().apply()
+        synchronized(LOCATION_WRITE_LOCK) {
+            config.edit().clear().apply()
+        }
     }
 
     companion object {
+        private val LOCATION_WRITE_LOCK = Any()
         private const val CURRENT_LOCATION_STORE = "current_location"
         private const val KEY_LAST_SUCCESSFUL_REFRESH = "last_successful_refresh"
         private const val KEY_LAST_KNOWN_LONGITUDE = "last_known_longitude"

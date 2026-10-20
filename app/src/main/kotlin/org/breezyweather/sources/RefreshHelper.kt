@@ -209,8 +209,10 @@ class RefreshHelper @Inject constructor(
 
         // STEP 1 - Update coordinates if current position
         val locationWithUpdatedCoordinates = if (location.isCurrentPosition) {
-            val coordinatesChanged = location.latitude != currentLocationStore.lastKnownLatitude.toDouble() ||
-                location.longitude != currentLocationStore.lastKnownLongitude.toDouble()
+            val coordinatesChanged = currentLocationStore.isRecent && (
+                location.latitude != currentLocationStore.lastKnownLatitude ||
+                    location.longitude != currentLocationStore.lastKnownLongitude
+            )
             if (coordinatesChanged) {
                 needsSavingToDb = true
                 location.copy(

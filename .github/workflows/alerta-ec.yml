@@ -1,9 +1,6 @@
 name: Alerta EC - APK Debug
 
 on:
-  push:
-    branches:
-      - alerta-ec
   workflow_dispatch:
 
 permissions:

@@ -1,3 +1,43 @@
+## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
+
+Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
+
+- Estilo base MapLibre: hasta dos intentos por vista, espera de 2 s y watchdog de 20 s por intento. Los callbacks tienen token e identidad de vista; se retiran listeners y temporizadores al terminar, pausar o destruir. Al agotar el presupuesto se informa al usuario; una vista nueva permite reintentar.
+- Catálogo WMS: una descarga compartida por refresco, con OkHttp ya presente en el proyecto. Cancelar la coroutine llama a `Call.cancel()`; conexión y lectura de 10 s, plazo total HTTP de 30 s, máximo de 4 MiB reales (incluido contenido descomprimido y respuestas sin Content-Length). Se cierra la respuesta también ante errores. Estos límites corresponden a GetCapabilities; las teselas GetMap siguen gestionadas por MapLibre.
+- XML: parser SAX real compartido por Android/JVM, sin dependencias nuevas; rechazo obligatorio de DTD y entidades externas mediante lexical handler/resolver. Límites de profundidad, eventos, texto y fechas. Fechas inválidas y capas duplicadas se marcan por capa; XML roto o respuesta de error invalidan el catálogo completo.
+- Capas: se conservan fechas aún vigentes durante consulta/error y se informa de ello. Una capa se retira por desactivación, vencimiento o respuesta válida sin fecha seleccionable. Una fecha igual no reconstruye la fuente; una nueva se crea antes de retirar la anterior. Fallos parciales conservan registro de recursos para limpieza posterior. No se confirma descarga ni renderizado de teselas.
+- Respaldos: `*.pre_*` excluidos en `.gitignore`, sin borrar ni mover archivos. No había respaldos de ese patrón ya rastreados. Los 263 respaldos registrados al inicio se comprobaron por SHA-256 y permanecen intactos.
+
+Validaciones realizadas: `git diff --check` sin errores; revisión de archivos sin seguimiento relevantes y de cambios frente a la copia inicial; análisis sintáctico PSI de 17 archivos Kotlin sin errores. Esto no comprueba tipos ni compatibilidad de APIs. **Pruebas unitarias no ejecutadas; sin Gradle, compilación Android, APK ni consulta al servicio real.**
+
+Continuidad y matriz de validación pendiente en `docs/CONTINUAR_AQUI.md`, sección «Paso 632».
+
+## Revisión local del módulo INAMHI — 18-10-2026
+
+Esta sección actualiza únicamente el estado de mapas INAMHI y prevalece sobre sus notas históricas inferiores. Cambios locales en `alerta-ec`, sin compilación ni validación Android; no se modifica la estimación global del proyecto.
+
+- Consultas vinculadas a la vista, el estilo y una instantánea de preferencias. Aplicación síncrona en el hilo principal después de consultar WMS; ya no quedan callbacks de aplicación fuera de la tarea. Invalidación antes de cancelar, agrupación de refrescos pendientes y limpieza al pausar/destruir la vista.
+- Una consulta GetCapabilities por refresco para las tres capas. Lectura de dimensiones temporales heredadas, listas y rangos de duración fija con límites; rechazo de fechas ambiguas, intervalos inválidos y respuestas de error. Selección de fechas después de recibir la respuesta; retirada conservadora al superar la fecha seleccionada, sin inventar fecha de emisión ni periodo de validez.
+- Capas activadas por defecto y desactivación persistente. La preferencia actual prevalece sobre la antigua. Botones «activada/desactivada» describen la elección; el panel distingue consulta, ausencia de fecha, error, vencimiento y teselas solicitadas sin confirmar su visualización.
+- Funcionamiento sin GPS, dominio WRF continental separado del alcance nacional de ALERTA EC (incluido Galápagos). El rectángulo configurado no acredita disponibilidad por punto. Unidades y leyenda siguen sin verificar y no se inventan. No se equipara blanco con ausencia de lluvia ni pronóstico con alerta oficial.
+- Se conservan PNG transparente y opacidades 0,15/0,10/0,10. Los controles se desplazan dentro de un máximo del 45 % del alto disponible para dejar espacio al mapa. No se alteran las imágenes del proveedor.
+- Pruebas unitarias añadidas para invalidación/refrescos, estados, preferencias, dominio continental, URL WMS y lectura/selección temporal. **Pendientes de ejecución**. Revisión sintáctica PSI Kotlin y `git diff --check`: sin errores; no comprueban resolución de tipos, compatibilidad de APIs ni funcionamiento Android.
+
+Pendientes: ejecutar pruebas y compilación en una etapa autorizada; validar en dispositivo rotación, salida/retorno durante consulta, alternancia rápida, cambio de preferencias, mapa sin GPS/red, fallos WMS/teselas, expiración, continente/Galápagos, texto grande y desplazamiento de paneles. Verificar metadatos oficiales, leyenda, unidades y representación de teselas antes de anunciarlos como confirmados. No se comprobó disponibilidad actual del servicio en esta sesión.
+
+<!-- ALERTA_EC_AUDITORIA_20261018 -->
+## Estado auditado ALERTA EC v0.1.9 / 109 (18-10-2026)
+
+Auditoria local de Codex, solo lectura, sin compilacion ni validacion Android.
+
+- Avance global estimado: **46/100** (revision provisional del 2026-10-18; implementacion ponderada estimada 65,7 % x factor de validacion 0,70; no equivale a pruebas aprobadas).
+- Revision posterior a los pasos 558-598: autosoporte reforzado (cola WorkManager, identificacion de solicitudes, contenido meteorologico, verificacion parcial/completa y cancelaciones). Las pruebas unitarias aun no se han ejecutado ni existe validacion de esta revision en Android. El aumento de implementacion de 62,7 % a 65,7 % es una estimacion de auditoria, no una medicion automatica.
+- Implementacion ponderada estimada: **62,7 %**.
+- Pendientes prioritarios: autosoporte y cola WorkManager; vigencia y cobertura INAMHI; pruebas meteorologicas; notificaciones multiciudad; intro; GPS/SOS; envio voluntario; accesibilidad y pruebas en Samsung.
+- Las funciones futuras aplazadas siguen pendientes y no se declaran completas.
+- Informe detallado: docs/ALERTA_EC_AUDITORIA_CODEX_20261018.txt.
+- No publicar Release ni ejecutar compilacion integral sin autorizacion.
+
 <div align="center">
 <br />
 <img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logotipo de ALERTA EC" width="320" />
@@ -619,5 +659,15 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - El workflow de Release ya no fija tag/versión ni admite ejecución manual: se activa únicamente con etiqueta explícita estable `vMAJOR.MINOR.PATCH`. Comprueba coherencia de etiqueta, versionName y versionCode, paquete de producción, presencia de secretos sin mostrarlos, firma válida y certificado exacto. Genera checksum SHA-256 del APK universal y publica como Release estable.
 - Acciones actualizadas a revisiones existentes en los workflows del repositorio. La compilación continúa en GitHub Actions.
 - Validación local limitada a inspección estática y `git diff --check`; no se ejecutó el workflow de Release ni Gradle en Termux, no se crearon tags/Releases y no se tocó APK instalada, applicationId, keystore o secretos. Pendiente CI y prueba funcional en dispositivo antes de cualquier publicación.
+
+## Estado NOAA e INAMHI — 2026-10-18
+- Rama de trabajo: alerta-ec. Cambios locales pendientes; no se ha realizado commit, push, tag ni Release en esta fase.
+- NOAA GOES-19: verificadas las fuentes de nubes GEOCOLOR, rayos GLM EXTENT3 y vista amplia GEOCOLOR. El 2026-10-18 a las 13:35 UTC, las imagenes mas recientes tenian unos 24-25 minutos de antiguedad; las tres respondieron HTTP 206 a solicitudes parciales y presentaron firma JPEG valida. Esto no sustituye las pruebas de visualizacion en Android.
+- Reproductor NOAA: cambios locales en NoaaSatellitePlayer.kt y MapFragment.kt para reanudar consultas al volver a primer plano, esperar la finalizacion de la carga antes de avanzar y retrasar el primer avance 1200 ms. Pendientes compilacion Kotlin, pruebas de animacion, errores de red, memoria y ciclo de vida en dispositivo.
+- INAMHI WRF: la prueba WMS en Quito devolvio PNG completamente blanco y opaco para precipitacion 3h, incluso con TRANSPARENT=TRUE, BGCOLOR=0xFFFFFF e image/png8. Otras capas devolvieron colores opacos. No interpretar automaticamente blanco como ausencia de lluvia o NoData. Pendiente estrategia segura que no oculte el mapa.
+- Mantener observaciones satelitales NOAA separadas de pronosticos WRF INAMHI y Open-Meteo, indicando fuente, fecha, vigencia y cobertura. La aplicacion debe funcionar en Ecuador continental y Galapagos; la cobertura WRF continental no equivale a cobertura nacional.
+- Preservar GPS, alertas, SOS, accesibilidad, identidad ALERTA EC, licencias y funcionamiento gratuito sin registro.
+- Estado Git previo a documentar: 20 archivos modificados, 19 archivos nuevos y 111 respaldos locales .pre_* sin seguimiento. No agregar respaldos ni archivos no revisados automaticamente.
+- La documentacion historica de versiones anteriores se conserva. Verificar versionName/versionCode reales antes de cualquier publicacion. No cambiar applicationId ni firma. Flujo obligatorio: CI -> pruebas en dispositivo -> documentacion -> autorizacion expresa -> Release estable.
 
 <!-- ALERTA_EC_AUTO_END -->

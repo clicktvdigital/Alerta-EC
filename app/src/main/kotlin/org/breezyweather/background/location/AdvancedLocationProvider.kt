@@ -11,6 +11,7 @@ object AdvancedLocationProvider {
             longitude = location?.longitude,
             horizontalAccuracyMeters = location?.accuracy,
             gpsAltitudeMeters = location?.altitude,
+            verticalAccuracyMeters = location?.verticalAccuracyMeters,
             locationTimestampMillis = location?.timestamp,
 
             pressureHpa = sensors.pressureHpa,

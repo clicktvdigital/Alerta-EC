@@ -37,30 +37,6 @@
             app:layout_constraintStart_toEndOf="@+id/hourly_block_title_icon"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/hourly_block_subtitle"
-            android:layout_marginTop="2dp"
-            android:layout_marginHorizontal="@dimen/large_margin"
-            android:layout_width="match_parent"
-            style="@style/content_text"
-            tools:text="Rain Wednesday evening"
-            app:layout_constraintTop_toBottomOf="@+id/hourly_block_trendRecyclerView" />
-
-        <TextView
-            android:id="@+id/hourly_block_highlights"
-            android:lineSpacingExtra="4dp"
-            android:paddingBottom="16dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/large_margin"
-            android:layout_marginTop="@dimen/small_margin"
-            android:layout_marginEnd="@dimen/large_margin"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurface"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@+id/hourly_block_subtitle"
-            tools:text="+1 h · 14:00 · 20 °C · lluvia 40 %" />
-
         <com.google.android.material.button.MaterialButtonGroup
             android:id="@+id/hourly_block_button_group"
             style="@style/Widget.Material3Expressive.MaterialButtonGroup.Connected"
@@ -80,6 +56,34 @@
             tools:ignore="UnusedAttribute"
             app:layout_constraintTop_toBottomOf="@+id/hourly_block_button_group"
             app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/hourly_block_subtitle"
+            android:layout_marginTop="2dp"
+            android:layout_marginHorizontal="@dimen/large_margin"
+            android:layout_width="0dp"
+            style="@style/content_text"
+            tools:text="Rain Wednesday evening"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_trendRecyclerView" />
+
+        <TextView
+            android:id="@+id/hourly_block_highlights"
+            android:lineSpacingExtra="4dp"
+            android:paddingBottom="16dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/large_margin"
+            android:layout_marginTop="@dimen/small_margin"
+            android:layout_marginEnd="@dimen/large_margin"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/hourly_block_subtitle"
+            tools:text="+1 h · 14:00 · 20 °C · lluvia 40 %" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -137,6 +137,8 @@ fun LocationPreference(
                         }
                     )
                     if (samePoint) {
+                        append("\nEstado GPS: ")
+                        append(if (fix.isRecent) "posición reciente" else "última posición conocida; actualización pendiente")
                         append("\nPrecisión de ubicación (GPS/red): ")
                         append(fix.accuracyMeters?.let { "±$it m (estimada)" } ?: "no disponible")
                         append("\nAltitud del dispositivo: ")

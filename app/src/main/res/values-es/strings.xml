@@ -25,6 +25,7 @@
     <string name="alertaec_creators_title">Creadores</string>
     <string name="alertaec_credit_developer">Fundador de CLICK TV DIGITAL, creador y desarrollador principal de ALERTA EC. 🇪🇨</string>
     <string name="alertaec_credit_company">CLICK TV DIGITAL</string>
+    <string name="alertaec_preventive_advice">Consejo preventivo: %1$s</string>
     <string name="alertaec_hourly_highlight">+%1$d h · %2$s · %3$s</string>
     <string name="alertaec_hourly_rain">lluvia %1$s</string>
     <string name="alertaec_hourly_wind">viento %1$s</string>
@@ -518,12 +519,12 @@
     <string name="null_data_text">N/A</string>
     <string name="common_weather_text_drizzle_freezing_heavy">Llovizna gélida fuerte</string>
     <string name="settings_unavailable_no_background_updates">No disponible, active primero las actualizaciones en segundo plano</string>
-    <string name="notification_precipitation_starting">Precipitaciones en breve</string>
-    <string name="notification_precipitation_starting_desc">Se prevé que comiencen a las %s</string>
-    <string name="notification_precipitation_stopping">Pronto pararán las precipitaciones</string>
-    <string name="notification_precipitation_stopping_desc">Se prevé que cesen a las %s</string>
-    <string name="notification_precipitation_continuing">Precipitaciones</string>
-    <string name="notification_precipitation_continuing_desc">Se espera que continúe hasta al menos %s</string>
+    <string name="notification_precipitation_starting">Posible inicio de precipitaciones</string>
+    <string name="notification_precipitation_starting_desc">Según el pronóstico, podrían comenzar a las %s. No confirma lluvia actual.</string>
+    <string name="notification_precipitation_stopping">Posible finalización de precipitaciones</string>
+    <string name="notification_precipitation_stopping_desc">Según el pronóstico, podrían finalizar a las %s.</string>
+    <string name="notification_precipitation_continuing">Precipitaciones previstas</string>
+    <string name="notification_precipitation_continuing_desc">Se pronostican precipitaciones hasta al menos las %s; no confirma que esté lloviendo ahora.</string>
     <string name="widget_custom_subtitle_keyword_at_description">Sensación térmica (°C/°F)</string>
     <string name="location_search_source">Fuente para encontrar la ubicación</string>
     <string name="location_search_change_source">Cambiar la fuente para la ubicación</string>

@@ -1,0 +1,188 @@
+=== RESPUESTA CODEX 1 ===
+Haré la auditoría exclusivamente de lectura: revisaré la documentación, el estado Git y el código, incluidos los archivos no rastreados. Separaré lo implementado de lo probado y de lo validado en dispositivo, sin modificar archivos ni compilar.
+
+=== RESPUESTA CODEX 2 ===
+La rama y la configuración base coinciden con `alerta-ec` y `0.1.9 / 109`. Hay código nuevo sin rastrear que es esencial para mapas, GPS y autosoporte. Ya confirmé que el formulario de ayuda genera una vista previa, pero todavía no ofrece una acción de envío; también hay estados históricos en la documentación que contradicen avances posteriores.
+
+=== RESPUESTA CODEX 3 ===
+Encontré dos diferencias importantes respecto a lo documentado: la intro activa usa vídeo con sonido habilitado por defecto y oculta los controles antiguos; la clase de voz existe, pero no encontré llamadas que la conecten con las alertas. INAMHI ya tiene capas WRF implementadas, aunque falta resolver su interpretación visual, caducidad y cobertura fuera del continente.
+
+=== RESPUESTA CODEX 4 ===
+El autosoporte tiene un posible bloqueo funcional: considera ocupada la cola si encuentra cualquier trabajo meteorológico programado, incluido el periódico que espera su próxima ejecución. Eso puede impedir la reparación manual. Además, hay 27 archivos de pruebas Kotlin, pero no encontré reportes locales de ejecución; los éxitos históricos de CI no validan estos cambios locales.
+
+=== RESPUESTA CODEX 5 ===
+**Auditoría de lectura: ALERTA EC presenta una implementación considerable, pero todavía no hay evidencia suficiente para considerarla lista para publicación. Estimación global: 44/100**, incluyendo los requisitos documentados y una penalización explícita por falta de validación del estado actual.
+
+No modifiqué archivos, compilé, instalé dependencias ni ejecuté commit, push, etiquetas o publicaciones. Tampoco envié información ni realicé pagos. Las conclusiones corresponden al código local; no certifican disponibilidad actual de servicios externos.
+
+**Estado comprobado del repositorio**
+
+- Rama: `alerta-ec`.
+- Último commit local: `e3a2b9ee3`, integración de cola de notificaciones y receptor.
+- Versión base configurada: **0.1.9 / 109**, en [app/build.gradle.kts](/data/data/com.termux/files/home/breezy-weather/app/build.gradle.kts:27). Algunas variantes añaden sufijos al nombre.
+- **35 archivos rastreados modificados**.
+- **264 archivos sin seguimiento**: 224 respaldos identificados por `.pre` y 40 archivos adicionales.
+- Entre los nuevos están implementaciones necesarias de INAMHI, NOAA, GPS, autosoporte, recursos gráficos y pruebas. **Auditar únicamente el commit habría omitido funciones importantes.**
+- `git diff --check` no mostró incidencias. Esto comprueba formato del diff, no compilación ni funcionamiento.
+- Encontré **27 archivos Kotlin de pruebas** en `app/src/test`, sin reportes XML locales de ejecución. No existe `app/src/androidTest` en este checkout.
+
+Los resultados históricos de CI mencionados en la documentación no prueban estos cambios locales.
+
+**Criterios de clasificación**
+
+- **COMPLETA en código:** el subalcance indicado tiene implementación y conexión identificables. No significa validación Android.
+- **PARCIAL:** existe implementación, pero faltan requisitos, integración o correcciones.
+- **AUSENTE:** no encontré una ruta funcional para el requisito; un modelo o una preferencia aislada no lo satisface.
+- **SIN VERIFICAR:** falta evidencia de ejecución, cobertura externa o comportamiento en dispositivo. Puede acompañar cualquiera de los estados anteriores.
+
+Prioridades: **P0**, resolver antes de preparar la compilación integral; **P1**, completar antes de considerar terminada la función; **P2**, alcance futuro documentado.
+
+**Matriz funcional**
+
+Las rutas abreviadas parten de `app/src/main/kotlin/org/breezyweather/`, salvo indicación.
+
+| Módulo | Evidencia de archivos | Estado real | Problemas y límites | Pruebas necesarias | Prioridad |
+|---|---|---|---|---|---|
+| Open-Meteo y transformación meteorológica | `sources/openmeteo/OpenMeteoService.kt`, `alertaec/AlertaEcWeatherAdapter.kt`, `domain/.../Weather.kt` | PARCIAL; ejecución SIN VERIFICAR | Pronóstico horario y datos de 15 minutos presentes. Conversión de acumulación a tasa equivalente implementada. Normalización de intervalos modificada sin evidencia de pruebas específicas suficientes. | Nulos, cero, series incompletas, intervalos mixtos, solapamientos, conservación de acumulación y cambio de día. | P0 |
+| INAMHI WRF | `ui/map/InamhiLayers.kt`, `InamhiWmsTimes.kt`, `InamhiWmsTiles.kt`, `InamhiMapOverlay.kt` | PARCIAL | Capas de precipitación 3 h, 24 h y temperatura 3 h. Son pronósticos WRF, no radar ni recepción de alertas oficiales. Falta presentación completa de unidades, leyenda, vigencia y fallos. | Capacidades WMS, fechas, teselas blancas, errores, caducidad y cambios de preferencias. | P0 |
+| Ecuador continental y Galápagos | `InamhiLayers.kt`, `EcuadorTimeFormatter.kt`, `NoaaSatelliteFrames.kt` | PARCIAL; cobertura efectiva SIN VERIFICAR | WRF tiene límites continentales. Galápagos usa un rectángulo aproximado para seleccionar zona horaria. No demuestra cobertura meteorológica homogénea ni delimitación insular precisa. | Puntos representativos de Costa, Sierra, Amazonía e islas; cambio UTC−5/UTC−6; permisos GPS denegados. | P1 |
+| Mapa base y controles | `ui/map/MapFragment.kt`, `InamhiMapPreferences.kt` | PARCIAL | MapLibre, mapa remoto, controles y preferencias conectados. Carga WRF depende del GPS reciente, no del área que se está consultando. | Sin GPS, sin red, desplazamiento manual, recarga de estilo, rotación, retorno y preferencias. | P0 |
+| Satélite NOAA | `NoaaSatelliteFrames.kt`, `NoaaSatellitePlayer.kt`, `NoaaImageLoader.kt`, `NoaaZoomImageView.kt` | PARCIAL; Android SIN VERIFICAR | Tres modalidades, cronología, reproducción, zoom, caché y caducidad presentes. Extracción depende del HTML y nombres de imágenes remotos. | HTML cambiado, descarga incompleta, todas las imágenes fallidas, memoria, pausa, retorno y cobertura visual insular. | P1 |
+| Notificaciones y recomendaciones | `AlertaEcNotifier.kt`, `AlertaEcNotificationQueue*.kt`, `AlertaEcRecommendations.kt`, `remoteviews/Notifications.kt` | PARCIAL | Integración real desde actualización meteorológica. Cola global asociada a una ubicación; cambiar ubicación vacía pendientes. Voz no conectada. | Dos ubicaciones, deduplicación, cancelación, reinicio, permisos, canales, silencio, demora y datos vencidos. | P0 |
+| GPS y dirección territorial | `ActiveLocationController.kt`, `ActiveLocationService.kt`, `DetailedLocationProvider.kt`, `GeoQuito*.kt`, `EcuadorTerrainElevation.kt`, `NearbyLandmarksProvider.kt` | PARCIAL | Coordenadas, precisión, altitud y antigüedad presentes. GeoQuito es enriquecimiento local, no cobertura nacional. Elevación del terreno y altitud GPS son datos distintos. | Precisión aproximada, pérdida de señal, permisos revocados, segundo plano, batería, geocodificación fallida y referencias fuera de Quito. | P1 |
+| SOS y contactos de confianza | `LocationSharingSessionManager.kt`, `ui/emergency/EmergencyCenterScreen.kt` | PARCIAL como estructura; flujo SOS AUSENTE | Hay modelo de sesión local, sin llamadas encontradas que lo activen. Centro de emergencias abre páginas. No encontré marcador 911 ni envío SOS con coordenadas conectado. | Cuando exista: confirmación, cancelación, posición antigua, selector externo, ausencia de aplicaciones y contactos locales. | P1 |
+| Intro | `AlertaEcIntroController.kt`, `AlertaEcVideoIntro.kt`, recursos de vídeo y logo | PARCIAL; reproducción SIN VERIFICAR | Vídeo conectado, omisión, límites temporales y limpieza presentes. Sonido predeterminado y controles difieren de la documentación. | Arranque frío, fallo de decodificación, primer fotograma, silencio, foco de audio, omisión, fondo y movimiento reducido. | P0 |
+| Donaciones | `ui/support/SupportSection.kt`, recursos QR y marcas | COMPLETA en código para enlaces/QR y confirmación declarada por usuario; SIN VERIFICAR | Importes orientativos; no se transmiten al proveedor. No hay verificación automática de transacciones y la interfaz lo explica. | Apertura/retorno, QR, destinatario en aplicación externa, ausencia de manejador, texto grande y temas. | P1 |
+| Accesibilidad y widgets | `alertaec/accessibility/AlertVoice.kt`, widgets, `SupportSection.kt`, pantallas nuevas | PARCIAL | Descripciones accesibles presentes en varios componentes. TTS aislado. Widgets conservan limitaciones visuales de horizonte. Accesibilidad integral sin demostrar. | TalkBack, foco, texto ampliado, contraste, controles del mapa, slider satelital, formularios y todos los tamaños de widget. | P1 |
+| Autosoporte | `alertaec/support/AutoSupportEngine.kt`, diagnósticos, reparación y seguimiento | PARCIAL | Diagnóstico y actualización verificable implementados. Riesgo de bloqueo por trabajo periódico programado; comprobaciones de contenido insuficientes. | Cola periódica, trabajos concurrentes, fallo parcial, timeout, cancelación y cambios de ubicación. | P0 |
+| FAQ y formulario | `AutoSupportFaq.kt`, `AutoSupportFeedback.kt`, `AutoSupportSettingsScreen.kt` | FAQ y vista previa COMPLETAS en código; envío AUSENTE | Siete FAQ locales; texto limitado a 4.000 caracteres; diagnóstico opcional desactivado inicialmente. No existe acción final de compartir. | Sin red, vacío/límite, consentimiento, conservación del borrador, vista previa y futura cancelación del envío. | P1 |
+| Multiamenaza, comunidad y vigilancia vial | Modelos de eventos, `AlertaEcPublicCamera.kt`, requisitos documentados | PARCIAL en modelos; servicio integral AUSENTE | No encontré sistema operativo completo de seguimiento familiar, reportes comunitarios, moderación, cámaras y recepción institucional integrada. | Contratos de datos, integración, permisos, entregas, caducidad y controles de acceso cuando se implementen. | P2 |
+
+**Hallazgos que requieren corrección concreta**
+
+1. **El autosoporte puede bloquear su propia reparación cuando las actualizaciones automáticas están activas.**
+
+   [AutoSupportWeatherWorkGuard.kt](/data/data/com.termux/files/home/breezy-weather/app/src/main/kotlin/org/breezyweather/alertaec/support/AutoSupportWeatherWorkGuard.kt) considera ocupada la cola ante cualquier trabajo `ENQUEUED`, `RUNNING` o `BLOCKED` con etiqueta `WeatherUpdate`.
+
+   `WeatherUpdateJob.setupTask()` aplica esa misma etiqueta al trabajo periódico. Por tanto, un periódico esperando su próxima ejecución puede impedir la actualización de reparación. Es una inferencia directa del flujo, pendiente de reproducción.
+
+   Además, `AutoSupportWeatherRefresh` identifica el supuesto trabajo nuevo comparando listas de IDs. Su propio comentario reconoce que consulta y encolado no son atómicos. Debe seguir el trabajo exacto solicitado y distinguir espera periódica normal de una actualización realmente activa.
+
+2. **El diagnóstico meteorológico puede mostrar “Correcto” sin demostrar contenido utilizable.**
+
+   `AutoSupportWeatherDiagnostics.kt` revisa fechas de adquisición. Para condiciones actuales y pronóstico diario no comprueba por separado que exista contenido suficiente. Con actualización automática desactivada, una fecha pasada válida se clasifica como `CORRECTO`, aunque el detalle admite que no confirma vigencia.
+
+   Conviene separar **presencia**, **adquisición** y **vigencia**. El verificador posterior de reparación sí contiene controles útiles: exige adquisición nueva, rechaza fechas futuras y conserva recuperación parcial.
+
+3. **INAMHI puede conservar una capa anterior sin advertencia suficiente.**
+
+   Cuando no obtiene nuevas fechas, `MapFragment.loadInamhiOverlay()` puede retornar sin retirar ni marcar como vencida la capa existente. Los botones pueden indicar “visible” aunque no se haya cargado información válida.
+
+   La opacidad reducida de las capas mitiga el ocultamiento del mapa, pero **no resuelve el significado de una tesela blanca**. El código necesita estados explícitos: cargando, disponible, fuera de cobertura, sin datos, vencido y error; además de fecha, unidades y leyenda.
+
+4. **La integración WRF depende de disponer de una ubicación GPS reciente.**
+
+   Tanto la carga inicial como las comprobaciones posteriores dependen de `ActiveLocationController.getLatest()`. Un usuario sin permiso GPS podría consultar un mapa continental y no recibir la capa. La ubicación del dispositivo y el área meteorológica consultada deben tener funciones claramente definidas.
+
+5. **La voz no está integrada en el flujo operativo.**
+
+   [AlertVoice.kt](/data/data/com.termux/files/home/breezy-weather/app/src/main/kotlin/org/breezyweather/alertaec/accessibility/AlertVoice.kt) tiene controles de idioma local, foco, silencio, bloqueo y TalkBack. Sin embargo, la búsqueda de referencias no encontró conexiones externas a `resume`, `ready`, `alert` o `test`.
+
+   La existencia de la clase y `isAlertVoiceEnabled` no permite declarar alertas habladas operativas.
+
+6. **La cola de notificaciones necesita resolver el comportamiento multiciudad y la cancelación.**
+
+   `AlertaEcNotificationQueueStore.saveLocation()` reemplaza una única ubicación y limpia la cola cuando cambia. Esto puede descartar avisos pendientes durante actualizaciones de varias ciudades.
+
+   `AlertaEcNotificationQueueWorker` captura `Exception` al leer meteorología sin propagar expresamente `CancellationException`, a diferencia de otras implementaciones revisadas. Debe corregirse y probarse.
+
+7. **La intro activa no coincide con las garantías históricas de consentimiento y movimiento reducido.**
+
+   En [AlertaEcVideoIntro.kt](/data/data/com.termux/files/home/breezy-weather/app/src/main/kotlin/org/breezyweather/ui/main/intro/AlertaEcVideoIntro.kt):
+
+   - `cinematic_sound_enabled` tiene valor predeterminado `true`.
+   - Los controles anteriores de sonido y movimiento se ocultan.
+   - El volumen del reproductor pasa a `1f` si las condiciones permiten sonido.
+   - Movimiento reducido omite la intro, en vez de presentar las escenas estáticas descritas históricamente.
+   - El cierre oculta “Omitir” durante el logo final y su transición.
+
+   No debe atribuirse al vídeo el límite de volumen y la gestión de foco del reproductor ambiental anterior. Hace falta unificar la decisión de producto, la implementación y las pruebas.
+
+8. **El envío voluntario del autosoporte sigue sin implementarse.**
+
+   El formulario únicamente construye y muestra texto. No encontré acción de compartir, selector de aplicaciones ni envío.
+
+   Además, sus estados usan `remember`, por lo que no hay garantía de conservar el borrador al recrearse la pantalla. La descripción libre puede contener información privada escrita por el usuario: no debe describirse como anonimizada automáticamente.
+
+9. **Hay respaldos dentro de directorios de recursos Android.**
+
+   Existen archivos `.pre_*` bajo `res/layout`, `res/values`, `drawable-nodpi` y `res_fork`. No encontré una exclusión específica de esos respaldos en la configuración revisada.
+
+   Son un **riesgo de procesamiento de recursos**, no un error de compilación demostrado. Antes de compilar debe prepararse una entrada limpia y revisada, preservando los respaldos fuera de las rutas que procesa Android.
+
+**Documentación que debe corregirse posteriormente**
+
+[README.md](/data/data/com.termux/files/home/breezy-weather/README.md) y [docs/CONTINUAR_AQUI.md](/data/data/com.termux/files/home/breezy-weather/docs/CONTINUAR_AQUI.md) mezclan registros históricos y declaraciones de estado vigente:
+
+- La sección que dice prevalecer sobre el historial todavía identifica **0.1.8 / 108**; Gradle indica **0.1.9 / 109**.
+- Hay referencias a modelos y adaptador “pendientes de integración”, aunque `WeatherUpdateJob` ya llama al notificador.
+- Se describe satélite como pendiente pese a existir implementación local.
+- Conviven “audio pendiente”, audio ambiental opt-in y el vídeo actual con sonido predeterminado.
+- Se mantiene una descripción de procesamiento de logos en memoria que no coincide con el comentario e implementación actuales.
+- No encontré documentación específica suficiente del centro de autosoporte, sus FAQ, formulario y envío pendiente.
+- Los conteos históricos de archivos locales están superados.
+- El resumen diario genérico debe distinguirse de la promesa concreta de un resumen a las 09:00: existen trabajos de hoy/mañana, pero eso no prueba ese requisito exacto.
+
+La actualización debería tener una única tabla vigente y conservar el resto explícitamente como historial.
+
+**Cálculo del porcentaje**
+
+El porcentaje mide **avance acreditado frente al conjunto funcional documentado**, no probabilidad de éxito ni porcentaje de pruebas aprobadas.
+
+Para cada módulo asigné una estimación de implementación entre 0 y 1 según código, conexión y pendientes. Es una valoración de auditoría, no una medición automática.
+
+| Módulo agrupado | Peso | Implementación estimada |
+|---|---:|---:|
+| Meteorología Open-Meteo y transformación | 14 % | 85 % |
+| INAMHI | 10 % | 60 % |
+| Cobertura territorial y zonas horarias | 6 % | 50 % |
+| Mapas y NOAA | 8 % | 80 % |
+| Notificaciones y recomendaciones | 12 % | 65 % |
+| GPS y contexto territorial | 10 % | 80 % |
+| SOS y contactos | 8 % | 10 % |
+| Intro | 6 % | 65 % |
+| Donaciones | 4 % | 90 % |
+| Accesibilidad y widgets | 6 % | 50 % |
+| Autosoporte, FAQ y formulario | 10 % | 65 % |
+| Integraciones multiamenaza, comunidad y vigilancia | 6 % | 30 % |
+| **Total** | **100 %** | **62,7 % ponderado** |
+
+Fórmula de avance acreditado:
+
+`Σ peso × implementación × (0,70 + 0,15 × pruebas_ejecutadas + 0,15 × validación_dispositivo)`
+
+Los dos indicadores de validación valen cero cuando no hay evidencia aplicable al estado actual. No concedí crédito por pruebas solamente escritas ni por CI de estados anteriores.
+
+**Resultado: 62,7 × 0,70 = 43,89 → 44/100.**
+
+El alcance futuro está incluido porque forma parte de los requisitos auditados. La decisión documentada de aplazar cuentas y servicios remotos permite preparar una versión acotada, pero no convierte esas funciones en completas.
+
+**Orden concreto de cierre antes de una compilación integral**
+
+1. **Fijar el alcance vigente de 0.1.9.** Separar lo requerido para esta versión de las funciones futuras aplazadas. Una función aplazada debe seguir figurando como pendiente.
+2. **Preparar el inventario exacto de compilación.** Revisar los 40 archivos nuevos no respaldos y preservar los 224 respaldos fuera de directorios de recursos procesables. Sin añadir todo automáticamente.
+3. **Resolver autosoporte.** Corregir la interpretación de trabajos periódicos, seguimiento del ID exacto, comprobación de contenido y vigencia, recuperación parcial y cancelación.
+4. **Cerrar coherencia meteorológica.** Añadir casos de prueba para intervalos, nulos, solapamientos y acumulación; preservar la separación entre pronóstico, observación y alerta oficial.
+5. **Completar INAMHI y cobertura.** Estados visibles, leyenda, unidades, vigencia, tratamiento de capas antiguas y funcionamiento sin GPS. Explicar expresamente el límite continental.
+6. **Estabilizar notificaciones.** Resolver cola multiciudad, reintentos y cancelación; integrar la voz si pertenece al alcance o marcarla como no disponible.
+7. **Cerrar GPS y SOS local.** Validar la presentación de precisión/antigüedad y, si SOS se exige en esta versión, implementar su flujo explícito de llamada y compartición.
+8. **Unificar la intro.** Resolver sonido, acceso a controles, movimiento reducido, foco y omisión; actualizar las pruebas para la ruta de vídeo activa.
+9. **Completar el envío voluntario.** Vista previa final, consentimiento, selector externo, cancelación y tratamiento del borrador. No presentar apertura del selector como entrega confirmada.
+10. **Revisar accesibilidad, widgets y donaciones.** Preparar casos concretos de TalkBack, texto grande, temas, enlaces, QR y retorno.
+11. **Actualizar README y continuidad.** Registrar versión real, estado por módulo, pruebas escritas, resultados disponibles y pendientes.
+12. **Preparar una única ejecución integral autorizada de CI**, con pruebas, recursos y artefacto de prueba sobre el conjunto exacto revisado.
+
+**Las pruebas Android no pueden cerrarse antes de disponer de la compilación.** El objetivo viable es completar previamente código, revisión y casos de prueba; después ejecutar la compilación integral y validar su artefacto. Si aparecen fallos, será necesario corregir y volver a compilar. No hay evidencia para prometer que una sola ejecución bastará.
+
+=== RESPUESTA CODEX 6 ===
+Ejecutaré ambos diagnósticos: localizaré sesiones e informes y comprobaré la versión, el modelo configurado y el estado de autenticación. Usaré la habilidad `openai-docs` para la revisión de Codex, sin mostrar credenciales ni el contenido de las sesiones.

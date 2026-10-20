@@ -11,7 +11,7 @@ object LocationHumanFormatter {
 
     fun accuracy(value: Float?) = value?.let { String.format(Locale.US, "±%.0f m", it) } ?: "No disponible"
 
-    fun altitude(value: Double?) = value?.let { String.format(Locale.US, "%.0f m s. n. m.", it) } ?: "No disponible"
+    fun altitude(value: Double?) = value?.let { String.format(Locale.US, "%.0f m (altitud GPS, referencia WGS84)", it) } ?: "No disponible"
 
     fun pressure(value: Float?) = value?.let { String.format(Locale.US, "%.1f hPa", it) } ?: "No disponible"
 
@@ -37,6 +37,6 @@ object LocationHumanFormatter {
         } else {
             if (value >= 0) "E" else "O"
         }
-        return String.format(Locale.US, "%d° %02d min %05.2f sec %s", d, m, s, h)
+        return String.format(Locale.US, "%d° %02d′ %05.2f″ %s", d, m, s, h)
     }
 }

@@ -47,3 +47,6 @@ bin/
 # Archivos temporales Python del panel
 __pycache__/
 *.py[cod]
+
+# Respaldos locales: conservar en disco, excluir de Git
+*.pre_*

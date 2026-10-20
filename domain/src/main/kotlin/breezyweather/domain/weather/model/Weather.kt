@@ -89,18 +89,20 @@ data class Weather(
             return if (minutelyForecast.any { it.minuteInterval != 5 }) {
                 val newMinutelyList = mutableListOf<Minutely>()
 
-                if (minutelyForecast.any { it.minuteInterval == 1 }) {
+                if (minutelyForecast.isNotEmpty() && minutelyForecast.all { it.minuteInterval == 1 }) {
                     // Let’s assume 1-minute by 1-minute forecast are always 1-minute all along
                     for (i in minutelyForecast.indices step 5) {
+                        val block = minutelyForecast.drop(i).take(5)
+                        if (block.size != 5 || block.indices.any { j ->
+                                block[j].minuteInterval != 1 ||
+                                    block[j].date.time != block[0].date.time + j * 60_000L
+                            }) continue
                         newMinutelyList.add(
                             minutelyForecast[i].copy(
-                                precipitationIntensity = doubleArrayOf(
-                                    minutelyForecast[i].precipitationIntensity?.inMicrometers ?: 0.0,
-                                    minutelyForecast.getOrNull(i + 1)?.precipitationIntensity?.inMicrometers ?: 0.0,
-                                    minutelyForecast.getOrNull(i + 2)?.precipitationIntensity?.inMicrometers ?: 0.0,
-                                    minutelyForecast.getOrNull(i + 3)?.precipitationIntensity?.inMicrometers ?: 0.0,
-                                    minutelyForecast.getOrNull(i + 4)?.precipitationIntensity?.inMicrometers ?: 0.0
-                                ).average().micrometers,
+                                precipitationIntensity = block
+                                    .mapNotNull { it.precipitationIntensity?.inMicrometers }
+                                    .takeIf { it.size == 5 }
+                                    ?.average()?.micrometers,
                                 minuteInterval = 5
                             )
                         )
@@ -108,25 +110,44 @@ data class Weather(
                 } else {
                     // Let’s assume the other cases are divisible by 5
                     for (i in minutelyForecast.indices) {
+                        if (minutelyForecast[i].minuteInterval <= 0) continue
                         if (minutelyForecast[i].minuteInterval == 5) {
                             newMinutelyList.add(minutelyForecast[i])
                         } else {
-                            for (j in 0..<minutelyForecast[i].minuteInterval.div(5)) {
+                            for (j in 0 until ((minutelyForecast[i].minuteInterval + 4) / 5)) {
                                 newMinutelyList.add(
                                     minutelyForecast[i].copy(
                                         date = Date(
                                             minutelyForecast[i].date.time + (j.times(5)).minutes.inWholeMilliseconds
                                         ),
-                                        minuteInterval = 5
+                                        minuteInterval = minOf(5, minutelyForecast[i].minuteInterval - j * 5)
                                     )
                                 )
                             }
                         }
                     }
                 }
-                return newMinutelyList
+                newMinutelyList
             } else {
                 minutelyForecast
+            }.let { items ->
+                val validated = mutableListOf<Minutely>()
+                for (item in items.filter { it.minuteInterval > 0 }.sortedBy { it.date.time }) {
+                    val previous = validated.lastOrNull()
+                    if (previous != null && item.date.time < previous.endingDate.time) {
+                        val remainingMillis = item.endingDate.time - previous.endingDate.time
+                        if (remainingMillis <= 0L || remainingMillis % 60_000L != 0L) continue
+                        validated.add(
+                            item.copy(
+                                date = Date(previous.endingDate.time),
+                                minuteInterval = (remainingMillis / 60_000L).toInt()
+                            )
+                        )
+                    } else {
+                        validated.add(item)
+                    }
+                }
+                validated
             }
         }
 

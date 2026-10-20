@@ -1,9 +1,11 @@
 package org.breezyweather.background.location
 
 import android.content.Context
-import breezyweather.domain.location.model.LocationAddressInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.runBlocking
 import org.breezyweather.sources.SourceManager
 import javax.inject.Inject
 
@@ -23,10 +25,23 @@ class DetailedLocationProvider @Inject constructor(
             latitude = latitude,
             longitude = longitude,
         ).map { results ->
-            val address: LocationAddressInfo = results.firstOrNull()
-                ?: throw IllegalStateException("No reverse-geocoding result")
-
-            EcuadorAddressMapper.fromAddressInfo(address)
+            results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
+                ?: DetailedLocationAddress()
+        }.flatMapSingle { address ->
+            Single.fromCallable {
+                val zone = runCatching {
+                    runBlocking { GeoQuitoAdministrativeZone.find(latitude, longitude) }
+                }.getOrNull()
+                val parish = runCatching {
+                    runBlocking { GeoQuitoParish.find(latitude, longitude) }
+                }.getOrNull()
+                address.copy(
+                    administrativeZone = zone ?: address.administrativeZone,
+                    parish = parish?.parish ?: address.parish,
+                    canton = parish?.canton ?: address.canton,
+                    province = parish?.province ?: address.province,
+                )
+            }.subscribeOn(Schedulers.io())
         }
     }
 }

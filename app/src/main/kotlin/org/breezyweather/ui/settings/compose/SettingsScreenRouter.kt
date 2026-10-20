@@ -26,5 +26,6 @@ sealed class SettingsScreenRouter(val route: String) {
     object Notifications : SettingsScreenRouter("org.breezyweather.ui.settings.notifications")
     object Unit : SettingsScreenRouter("org.breezyweather.ui.settings.unit")
     object Widgets : SettingsScreenRouter("org.breezyweather.ui.settings.widgets")
+    object AutoSupport : SettingsScreenRouter("org.breezyweather.ui.settings.autosupport")
     object Debug : SettingsScreenRouter("org.breezyweather.ui.settings.debug")
 }

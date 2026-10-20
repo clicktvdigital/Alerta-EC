@@ -759,6 +759,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         if (requestCode == PERMISSION_CODE_LOCATION_ACCESS ||
             requestCode == PERMISSION_CODE_ACCESS_BACKGROUND_LOCATION
         ) {
+            viewModel.ensureAutomaticGpsLocation()
             viewModel.updateWithUpdatingChecking(
                 triggeredByUser = false,
                 checkPermissions = false

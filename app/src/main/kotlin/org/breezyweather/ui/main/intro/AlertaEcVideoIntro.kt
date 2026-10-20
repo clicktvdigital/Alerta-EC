@@ -75,9 +75,9 @@ internal object AlertaEcVideoIntro {
             frame.setBackgroundColor(Color.rgb(0,87,184))
             // SurfaceView necesita un fondo transparente para mostrar su superficie.
             view.setBackgroundColor(Color.TRANSPARENT)
+            // Insertar sobre las capas antiguas, manteniendo el póster y Omitir delante.
             frame.addView(
                 view,
-                0,
                 FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -85,7 +85,7 @@ internal object AlertaEcVideoIntro {
             )
             val poster = ImageView(context).apply {
                 setImageResource(R.drawable.alertaec_logo_acerca)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                scaleType = ImageView.ScaleType.FIT_CENTER
                 setBackgroundColor(Color.rgb(0,87,184))
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
@@ -121,14 +121,18 @@ internal object AlertaEcVideoIntro {
                         if (activeVideo === view && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                             (poster.parent as? ViewGroup)?.removeView(poster)
                             activePoster = null
-                            pendingTimeout?.let(handler::removeCallbacks)
-                            // Límite también tras el primer fotograma: cubre bloqueos sin onError/onCompletion.
-                            handler.postDelayed(timeout, 30_000L)
+                            // El límite general se programa desde start(), no desde este aviso.
                             player.setVolume(volume, volume)
                         }
                         false
                     }
-                    runCatching { view.start() }.onFailure { stop() }
+                    runCatching { view.start() }
+                        .onSuccess {
+                            // Sustituir el límite de preparación por uno único de reproducción.
+                            pendingTimeout?.let(handler::removeCallbacks)
+                            handler.postDelayed(timeout, 16_000L)
+                        }
+                        .onFailure { stop() }
                 }
             }
             view.setOnCompletionListener {
@@ -145,9 +149,20 @@ internal object AlertaEcVideoIntro {
                     activePoster = endingPoster
                     frame.addView(endingPoster, FrameLayout.LayoutParams(-1, -1))
                     skip.bringToFront()
-                    val finish = Runnable { if (activeVideo === view) stop() }
+                    val finish = Runnable {
+                        if (activeVideo === view) {
+                            frame.animate().cancel()
+                            frame.animate()
+                                .alpha(0f)
+                                .setDuration(600L)
+                                .withEndAction {
+                                    if (activeVideo === view) stop()
+                                }
+                                .start()
+                        }
+                    }
                     pendingTimeout = finish
-                    handler.postDelayed(finish, 1500L)
+                    handler.postDelayed(finish, 3000L)
                 }
             }
             view.setOnErrorListener { _, _, _ ->
@@ -178,6 +193,10 @@ internal object AlertaEcVideoIntro {
             runCatching { view.stopPlayback() }
             (view.parent as? ViewGroup)?.removeView(view)
         }
-        root?.visibility = View.GONE
+        root?.let {
+            it.animate().cancel()
+            it.alpha = 1f
+            it.visibility = View.GONE
+        }
     }
 }

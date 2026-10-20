@@ -7,9 +7,11 @@ import breezyweather.domain.weather.model.Hourly
 import breezyweather.domain.weather.model.Weather
 import breezyweather.domain.weather.reference.WeatherCode
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 import java.util.Date
 import java.util.TimeZone
+import java.util.SimpleTimeZone
 
 class AlertaEcWeatherFreshnessTest {
     private val now = 1_800_000_000_000L
@@ -38,6 +40,42 @@ class AlertaEcWeatherFreshnessTest {
         val event = AlertaEcWeatherAdapter.fromLocation(dailyOld, now).single()
         event.updatedAtMillis shouldBe now
         AlertaEcNotificationPolicy.shouldNotify(event, now) shouldBe true
+    }
+
+    @Test
+    fun displaySelectionSkipsFirstHourWithoutPhenomenonOrUv() {
+        val first = Hourly(Date(now + 60_000L))
+        val second = Hourly(Date(now + 120_000L), uV = UV(8.0))
+        val event = AlertaEcWeatherAdapter.recommendationEventForDisplay(
+            Location(timeZone = TimeZone.getTimeZone("America/Guayaquil"), weather = Weather(hourlyForecast = listOf(first, second))),
+            now
+        )
+        event?.startTimeMillis shouldBe now + 120_000L
+        event?.uvIndex shouldBe 8.0
+    }
+
+    @Test
+    fun displaySelectionReturnsNullForEmptyOrExpiredSeries() {
+        AlertaEcWeatherAdapter.recommendationEventForDisplay(Location(), now) shouldBe null
+        val expired = Hourly(Date(now - 2 * 3_600_000L), uV = UV(8.0))
+        AlertaEcWeatherAdapter.recommendationEventForDisplay(
+            Location(weather = Weather(hourlyForecast = listOf(expired))),
+            now
+        ) shouldBe null
+    }
+
+    @Test
+    fun invalidTimezoneIsPreservedAndDoesNotBecomeLocalUvAdvice() {
+        val event = AlertaEcWeatherAdapter.recommendationEventForDisplay(
+            Location(
+                timeZone = SimpleTimeZone(0, "Not/AZone"),
+                weather = Weather(hourlyForecast = listOf(Hourly(Date(now + 60_000L), uV = UV(8.0))))
+            ),
+            now
+        )
+        event shouldNotBe null
+        event?.timeZoneId shouldBe "Not/AZone"
+        AlertaEcRecommendations.forEvent(event!!).contains("protector solar") shouldBe false
     }
 
     @Test

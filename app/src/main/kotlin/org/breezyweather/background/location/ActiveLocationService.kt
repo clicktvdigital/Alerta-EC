@@ -121,12 +121,22 @@ class ActiveLocationService : Service(), LocationListenerCompat {
     }
 
     override fun onLocationChanged(location: Location) {
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .edit()
+        if (!location.latitude.isFinite() || location.latitude !in -90.0..90.0 ||
+            !location.longitude.isFinite() || location.longitude !in -180.0..180.0 ||
+            location.time <= 0L || location.time > System.currentTimeMillis() + 10_000L
+        ) return
+        val preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val previousTimestamp = preferences.getLong(KEY_TIMESTAMP, 0L)
+        if (previousTimestamp > 0L &&
+            previousTimestamp <= System.currentTimeMillis() + 10_000L &&
+            location.time < previousTimestamp
+        ) return
+        preferences.edit()
             .putString(KEY_LATITUDE, location.latitude.toString())
             .putString(KEY_LONGITUDE, location.longitude.toString())
-            .putString(KEY_ALTITUDE, if (location.hasAltitude()) location.altitude.toString() else "")
-            .putFloat(KEY_ACCURACY, if (location.hasAccuracy()) location.accuracy else -1f)
+            .putString(KEY_ALTITUDE, if (location.hasAltitude() && location.altitude.isFinite()) location.altitude.toString() else "")
+            .putFloat(KEY_ACCURACY, if (location.hasAccuracy() && location.accuracy.isFinite() && location.accuracy >= 0f) location.accuracy else -1f)
+            .putFloat(KEY_VERTICAL_ACCURACY, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasVerticalAccuracy() && location.verticalAccuracyMeters.isFinite() && location.verticalAccuracyMeters >= 0f) location.verticalAccuracyMeters else -1f)
             .putLong(KEY_TIMESTAMP, location.time)
             .apply()
     }
@@ -171,6 +181,7 @@ class ActiveLocationService : Service(), LocationListenerCompat {
         private const val KEY_LONGITUDE = "longitude"
         private const val KEY_ALTITUDE = "altitude"
         private const val KEY_ACCURACY = "accuracy"
+        private const val KEY_VERTICAL_ACCURACY = "vertical_accuracy"
         private const val KEY_TIMESTAMP = "timestamp"
     }
 }

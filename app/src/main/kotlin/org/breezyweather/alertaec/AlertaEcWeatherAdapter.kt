@@ -22,14 +22,53 @@ object AlertaEcWeatherAdapter {
         // Keep this Alerta EC route inactive to prevent duplicate notifications.
 
         // Use the eligibility clock; an hour starting exactly one hour ago is no longer eligible.
-        weather.hourlyForecast.firstOrNull {
-            it.date.time > nowMillis - 60 * 60 * 1000L &&
-                it.date.time - nowMillis < 24 * 60 * 60 * 1000L
-        }?.let { hour ->
-            fromHourlyForecast(hour, location)?.let { events += it }
-        }
+        weather.hourlyForecast
+            .filter {
+                it.date.time > nowMillis - 60 * 60 * 1000L &&
+                    it.date.time - nowMillis < 5 * 60 * 60 * 1000L
+            }
+            .sortedBy { it.date.time }
+            .take(5)
+            .forEach { hour ->
+                fromHourlyForecast(hour, location)?.let { events += it }
+            }
 
         return events.distinctBy { it.id }
+    }
+
+    /** Event used only by the visible hourly card; UV-only data must not create a notification. */
+    internal fun recommendationEventForDisplay(
+        location: Location,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): AlertaEcEvent? {
+        val eligibleHours = location.weather?.hourlyForecast
+            ?.filter { it.date.time > nowMillis - 60 * 60 * 1000L && it.date.time - nowMillis < 5 * 60 * 60 * 1000L }
+            ?.sortedBy { it.date.time }
+            ?: return null
+        return eligibleHours.asSequence()
+            .mapNotNull { hour ->
+                fromHourlyForecast(hour, location) ?: uvDisplayEvent(hour, location)
+            }
+            .firstOrNull()
+    }
+
+    private fun uvDisplayEvent(hour: Hourly, location: Location): AlertaEcEvent? =
+        hour.uV?.index
+            ?.takeIf { it.isFinite() && it >= 0.0 }
+            ?.let { uv ->
+                AlertaEcEvent(
+                    id = "display-uv-${location.formattedId}-${hour.date.time}",
+                    phenomenon = AlertaEcPhenomenon.OTHER,
+                    state = AlertaEcEventState.FORECAST,
+                    severity = AlertaEcSeverity.INFORMATION,
+                    headline = "Índice UV disponible",
+                    locationName = locationName(location),
+                    timeZoneId = location.timeZone.id,
+                    startTimeMillis = hour.date.time,
+                    uvIndex = uv,
+                    sourceName = location.forecastSource,
+                )
+            }
     }
 
     private fun fromOfficialAlert(alert: Alert, location: Location) = AlertaEcEvent(
@@ -39,6 +78,7 @@ object AlertaEcWeatherAdapter {
         severity = severityFromAlert(alert.severity),
         headline = alert.headline ?: "Alerta oficial",
         locationName = locationName(location),
+        timeZoneId = location.timeZone.id,
         latitude = location.latitude,
         longitude = location.longitude,
         sourceName = alert.source ?: location.alertSource,
@@ -72,8 +112,8 @@ object AlertaEcWeatherAdapter {
         }
 
         val headline = when (phenomenon) {
-            AlertaEcPhenomenon.HEAVY_RAIN -> "Lluvia fuerte prevista"
-            AlertaEcPhenomenon.RAIN -> "Lluvia prevista"
+            AlertaEcPhenomenon.HEAVY_RAIN -> probability?.let { "Probabilidad de lluvia fuerte: $it%" } ?: "Lluvia fuerte prevista (probabilidad no disponible)"
+            AlertaEcPhenomenon.RAIN -> probability?.let { "Probabilidad de lluvia: $it%" } ?: "Lluvia prevista (probabilidad no disponible)"
             else -> hour.weatherText ?: phenomenon.spokenName
         }
 
@@ -84,6 +124,7 @@ object AlertaEcWeatherAdapter {
             severity = severity,
             headline = headline,
             locationName = locationName(location),
+            timeZoneId = location.timeZone.id,
             latitude = location.latitude,
             longitude = location.longitude,
             sourceName = location.forecastSource,
@@ -93,6 +134,7 @@ object AlertaEcWeatherAdapter {
             precipitationProbabilityPercent = probability,
             temperatureCelsius = hour.temperature?.temperature?.inCelsius,
             feelsLikeCelsius = hour.temperature?.feelsLikeTemperature?.inCelsius,
+            uvIndex = hour.uV?.index?.takeIf { it.isFinite() && it >= 0.0 },
             windSpeedKmh = windKmh,
             windGustKmh = gustKmh,
             windDirectionDegrees = hour.wind?.degree?.takeIf { it.isFinite() && it in 0.0..360.0 }?.roundToInt(),

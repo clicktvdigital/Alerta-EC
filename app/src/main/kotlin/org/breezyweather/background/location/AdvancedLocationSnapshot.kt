@@ -5,6 +5,7 @@ data class AdvancedLocationSnapshot(
     val longitude: Double? = null,
     val horizontalAccuracyMeters: Float? = null,
     val gpsAltitudeMeters: Double? = null,
+    val verticalAccuracyMeters: Float? = null,
     val locationTimestampMillis: Long? = null,
 
     val pressureHpa: Float? = null,

@@ -47,8 +47,13 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Verificar sintaxis del panel local
-        run: python -m py_compile tools/alerta-ec-panel/app.py
+      - name: Verificar sintaxis del panel local si existe
+        run: |
+          if [ -f tools/alerta-ec-panel/app.py ]; then
+            python -m py_compile tools/alerta-ec-panel/app.py
+          else
+            echo "Panel local opcional no presente; continuar con pruebas Android"
+          fi
 
       - name: Ejecutar pruebas unitarias Alerta EC
         run: ./gradlew :app:testBasicDebugUnitTest --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"

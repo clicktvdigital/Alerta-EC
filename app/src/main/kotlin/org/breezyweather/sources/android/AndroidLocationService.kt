@@ -58,49 +58,70 @@ class AndroidLocationService @Inject constructor() : LocationSource {
         }.filter { it in manager.allProviders && manager.isProviderEnabled(it) }
         if (providers.isEmpty()) throw LocationException()
 
+        var callbackBest: Location? = null
         val measured = withTimeoutOrNull(TIMEOUT_MILLIS) {
-            suspendCancellableCoroutine<Location> { continuation ->
+            suspendCancellableCoroutine<Location?> { continuation ->
+                val requestedProviders = providers.toMutableSet()
+                val respondedProviders = mutableSetOf<String>()
                 val listener = object : LocationListenerCompat {
                     override fun onLocationChanged(location: Location) {
-                        if (isRecent(location) && continuation.isActive) {
-                            manager.removeUpdates(this)
-                            continuation.resume(location)
+                        if (!isRecent(location) || !continuation.isActive) return
+                        synchronized(requestedProviders) {
+                            if (!continuation.isActive) return
+                            if (isBetterLocation(location, callbackBest)) callbackBest = location
+                            location.provider?.let(respondedProviders::add)
+                            if (respondedProviders.containsAll(requestedProviders)) {
+                                manager.removeUpdates(this)
+                                continuation.resume(callbackBest)
+                            }
                         }
                     }
                 }
                 continuation.invokeOnCancellation { manager.removeUpdates(listener) }
-                try {
-                    LocationManagerCompat.requestLocationUpdates(
-                        manager,
-                        providers.first(),
-                        LocationRequestCompat.Builder(1000)
-                            .setQuality(
-                                if (fine) LocationRequestCompat.QUALITY_HIGH_ACCURACY
-                                else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
-                            )
-                            .build(),
-                        listener,
-                        Looper.getMainLooper()
+                val request = LocationRequestCompat.Builder(1000)
+                    .setQuality(
+                        if (fine) LocationRequestCompat.QUALITY_HIGH_ACCURACY
+                        else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
                     )
-                    if (!continuation.isActive) manager.removeUpdates(listener)
-                } catch (e: Exception) {
-                    manager.removeUpdates(listener)
-                    continuation.cancel(e)
+                    .build()
+                providers.forEach { provider ->
+                    try {
+                        LocationManagerCompat.requestLocationUpdates(
+                            manager, provider, request, listener, Looper.getMainLooper()
+                        )
+                    } catch (_: Exception) {
+                        synchronized(requestedProviders) {
+                            requestedProviders.remove(provider)
+                        }
+                    }
+                }
+                synchronized(requestedProviders) {
+                    if (continuation.isActive) {
+                        if (requestedProviders.isEmpty()) {
+                            continuation.resume(null)
+                        } else if (respondedProviders.containsAll(requestedProviders)) {
+                            manager.removeUpdates(listener)
+                            continuation.resume(callbackBest)
+                        }
+                    }
                 }
             }
-        } ?: providers.mapNotNull { manager.getLastKnownLocation(it) }
+        }
+        val fallbackCandidates = providers.mapNotNull { manager.getLastKnownLocation(it) } +
+            listOfNotNull(callbackBest)
+        val selected = measured ?: fallbackCandidates
             .filter { isRecent(it) }
-            .maxByOrNull { it.elapsedRealtimeNanos }
+            .maxWithOrNull(LOCATION_COMPARATOR)
             ?: throw LocationException()
 
         send(
             LocationPositionWrapper(
-                latitude = measured.latitude,
-                longitude = measured.longitude,
-                altitude = if (measured.hasAltitude()) measured.altitude else null,
-                accuracy = if (measured.hasAccuracy()) measured.accuracy else null,
-                timestampMillis = measured.time,
-                provider = measured.provider
+                latitude = selected.latitude,
+                longitude = selected.longitude,
+                altitude = if (selected.hasAltitude()) selected.altitude else null,
+                accuracy = if (selected.hasAccuracy()) selected.accuracy else null,
+                timestampMillis = selected.time,
+                provider = selected.provider
             )
         )
     }
@@ -114,9 +135,31 @@ class AndroidLocationService @Inject constructor() : LocationSource {
     companion object {
         private val TIMEOUT_MILLIS = 15.seconds.inWholeMilliseconds
 
+        private val LOCATION_COMPARATOR = Comparator<Location> { first, second ->
+            val firstElapsed = first.elapsedRealtimeNanos
+            val secondElapsed = second.elapsedRealtimeNanos
+            if (firstElapsed > 0L && secondElapsed > 0L && firstElapsed != secondElapsed) {
+                firstElapsed.compareTo(secondElapsed)
+            } else if (first.time != second.time) {
+                first.time.compareTo(second.time)
+            } else {
+                val firstAccuracy = if (first.hasAccuracy()) first.accuracy else Float.MAX_VALUE
+                val secondAccuracy = if (second.hasAccuracy()) second.accuracy else Float.MAX_VALUE
+                secondAccuracy.compareTo(firstAccuracy)
+            }
+        }
+
+        private fun isBetterLocation(candidate: Location, current: Location?): Boolean =
+            current == null || LOCATION_COMPARATOR.compare(candidate, current) > 0
+
         private fun isRecent(location: Location): Boolean {
-            val ageNanos = SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos
-            return ageNanos in 0..120_000_000_000L &&
+            val nowNanos = SystemClock.elapsedRealtimeNanos()
+            val ageNanos = nowNanos - location.elapsedRealtimeNanos
+            val monotonicRecent = location.elapsedRealtimeNanos > 0L &&
+                ageNanos in 0..120_000_000_000L
+            val wallAge = System.currentTimeMillis() - location.time
+            val wallRecent = location.time > 0L && wallAge in 0..120_000L
+            return (monotonicRecent || wallRecent) &&
                 location.latitude.isFinite() && location.latitude in -90.0..90.0 &&
                 location.longitude.isFinite() && location.longitude in -180.0..180.0
         }

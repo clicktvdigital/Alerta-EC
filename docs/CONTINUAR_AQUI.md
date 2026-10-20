@@ -1,13 +1,79 @@
+## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
+
+Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
+
+- Estilo base MapLibre: hasta dos intentos por vista, espera de 2 s y watchdog de 20 s por intento. Los callbacks tienen token e identidad de vista; se retiran listeners y temporizadores al terminar, pausar o destruir. Al agotar el presupuesto se informa al usuario; una vista nueva permite reintentar.
+- Catálogo WMS: una descarga compartida por refresco, con OkHttp ya presente en el proyecto. Cancelar la coroutine llama a `Call.cancel()`; conexión y lectura de 10 s, plazo total HTTP de 30 s, máximo de 4 MiB reales (incluido contenido descomprimido y respuestas sin Content-Length). Se cierra la respuesta también ante errores. Estos límites corresponden a GetCapabilities; las teselas GetMap siguen gestionadas por MapLibre.
+- XML: parser SAX real compartido por Android/JVM, sin dependencias nuevas; rechazo obligatorio de DTD y entidades externas mediante lexical handler/resolver. Límites de profundidad, eventos, texto y fechas. Fechas inválidas y capas duplicadas se marcan por capa; XML roto o respuesta de error invalidan el catálogo completo.
+- Capas: se conservan fechas aún vigentes durante consulta/error y se informa de ello. Una capa se retira por desactivación, vencimiento o respuesta válida sin fecha seleccionable. Una fecha igual no reconstruye la fuente; una nueva se crea antes de retirar la anterior. Fallos parciales conservan registro de recursos para limpieza posterior. No se confirma descarga ni renderizado de teselas.
+- Respaldos: `*.pre_*` excluidos en `.gitignore`, sin borrar ni mover archivos. No había respaldos de ese patrón ya rastreados. Los 263 respaldos registrados al inicio se comprobaron por SHA-256 y permanecen intactos.
+
+Validaciones realizadas: `git diff --check` sin errores; revisión de archivos sin seguimiento relevantes y de cambios frente a la copia inicial; análisis sintáctico PSI de 17 archivos Kotlin sin errores. Esto no comprueba tipos ni compatibilidad de APIs. **Pruebas unitarias no ejecutadas; sin Gradle, compilación Android, APK ni consulta al servicio real.**
+
+### Archivos del paso 632 y continuación
+
+Modificados en `app/src/main/kotlin/org/breezyweather/ui/map/`: `MapFragment.kt`, `InamhiWmsTimes.kt`, `InamhiMapOverlay.kt`, `InamhiLayerStatus.kt`. Añadido `InamhiStyleState.kt`.
+
+Pruebas en `app/src/test/kotlin/org/breezyweather/ui/map/`: reemplazado el recolector simulado de `InamhiWmsCapabilitiesTest.kt` por XML real; ampliado `InamhiLayerStatusTest.kt`; añadidos `InamhiStyleStateTest.kt` e `InamhiWmsDownloadTest.kt`. Cubren herencia, nombres de estilos, Extent/CDATA, fechas ausentes/inválidas, duplicados, XML truncado, excepciones WMS, DTD/entidades, límites de bytes, cancelación del parser y de Call, error HTTP/red, presupuesto de reintento y callbacks tardíos, y conservación/vencimiento de fechas.
+
+También modificados `.gitignore`, `README.md` y este documento. Muchos archivos INAMHI y sus pruebas ya estaban sin seguimiento antes de este paso; siguen así porque no se ejecutó `git add`. Los archivos ajenos no se editaron. Copia de entrada y hashes en `/data/data/com.termux/files/usr/tmp/inamhi-audit-mfa9pyby/`; no incorporarla a Git.
+
+Siguiente validación, en entorno autorizado:
+1. Ejecutar todas las pruebas `Inamhi*` y compilar la variante correspondiente. Comprobar resolución de tipos/API de MapLibre y OkHttp; PSI solo valida sintaxis.
+2. En Android, comprobar SAX/lexical handler (si no se admite la protección, falla de forma cerrada), error/timeout del estilo, éxito del segundo intento, dos fallos, pausa/retorno, recreación y callbacks tardíos. Pausar un intento consume su presupuesto; dos intentos interrumpidos requieren recrear la vista.
+3. Simular HTTP lento, sin Content-Length, gzip, más de 4 MiB, HTTP 503 y desconexión durante lectura; medir que cancelación/call timeout cierran la conexión. Las pruebas con Call simulado no sustituyen esta integración.
+4. Validar un catálogo con una capa inválida y dos válidas, refrescos repetidos, cambio rápido de preferencias, misma/nueva fecha, catálogo vacío válido, vencimiento durante consulta/pausa y fallo al añadir/retirar fuentes. La retirada ante excepciones nativas de MapLibre se intenta de nuevo; no se garantiza recuperación si el motor nativo deja de aceptar operaciones.
+5. Inspeccionar orden, opacidad y continuidad visual de teselas. Crear una fuente nueva no confirma recepción de sus imágenes y puede producir transición visual mientras se descargan. Confirmar unidades, leyenda y disponibilidad oficial antes de afirmarlas.
+
+No se hicieron add, commit, push, merge, tag ni Release. Se mantienen applicationId, firma, credenciales y todos los cambios locales previos. No continuar con publicación ni compilación pesada sin nueva autorización.
+
+## Revisión local del módulo INAMHI — 18-10-2026
+
+Esta sección actualiza únicamente el estado de mapas INAMHI y prevalece sobre sus notas históricas inferiores. Cambios locales en `alerta-ec`, sin compilación ni validación Android; no se modifica la estimación global del proyecto.
+
+- Consultas vinculadas a la vista, el estilo y una instantánea de preferencias. Aplicación síncrona en el hilo principal después de consultar WMS; ya no quedan callbacks de aplicación fuera de la tarea. Invalidación antes de cancelar, agrupación de refrescos pendientes y limpieza al pausar/destruir la vista.
+- Una consulta GetCapabilities por refresco para las tres capas. Lectura de dimensiones temporales heredadas, listas y rangos de duración fija con límites; rechazo de fechas ambiguas, intervalos inválidos y respuestas de error. Selección de fechas después de recibir la respuesta; retirada conservadora al superar la fecha seleccionada, sin inventar fecha de emisión ni periodo de validez.
+- Capas activadas por defecto y desactivación persistente. La preferencia actual prevalece sobre la antigua. Botones «activada/desactivada» describen la elección; el panel distingue consulta, ausencia de fecha, error, vencimiento y teselas solicitadas sin confirmar su visualización.
+- Funcionamiento sin GPS, dominio WRF continental separado del alcance nacional de ALERTA EC (incluido Galápagos). El rectángulo configurado no acredita disponibilidad por punto. Unidades y leyenda siguen sin verificar y no se inventan. No se equipara blanco con ausencia de lluvia ni pronóstico con alerta oficial.
+- Se conservan PNG transparente y opacidades 0,15/0,10/0,10. Los controles se desplazan dentro de un máximo del 45 % del alto disponible para dejar espacio al mapa. No se alteran las imágenes del proveedor.
+- Pruebas unitarias añadidas para invalidación/refrescos, estados, preferencias, dominio continental, URL WMS y lectura/selección temporal. **Pendientes de ejecución**. Revisión sintáctica PSI Kotlin y `git diff --check`: sin errores; no comprueban resolución de tipos, compatibilidad de APIs ni funcionamiento Android.
+
+Pendientes: ejecutar pruebas y compilación en una etapa autorizada; validar en dispositivo rotación, salida/retorno durante consulta, alternancia rápida, cambio de preferencias, mapa sin GPS/red, fallos WMS/teselas, expiración, continente/Galápagos, texto grande y desplazamiento de paneles. Verificar metadatos oficiales, leyenda, unidades y representación de teselas antes de anunciarlos como confirmados. No se comprobó disponibilidad actual del servicio en esta sesión.
+
+
+### Continuidad técnica de esta revisión INAMHI
+
+Archivos de producción revisados y modificados: `MapFragment.kt`, `InamhiLayers.kt`, `InamhiMapOverlay.kt`, `InamhiWmsTimes.kt`, `InamhiMapPreferences.kt`, `InamhiLayerStatus.kt`; añadido `InamhiRequestState.kt`, todos en `app/src/main/kotlin/org/breezyweather/ui/map/`. `InamhiWmsTiles.kt` se revisó y se conservó sin cambios.
+
+Pruebas en `app/src/test/kotlin/org/breezyweather/ui/map/`: ampliado `InamhiWmsTimesTest.kt`; añadidos `InamhiRequestStateTest.kt`, `InamhiLayerStatusTest.kt`, `InamhiMapPreferencesTest.kt`, `InamhiLayersTest.kt` e `InamhiWmsCapabilitiesTest.kt`. El último prueba el recolector con eventos simulados, no sustituye una prueba del parser XML Android con respuestas reales.
+
+Límites pendientes: la cancelación puede esperar una lectura HTTP bloqueante (timeouts de conexión 10 s y lectura 20 s, sin plazo global de descarga); un mutex evita acumular conexiones al alternar capas. El estado nunca interpreta GetCapabilities ni la creación de una fuente MapLibre como confirmación de descarga/renderizado de teselas. Se retiran las capas al empezar un refresco para no mostrar datos anteriores bajo un estado nuevo; comprobar el efecto visual en dispositivo. Los rangos mensuales/anuales y `current` se rechazan, no se aproximan. Un catálogo temporal inválido produce error de consulta, sin conservar capas anteriores.
+
+Se preservaron todos los archivos ajenos al módulo. Respaldo de entrada del módulo, pruebas y documentación en `/data/data/com.termux/files/usr/tmp/alerta-ec-inamhi-8oapihy0/` (temporal local, no incorporarlo al repositorio). Sin Gradle, APK, commit, push, tags, publicaciones ni cambios de secretos/firma.
+
+<!-- ALERTA_EC_AUDITORIA_20261018 -->
+## Estado auditado ALERTA EC v0.1.9 / 109 (18-10-2026)
+
+Auditoria local de Codex, solo lectura, sin compilacion ni validacion Android.
+
+- Avance global estimado: **46/100** (revision provisional del 2026-10-18; implementacion ponderada estimada 65,7 % x factor de validacion 0,70; no equivale a pruebas aprobadas).
+- Revision posterior a los pasos 558-598: autosoporte reforzado (cola WorkManager, identificacion de solicitudes, contenido meteorologico, verificacion parcial/completa y cancelaciones). Las pruebas unitarias aun no se han ejecutado ni existe validacion de esta revision en Android. El aumento de implementacion de 62,7 % a 65,7 % es una estimacion de auditoria, no una medicion automatica.
+- Implementacion ponderada estimada: **62,7 %**.
+- Pendientes prioritarios: autosoporte y cola WorkManager; vigencia y cobertura INAMHI; pruebas meteorologicas; notificaciones multiciudad; intro; GPS/SOS; envio voluntario; accesibilidad y pruebas en Samsung.
+- Las funciones futuras aplazadas siguen pendientes y no se declaran completas.
+- Informe detallado: docs/ALERTA_EC_AUDITORIA_CODEX_20261018.txt.
+- No publicar Release ni ejecutar compilacion integral sin autorizacion.
+
 # ALERTA EC — CONTINUAR AQUÍ
 
 ## Revisión GPS/Nominatim/meteorología — 2026-10-17
 
-Estado actualizado y límites en [ALERTA_EC_GPS_METEOROLOGIA.md](ALERTA_EC_GPS_METEOROLOGIA.md). Esta revisión sustituye la descripción anterior de GPS sin cambios: ahora se conserva Double, precisión/altitud/hora, se limita la edad del fallback y se mantienen coordenadas ante fallo de geocodificación. Hay caché y control de frecuencia de Nominatim, panel GPS en preferencias y dirección de viento junto a ráfagas. No hay nueva cobertura de radar ni proveedor de lluvia integrado. Los antecedentes Atucucho/Cochapamba que siguen abajo son históricos, no una consulta actual. Sin compilación, CI, commit, push ni Release; tests Kotlin/Android pendientes.
+Estado actualizado y límites en [ALERTA_EC_GPS_METEOROLOGIA.md](ALERTA_EC_GPS_METEOROLOGIA.md). Esta revisión sustituye la descripción anterior de GPS sin cambios: ahora se conserva Double, precisión/altitud/hora, se limita la edad del fallback y se mantienen coordenadas ante fallo de geocodificación. Hay caché y control de frecuencia de Nominatim, panel GPS en preferencias y dirección de viento junto a ráfagas. No hay nueva cobertura de radar ni proveedor de lluvia integrado. Los antecedentes territoriales que siguen abajo son históricos, no una consulta actual. Sin compilación, CI, commit, push ni Release; tests Kotlin/Android pendientes.
 
 
 ## Ubicación y notificaciones meteorológicas — 2026-10-17
 
-Implementación local, sin compilación ni prueba Android. Nominatim y la conversión al modelo persistente priorizan `neighborhood`, `quarter`, parroquia/distrito y después ciudad. Se eliminó la inferencia que convertía una ciudad o distrito ambiguo en barrio. El nombre depende de los datos devueltos para las coordenadas: **no se ha confirmado Atucucho**, ni se añadió un nombre o polígono fijo. Android Geocoder solo proporciona `subLocality`, que no se presenta como un barrio certificado. Natural Earth y fuentes sin detalle pueden seguir mostrando una zona amplia. Las ubicaciones guardadas requieren nueva geocodificación para recibir el nombre actualizado.
+Implementación local, sin compilación ni prueba Android. Nominatim y la conversión al modelo persistente priorizan `neighborhood`, `quarter`, parroquia/distrito y después ciudad. Se eliminó la inferencia que convertía una ciudad o distrito ambiguo en barrio. El nombre depende de los datos devueltos para las coordenadas: **no se ha confirmado ningún barrio concreto**, ni se añadió un nombre o polígono fijo. Android Geocoder solo proporciona `subLocality`, que no se presenta como un barrio certificado. Natural Earth y fuentes sin detalle pueden seguir mostrando una zona amplia. Las ubicaciones guardadas requieren nueva geocodificación para recibir el nombre actualizado.
 
 En preferencias de cada ubicación se permite editar el nombre también para la ubicación actual. Es una etiqueta local manual, marcada «(manual)» en el resumen meteorológico; no verifica el barrio ni modifica latitud/longitud. Hay que revisarla al desplazarse. Se conserva la persistencia existente de `customName`, sin migración de base de datos.
 
@@ -17,7 +83,7 @@ Se conservan canales, permisos, deduplicación, preferencias y apertura de detal
 
 Auditoría GPS: `AndroidLocationService` entrega coordenadas y precisión, prioriza proveedor fusionado/red y conserva el fallback a última posición; no se alteraron permisos ni frecuencia. La comprobación de distancia de geocodificación ahora valida las coordenadas del proveedor antes de conservar las del pronóstico; el límite existente de 50 km es una comprobación de resultado distante, **no una certificación de barrio ni de precisión GPS**. `overwriteCoordinates = false` permanece. GPS aproximado, caché antigua o cartografía incompleta no permiten prometer identificación de barrio.
 
-Verificación local: `git diff --check`, `python scripts/validate_alerta_ec.py` y parseo XML/unicidad de claves. Se añadieron pruebas Kotlin para prioridades, conservación de coordenadas/etiqueta, ausencia de barrio inventado y horas pasadas; **no ejecutadas** en Termux. Pendiente CI autorizado y pruebas Android: Atucucho/Cochapamba con coordenadas consentidas, geocodificación sin barrio/fallida, GPS aproximado, desplazamiento con etiqueta manual, datos horarios ausentes/antiguos, medianoche, unidades, todos los estilos, fuentes grandes, TalkBack y pantalla bloqueada. No se consultó una ubicación privada a servicios externos.
+Verificación local: `git diff --check`, `python scripts/validate_alerta_ec.py` y parseo XML/unicidad de claves. Se añadieron pruebas Kotlin para prioridades, conservación de coordenadas/etiqueta, ausencia de barrio inventado y horas pasadas; **no ejecutadas** en Termux. Pendiente CI autorizado y pruebas Android: un caso de prueba anonimizado con coordenadas consentidas, geocodificación sin barrio/fallida, GPS aproximado, desplazamiento con etiqueta manual, datos horarios ausentes/antiguos, medianoche, unidades, todos los estilos, fuentes grandes, TalkBack y pantalla bloqueada. No se consultó una ubicación privada a servicios externos.
 
 Archivos: `AlertaEcNotifier.kt`, `AlertaEcWeatherAdapter.kt`, nuevo `AlertaEcNotificationText.kt`; `EcuadorAddressMapper.kt`, `RefreshHelper.kt`, `NominatimService.kt`, modelo de dominio `Location.kt`, `LocationPreferences.kt`; los tres presentadores `*WidgetNotificationIMP.kt`, nuevo `NotificationForecastSummary.kt`, `notification_base.xml`, cadenas `values`/`values-es`; tres pruebas nuevas `EcuadorAddressMapperTest`, `LocationAddressPriorityTest`, `AlertaEcNotificationTextTest`; README y este documento.
 
@@ -144,7 +210,7 @@ Estado: cambios locales en código; NO compilados ni probados en Android. La ord
 
 ### RED Y REPETIDOR
 - Router/repetidor deben estudiarse tambien como posible origen del problema.
-- Repetidor/AP funciona como puente, DHCP deshabilitado y administracion 192.168.100.2.
+- Repetidor/AP funciona como puente, DHCP deshabilitado y administración en una red local de pruebas.
 - Revisar DHCPv4, IPv6 RA/SLAAC, DNS y rutas cuando se pruebe desde el repetidor.
 - No desactivar IPv6 como solucion.
 - Una red IPv6-only necesita compatibilidad de red para destinos IPv4, por ejemplo NAT64/DNS64/464XLAT cuando corresponda.
@@ -161,14 +227,14 @@ Estado: cambios locales en código; NO compilados ni probados en Android. La ord
 - No acumular APK, builds y logs innecesarios en el telefono.
 ### SIGUIENTE ACCION EXACTA
 1. COMPLETADO: diagnostico integral de GPS, Nominatim, Release y panel local.
-2. COMPLETADO: identificar que Nominatim entrega para el punto de prueba road=[calle residencial omitida], quarter=San Jose, city_district=Cochapamba, village=Atucucho, county=Quito y state=Pichincha.
+2. COMPLETADO: identificar qué campos administrativos devuelve Nominatim para un punto de prueba anonimizado, sin conservar calles ni nombres de lugares identificables.
 3. EN ESTE CAMBIO: corregir la jerarquia de Ecuador para que quarter/sector no sustituya a la parroquia en el titulo principal.
 4. EN ESTE CAMBIO: mapear direccion detallada como barrio/sector/parroquia/canton/provincia sin mezclar niveles.
 5. EN ESTE CAMBIO: activar CI automatica de compilacion Kotlin Release en GitHub para cada push a alerta-ec.
 6. EN ESTE CAMBIO: guardar el panel local dentro del repositorio y mantener una copia de ejecucion en ~/alerta-ec-panel.
 7. SIGUIENTE: confirmar CI verde en GitHub.
-8. SIGUIENTE: probar que la app muestra Atucucho, Cochapamba y que la direccion detallada conserva San Jose solamente como sector si el proveedor lo devuelve.
-9. SIGUIENTE: resolver el codigo postal con estrategia multifuente; no sobreescribir [código postal residencial omitido] por el 170318 de OSM sin validacion.
+8. SIGUIENTE: probar que la app separa barrio, parroquia y sector, conservando el sector únicamente cuando el proveedor lo devuelve como tal.
+9. SIGUIENTE: resolver el código postal con estrategia multifuente; no sobrescribir un valor validado con otro proveedor sin validación.
 10. SIGUIENTE: validar en dispositivo GPS, clima, minutely y FPAS; no crear una Release hasta completar CI y pruebas funcionales.
 ### PRIORIDADES QUE NO SE PUEDEN OLVIDAR
 - GPS real y seguro.
@@ -274,16 +340,16 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Distinguir pronosticos de observaciones reales.
 
 ### Ubicacion
-- Area de validacion: Atucucho, parroquia Cochapamba, Quito, Pichincha. No publicar coordenadas GPS precisas ni la interseccion exacta del domicilio en GitHub.
-- La clasificacion municipal vigente consultada en fuentes del Municipio de Quito ubica Atucucho y la parroquia Cochapamba en la Administracion Zonal Eugenio Espejo (Zona Norte), no en la Administracion Zonal La Delicia.
-- Zona de Planificacion 9 significa Distrito Metropolitano de Quito; no debe confundirse con una administracion zonal ni con un distrito de salud.
-- El MSP ubica Atucucho/Cochapamba en el Distrito de Salud 17D05, denominado La Concepcion a Zambiza.
-- El codigo postal [código postal residencial omitido] es un codigo postal valido del Distrito Metropolitano de Quito. Su estructura normativa es 17-05-28: provincia Pichincha, distrito postal/administrativo 05, zona postal 28.
-- Referencia validada por el usuario en Google Maps y en una aplicacion de Codigo Postal Ecuador: [código postal residencial omitido]. Ademas existen referencias publicas de servicios y direcciones cercanas que usan [código postal residencial omitido].
-- Nominatim/OpenStreetMap devolvio 170318 para la coordenada GPS de prueba, por lo que existe una discrepancia de fuente. No asumir que el codigo de OSM es correcto solo por venir del geocodificador.
-- Objetivo de presentacion para el caso de prueba: barrio Atucucho; sector San Jose si la fuente lo devuelve como quarter; parroquia Cochapamba; canton Quito; provincia Pichincha; calle segun el proveedor; codigo postal validado por una fuente postal independiente.
+- Área de validación: un entorno urbano anonimizado de Ecuador. No publicar coordenadas GPS precisas ni intersecciones de domicilios en GitHub.
+- La clasificación municipal debe conservarse como jerarquía administrativa verificada y no confundirse con parroquia, distrito o zona.
+- La zona de planificación metropolitana no debe confundirse con una administración zonal ni con un distrito de salud.
+- Los distritos de salud deben documentarse como nivel independiente de la parroquia y la administración zonal.
+- El código postal debe tratarse como dato de fuente y validarse de forma independiente; no conservar códigos personales en el repositorio.
+- Las referencias postales aportadas por usuarios deben permanecer fuera del repositorio y validarse por separado.
+- Los proveedores pueden devolver códigos postales discrepantes; conservar la discrepancia como categoría y resolverla con validación multifuente, sin registrar valores concretos.
+- Objetivo de presentación para el caso de prueba: mostrar barrio, sector, parroquia, cantón y provincia por separado, usando calle y código postal solo si la fuente los devuelve y la privacidad está garantizada.
 - No hardcodear una direccion particular para todos los usuarios. La aplicacion debe resolver dinamicamente por GPS y conservar procedencia/confianza de cada dato.
-- Fuentes de verificacion: Municipio de Quito/Zonales (Atucucho y Cochapamba bajo Eugenio Espejo), MSP Distrito 17D05, y Norma Tecnica del Codigo Postal Ecuatoriano.
+- Fuentes de verificación: autoridades municipales y sanitarias, y una norma postal ecuatoriana; revisar cobertura, vigencia y términos.
 ### Fases posteriores
 - Alertas verificadas de granizo, tormentas, rayos, deslizamientos, sismos, volcanes e incendios.
 - Integracion de organismos oficiales y canales de difusion, incluido X cuando sea pertinente.
@@ -361,7 +427,7 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 ## Lluvia hiperlocal, historial y accesibilidad — requisito funcional
 
 ### Caso real de prueba — 8 de octubre de 2026
-- Zona de prueba: ubicacion GPS actual del usuario en Quito; NO publicar coordenadas precisas en GitHub.
+- Zona de prueba: ubicación GPS actual de un usuario que haya dado consentimiento; NO publicar coordenadas precisas en GitHub.
 - Primeras gotas observadas por el usuario: 13:40 hora local.
 - Lluvia claramente observada: aproximadamente 13:45.
 - Intensidad observada por el usuario: muy leve, descrita como tipo rocio.
@@ -483,7 +549,7 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - El panel debe permanecer en 127.0.0.1:8765 y no exponerse a 0.0.0.0.
 - Mantener flujo: cambios -> validaciones -> commit/push -> CI GitHub -> prueba funcional -> Release firmada -> Obtainium.
 - No crear una Release nueva hasta confirmar CI verde y probar la geocodificacion corregida.
-- Mantener [código postal residencial omitido] como referencia postal validada independientemente por el usuario; Nominatim/OSM devolvio 170318 y debe conservarse como discrepancia de fuente hasta resolverla con estrategia multifuente.
+- Mantener los códigos postales únicamente como datos efímeros de validación fuera del repositorio; resolver discrepancias con estrategia multifuente.
 
 <!-- ALERTA_EC_PANEL_FIX_DEFINITIVO_20261008 -->
 ## Panel local reparado — 8 de octubre de 2026
@@ -501,18 +567,18 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - El panel local responde correctamente en 127.0.0.1:8765.
 - /api/proyecto y /api/gps responden HTTP 200.
 - Se excluyen __pycache__ y archivos *.pyc del repositorio.
-- Siguiente validacion: GPS real + Nominatim y comprobar jerarquia Atucucho / Cochapamba / Quito / Pichincha.
+- Siguiente validación: GPS real + Nominatim y comprobar la jerarquía barrio / sector / parroquia / cantón / provincia sin nombres identificables.
 - No publicar 0.1.4 hasta completar esta validacion.
 
 <!-- ALERTA_EC_GPS_VALIDADO_014 -->
 ## GPS/geocodificacion validada y candidata 0.1.4 — 8 de octubre de 2026
 - Panel local operativo y arbol Git limpio.
-- GPS real y Nominatim validaron para el caso de prueba: calle [calle residencial omitida]; village/barrio Atucucho; quarter/sector San Jose; city_district/parroquia Cochapamba; county Distrito Metropolitano de Quito; provincia Pichincha.
-- La jerarquia nueva produce como titulo esperado: Atucucho, Cochapamba.
-- El Vademecum oficial del sector postal de MINTEL incluye Quito | 17D05 | [código postal residencial omitido] | Cochapamba; tambien existen 170529 y 170530 dentro de Cochapamba.
-- [código postal residencial omitido] queda registrado como referencia postal validada por el usuario y respaldada por fuentes postales; no hardcodearlo para todos los usuarios.
-- Nominatim/OpenStreetMap devolvio 170318 para el punto GPS y se mantiene registrado como discrepancia de fuente.
-- Municipio de Quito ubica Atucucho, parroquia Cochapamba, dentro de la Administracion Zonal Eugenio Espejo.
+- GPS real y Nominatim deben validarse para un caso de prueba anonimizado, comprobando que la calle, barrio, sector, parroquia, cantón y provincia se separan según los campos de la fuente.
+- La jerarquía nueva produce un título compuesto solo con campos administrativos no identificables.
+- Las fuentes postales oficiales deben compararse sin guardar códigos concretos.
+- Los valores validados por usuarios deben permanecer fuera del repositorio y no hardcodearse.
+- Las discrepancias de Nominatim/OSM deben conservarse solo como estado de validación sin valores personales.
+- La administración municipal debe conservarse como nivel separado de parroquia y distrito.
 - 0.1.4 sera prerelease de prueba para validar la jerarquia de ubicacion en la APK instalada.
 - Antes de declarar estable el codigo postal se debe implementar validacion postal multifuente/geoespacial.
 
@@ -524,8 +590,8 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - GitHub Actions run 37853710866 de Release firmada termino completed/success.
 - GitHub Release v0.1.4 fue verificada y contiene al menos una APK valida.
 - Esta version es una prerelease de prueba para validar en el telefono la nueva jerarquia de geocodificacion de Ecuador.
-- Caso de validacion esperado: Atucucho, Cochapamba como titulo; San Jose separado como sector; Quito y Pichincha en sus niveles administrativos.
-- Mantener [código postal residencial omitido] como referencia postal validada para Cochapamba/17D05 y 170318 como discrepancia devuelta por Nominatim/OpenStreetMap hasta implementar validacion postal multifuente.
+- Caso de validación esperado: barrio y parroquia como título; sector separado; cantón y provincia en sus niveles administrativos.
+- Mantener las referencias postales fuera del repositorio y resolver discrepancias de proveedores mediante validación postal multifuente.
 - Siguiente paso: actualizar Alerta EC con Obtainium y verificar version instalada, certificado, direccion mostrada, GPS, clima, minutely y FPAS.
 
 ## PLAN GPS 3D Y REFERENCIAS COMUNITARIAS — 2026-10-08
@@ -538,19 +604,19 @@ La alerta debe proporcionar recomendaciones breves y relacionadas con el riesgo 
 - Conservar procedencia, confianza y antiguedad de cada dato.
 - No inventar coordenadas, distancias, alturas ni direcciones.
 
-### Sectores de validacion en Atucucho
-- Union La Paz, sector Escuela, El Cisne, Ladera del Cisne, Corazon de Jesus, Condor Mirador, La Campina y San Jacinto.
+### Sectores de validación (sin datos identificables)
+- Sectores comunitarios del caso de prueba: nombres y límites por verificar fuera del repositorio.
 - Son nombres comunitarios por verificar y delimitar mediante cartografia.
-- El sector debe determinarse dinamicamente; no fijar Union La Paz para todos.
+- El sector debe determinarse dinámicamente; no fijar un nombre comunitario para todos.
 
 ### Calles y referencias comunitarias por verificar
-- [calle residencial omitida], tambien conocida como [calle residencial omitida].
-- Calle [transversal residencial omitida] y [transversal residencial omitida]: nombres y conexiones por contrastar.
-- [referencia comercial residencial omitida por privacidad].
-- [referencia comercial residencial omitida por privacidad].
-- [referencia local residencial omitida por privacidad].
-- [referencia local residencial omitida por privacidad].
-- [referencia comercial omitida]: referencia hacia Zulema Blacio.
+- Calles y referencias residenciales: nombres y conexiones por contrastar fuera del repositorio.
+- Referencias viarias del caso de prueba: contrastar externamente sin registrar nombres identificables.
+- Referencias comerciales o comunitarias: validar externamente y no registrar ubicaciones privadas.
+- Referencias comerciales o comunitarias: validar externamente y no registrar ubicaciones privadas.
+- Referencias locales del caso de prueba: validar externamente y no registrar ubicaciones privadas.
+- Referencias locales del caso de prueba: validar externamente y no registrar ubicaciones privadas.
+- Referencias comerciales omitidas: validar externamente sin registrar nombres identificables.
 - Faldas del Pichincha: referencia natural general.
 - Las distancias son reportes comunitarios, NO mediciones GPS verificadas.
 - No publicar puntos que permitan identificar un domicilio privado.
@@ -607,8 +673,8 @@ Toda nueva función o decisión debe actualizar README.md y este documento segú
 
 ### Territorio, ubicación y unidades
 - Desglosar ubicación sin mezclar niveles: calle/intersección, barrio, sector, parroquia civil, parroquia eclesiástica (solo con fuente verificable), distrito/cantón, provincia y código postal. Conservar proveedor, confianza y antigüedad. No publicar coordenadas de domicilios.
-- Para el caso de referencia, [código postal residencial omitido] está confirmado por el usuario y respaldado por fuentes postales oficiales consultadas (incluido vademécum MINTEL: Quito, 17D05, Cochapamba). No generalizarlo ni hardcodearlo. Nominatim/OSM entregó 170318 para la coordenada de prueba; mantener ambos valores y resolver con validación postal/geoespacial independiente.
-- Caso de geocodificación previo: barrio Atucucho, sector San José si lo informa el proveedor, parroquia civil Cochapamba, cantón/distrito Quito y provincia Pichincha; la zona municipal indicada en antecedentes es Eugenio Espejo. No confundir parroquia civil con eclesiástica, distrito postal, distrito de salud ni administración zonal.
+- Para el caso de referencia, los códigos postales confirmados por usuarios y fuentes oficiales deben permanecer fuera del repositorio. Las discrepancias de proveedores se resuelven con validación postal/geoespacial independiente, sin registrar valores concretos.
+- Caso de geocodificación previo: separar barrio, sector, parroquia civil, cantón/distrito y provincia; no confundir niveles administrativos ni usar nombres de prueba identificables.
 - Zona horaria objetivo Quito, UTC−05:00; preservar segundos en presentación/registro cuando la fuente los soporte y mostrar antigüedad. Tiempo exacto no significa precisión predictiva.
 - Unidades predeterminadas: temperatura °C, lluvia acumulada mm y tasa mm/h. Expresar intervalo de acumulación y no mezclar profundidad acumulada con tasa. Pronóstico por horas prioritario y diario secundario.
 
@@ -1046,7 +1112,7 @@ El primer valor es la espera; los siguientes alternan vibración y pausa. Solo l
 
 La precipitación actualiza un ID estable, usa `setOnlyAlertOnce` y silencia reenvíos dentro de 30 minutos por ubicación. Los pronósticos conservan su deduplicación por evento. Las alertas oficiales descartan vencidas y menores, recuerdan hasta 200 claves por ubicación/ID/severidad/inicio y permiten cambios de severidad. El resumen de grupo es silencioso. La memoria es acotada: cambios de identificadores del proveedor o eventos desalojados pueden volver a avisar.
 
-Los avisos horarios, oficiales y de precipitación usan `geographicName`: barrio, parroquia, ciudad, omitiendo datos ausentes y duplicados. Atucucho, Cochapamba, Quito aparece únicamente si esos datos están disponibles en la dirección resuelta o en una etiqueta manual; este cambio no agrega nombres ni modifica coordenadas.
+Los avisos horarios, oficiales y de precipitación usan `geographicName`: barrio, parroquia, ciudad, omitiendo datos ausentes y duplicados. Los nombres de barrio, parroquia y ciudad aparecen únicamente si esos datos están disponibles en la dirección resuelta o en una etiqueta manual; este cambio no agrega nombres ni modifica coordenadas.
 
 Validación local: `python3 scripts/validate_alerta_ec.py`, `git diff --check` y análisis XML de manifiesto, traducciones y cuatro vectores monocromáticos. Se añadieron pruebas `AlertaEcNotificationAppearanceTest` para iconos, severidad oficial y tormenta genérica. No se ejecutaron pruebas Kotlin, compilación, instalación ni CI. Pendiente: ejecutar pruebas unitarias en un entorno Android preparado y comprobar en dispositivo instalación limpia/actualización, permiso denegado, canales bloqueados o personalizados, No molestar, silencio, vibración desactivada, repetición, escalamiento oficial y ubicación sin datos/manual. Conservar las pruebas previas de frescura, deduplicación y jerarquía geográfica.
 
@@ -1104,7 +1170,7 @@ Verificar disponibilidad, permisos, frecuencia de actualizacion, condiciones de 
 ## VIGILANCIA GEOGRAFICA
 - Ubicacion GPS actual.
 - Sectores favoritos y zonas cercanas.
-- Quito, Atucucho, La Carolina, Valle de Los Chillos y otras zonas configurables.
+- Quito y otras zonas configurables.
 - Distancia y relevancia respecto de la ubicacion o ruta.
 - No confundir pronostico, observacion, reporte ciudadano y alerta oficial.
 
@@ -1378,4 +1444,74 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Acciones actualizadas a revisiones existentes en los workflows del repositorio. La compilación continúa en GitHub Actions.
 - Validación local limitada a inspección estática y `git diff --check`; no se ejecutó el workflow de Release ni Gradle en Termux, no se crearon tags/Releases y no se tocó APK instalada, applicationId, keystore o secretos. Pendiente CI y prueba funcional en dispositivo antes de cualquier publicación.
 
+## Estado NOAA e INAMHI — 2026-10-18
+
+- Rama de trabajo: alerta-ec. Cambios locales pendientes; no se ha realizado commit, push, tag ni Release en esta fase.
+- NOAA GOES-19: verificadas las fuentes de nubes GEOCOLOR, rayos GLM EXTENT3 y vista amplia GEOCOLOR. El 2026-10-18 a las 13:35 UTC, las imagenes mas recientes tenian unos 24-25 minutos de antiguedad; las tres respondieron HTTP 206 a solicitudes parciales y presentaron firma JPEG valida. Esto no sustituye las pruebas de visualizacion en Android.
+- Reproductor NOAA: cambios locales en NoaaSatellitePlayer.kt y MapFragment.kt para reanudar consultas al volver a primer plano, esperar la finalizacion de la carga antes de avanzar y retrasar el primer avance 1200 ms. Pendientes compilacion Kotlin, pruebas de animacion, errores de red, memoria y ciclo de vida en dispositivo.
+- INAMHI WRF: la prueba WMS en un punto de prueba urbano devolvió PNG completamente blanco y opaco para precipitacion 3h, incluso con TRANSPARENT=TRUE, BGCOLOR=0xFFFFFF e image/png8. Otras capas devolvieron colores opacos. No interpretar automaticamente blanco como ausencia de lluvia o NoData. Pendiente estrategia segura que no oculte el mapa.
+- Mantener observaciones satelitales NOAA separadas de pronosticos WRF INAMHI y Open-Meteo, indicando fuente, fecha, vigencia y cobertura. La aplicacion debe funcionar en Ecuador continental y Galapagos; la cobertura WRF continental no equivale a cobertura nacional.
+- Preservar GPS, alertas, SOS, accesibilidad, identidad ALERTA EC, licencias y funcionamiento gratuito sin registro.
+- Estado Git previo a documentar: 20 archivos modificados, 19 archivos nuevos y 111 respaldos locales .pre_* sin seguimiento. No agregar respaldos ni archivos no revisados automaticamente.
+- La documentacion historica de versiones anteriores se conserva. Verificar versionName/versionCode reales antes de cualquier publicacion. No cambiar applicationId ni firma. Flujo obligatorio: CI -> pruebas en dispositivo -> documentacion -> autorizacion expresa -> Release estable.
+
 <!-- ALERTA_EC_AUTO_END -->
+
+
+## Protocolo Termux y NOAA — 2026-10-18
+- Todos los comandos entregados al usuario deben copiar su salida completa al portapapeles mediante: 2>&1 | string collect | tee /dev/stderr | termux-clipboard-set.
+- Usar Fish, un comando por turno y esperar el resultado; salida vacía significa que el comando se ejecutó sin producir texto.
+- Crear respaldo antes de cambios, evitar compilaciones locales y no hacer commit, push, tag ni release sin autorización expresa.
+- Paso 294: NoaaSatellitePlayer.kt actualizado para consultar imágenes NOAA al reanudar cuando transcurran 15 minutos; respaldo NoaaSatellitePlayer.kt.pre_refresh_294; git diff --check sin errores visibles.
+- Pendientes NOAA: recuperación de imágenes fallidas, comprobación real en Android y actualización fiable sin descargas innecesarias.
+
+
+## NOAA — Correcciones verificadas 294-303 (2026-10-18)
+- Paso 294/296: consulta de imágenes al reanudar el mapa si han transcurrido 15 minutos; verificación estática correcta.
+- Paso 298/299: registro de imágenes fallidas, salto durante reproducción y detención si ninguna es utilizable; verificación estática correcta.
+- Paso 300/301: al cambiar modo se detiene la animación, se cancela la consulta anterior y se ignoran respuestas obsoletas; verificación estática correcta.
+- Paso 302/303: mensaje diferenciado para errores de conexión y reinicio del intervalo tras consulta fallida; verificación estática correcta.
+- Respaldos: NoaaSatellitePlayer.kt.pre_refresh_294, .pre_failed_frames_298, .pre_mode_switch_300 y .pre_error_message_302.
+- Pendiente: revisar cancelaciones, validar conectividad y reproducción real en Android, confirmar cobertura satelital de Ecuador continental y Galápagos.
+- No compilar, hacer commit, push, tag ni publicar sin autorización expresa del usuario.
+
+
+## NOAA — Cancelaciones verificadas (pasos 305-307)
+- Se identificó que runCatching capturaba CancellationException en las consultas NOAA y en la carga de imágenes.
+- Paso 306: se añadió propagación explícita de CancellationException en ambas operaciones.
+- Paso 307: cinco verificaciones estáticas OK; git diff --check sin errores.
+- Respaldo: NoaaSatellitePlayer.kt.pre_cancellation_306.
+- Pendiente: comprobar comportamiento real en Android, errores de red y disponibilidad/cobertura de imágenes para Ecuador continental y Galápagos.
+- Mantener un comando Fish por turno y copiar siempre la salida a Termux mediante string collect, tee y termux-clipboard-set.
+
+## NOAA: avances locales pasos 309-326
+
+- Verificadas por HTTP 200 las fuentes oficiales NOAA GOES-19: GEOCOLOR regional, GLM rayos y GEOCOLOR disco completo; sin descargar los JPEG al teléfono.
+- Reproductor con tres modos, cronología, reproducción, pausa, zoom y hora de observación.
+- Actualización normal cada 15 minutos y espera mínima de 60 segundos tras fallo; se evita iniciar otra consulta si existe una activa.
+- Conservación de imágenes anteriores ante fallos, únicamente si siguen vigentes; caducidad de 6 horas y descarte de fotogramas vencidos.
+- Mensaje visible cuando todas las imágenes caducan; se detiene la reproducción.
+- Se preservan respaldos locales de los cambios; no se han compilado APK ni publicado versiones nuevas.
+- PENDIENTE: revisar selección de zona horaria continental/Galápagos en el reproductor, validar casos de fallo y ciclo de vida en Android, ejecutar CI cuando se autorice y continuar otros pendientes de ALERTA EC.
+- IMPORTANTE: las comprobaciones realizadas son estáticas; no equivalen a pruebas de funcionamiento en Android.
+
+
+## NOAA: zona horaria y límites de Galápagos (pasos 330-340)
+
+- NoaaSatellitePlayer admite y actualiza dinámicamente la hora de Galápagos (Pacific/Galapagos, UTC-6) y Ecuador continental (America/Guayaquil, UTC-5).
+- MapFragment reutiliza el GPS existente, actualizado aproximadamente cada cinco segundos, sin iniciar otro servicio de ubicación ni descargar imágenes al cambiar de zona horaria.
+- EcuadorTimeFormatter.isGalapagosCoordinates centraliza la detección aproximada. Sus límites son latitud -1.4016 a 1.6644 y longitud -92.0116 a -89.2548.
+- Estos límites proceden del recurso existente breezytz_ec.json, que contiene un MultiPolygon de un solo rectángulo de cinco puntos para EC-W; NO representa las costas ni una frontera administrativa precisa.
+- BreezyTimeZoneService y sus avisos legales permanecen intactos. Su recurso geográfico tampoco proporciona contornos insulares precisos.
+- Pendiente: validar los límites y las islas periféricas, el funcionamiento en Android, la cobertura real de las imágenes NOAA y la presentación de fechas durante cambios de ubicación.
+- Estado: cambios locales sin compilación, sin commit, sin push y sin publicación. No considerar la integración validada en ejecución.
+
+## Introduccion vertical: pasos 368-373
+- Se incorporo el logotipo vertical original proporcionado por el usuario (864x1536) a los recursos alertaec_logo_acerca.png y alerta_ec_intro_logo.png, con respaldos .pre_vertical_368.
+- El XML de introduccion utiliza el logotipo vertical con contenedor 220x390 dp.
+- Los posters inicial y final del reproductor utilizan FIT_CENTER.
+- Al terminar el video, el logo final permanece 3000 ms y luego se desvanece durante 600 ms.
+- stop() cancela la animacion de salida, restablece alpha=1 y oculta la capa.
+- Validacion estatica: git diff --check sin errores.
+- PENDIENTE: compilacion autorizada y prueba visual en Android; no afirmar que la reproduccion esta validada.
+- No se realizo commit, push, compilacion ni publicacion.

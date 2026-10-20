@@ -125,7 +125,7 @@ class MainActivityViewModel @Inject constructor(
         runBlocking {
             val validList = initLocations()
 
-            val id = formattedId ?: validList.getOrNull(0)?.formattedId
+            val id = formattedId ?: validList.firstOrNull { it.isCurrentPosition }?.formattedId ?: validList.firstOrNull()?.formattedId
             val current = validList.firstOrNull { item -> item.formattedId == id }
 
             current?.let {
@@ -193,7 +193,7 @@ class MainActivityViewModel @Inject constructor(
         if (newValid.size != validLocationList.value.size) {
             if (newValid.size > validLocationList.value.size) {
                 // New location added case
-                index = newValid.size - 1
+                index = if (newValid.firstOrNull()?.isCurrentPosition == true && validLocationList.value.none { it.isCurrentPosition }) 0 else newValid.size - 1
             } else {
                 // Look for our location by formattedId in the new list (maybe the location deleted
                 // is not the currently focused location!)
@@ -674,7 +674,14 @@ class MainActivityViewModel @Inject constructor(
 
     // Repository
     suspend fun initLocations(): List<Location> {
-        val list = locationRepository.getAllLocations()
+        val list = locationRepository.getAllLocations().toMutableList()
+        val context = getApplication<Application>()
+        val hasGpsPermission = context.hasPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) || context.hasPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (hasGpsPermission && list.none { it.isCurrentPosition }) {
+            val gps = Location(isCurrentPosition = true).applyDefaultPreset(sourceManager)
+            list.add(0, gps)
+            locationRepository.addAll(list)
+        }
 
         return list.map {
             it.copy(weather = weatherRepository.getWeatherByLocationId(it.formattedId))
@@ -694,6 +701,14 @@ class MainActivityViewModel @Inject constructor(
             locationRepository.delete(location.formattedId)
             // It cascades delete location parameters, weather and so on
         }
+    }
+
+    fun ensureAutomaticGpsLocation() {
+        val context = getApplication<Application>()
+        if (!context.hasPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) &&
+            !context.hasPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)) return
+        if (validLocationList.value.any { it.isCurrentPosition }) return
+        addLocation(Location(isCurrentPosition = true).applyDefaultPreset(sourceManager), 0)
     }
 
     fun getLocatePermissionList(context: Context) = refreshHelper.getPermissions(context)

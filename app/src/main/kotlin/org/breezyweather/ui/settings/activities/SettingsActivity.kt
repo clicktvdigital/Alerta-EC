@@ -30,6 +30,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import breezyweather.data.location.LocationRepository
+import breezyweather.data.weather.WeatherRepository
 import breezyweather.domain.location.model.Location
 import breezyweather.domain.source.SourceFeature
 import com.google.accompanist.permissions.PermissionStatus
@@ -48,6 +50,7 @@ import org.breezyweather.sources.RefreshHelper
 import org.breezyweather.sources.SourceManager
 import org.breezyweather.ui.settings.compose.AppearanceSettingsScreen
 import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
+import org.breezyweather.ui.settings.compose.AutoSupportSettingsScreen
 import org.breezyweather.ui.settings.compose.DebugSettingsScreen
 import org.breezyweather.ui.settings.compose.LocationSettingsScreen
 import org.breezyweather.ui.settings.compose.MainScreenSettingsScreen
@@ -68,6 +71,10 @@ class SettingsActivity : BreezyActivity() {
     @Inject lateinit var sourceManager: SourceManager
 
     @Inject lateinit var refreshHelper: RefreshHelper
+
+    @Inject lateinit var locationRepository: LocationRepository
+
+    @Inject lateinit var weatherRepository: WeatherRepository
 
     companion object {
         const val KEY_SETTINGS_ACTIVITY_START_DESTINATION =
@@ -309,6 +316,13 @@ class SettingsActivity : BreezyActivity() {
                     worldwideSources = sourceManager
                         .getSupportedFeatureSources(SourceFeature.FORECAST, Location()),
                     configurableSources = sourceManager.getConfigurableSources()
+                )
+            }
+            composable(SettingsScreenRouter.AutoSupport.route) {
+                AutoSupportSettingsScreen(
+                    onNavigateBack = { onBack() },
+                    locationRepository = locationRepository,
+                    weatherRepository = weatherRepository,
                 )
             }
             composable(SettingsScreenRouter.Debug.route) {

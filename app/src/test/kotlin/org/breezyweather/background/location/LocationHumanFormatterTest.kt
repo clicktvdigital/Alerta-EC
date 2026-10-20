@@ -8,7 +8,7 @@ class LocationHumanFormatterTest {
     fun `formats decimal and DMS coordinates with correct hemispheres`() {
         LocationHumanFormatter.decimalCoordinates(-0.5, -78.25) shouldBe "-0.500000, -78.250000"
         LocationHumanFormatter.dmsCoordinates(-0.5, -78.25) shouldBe
-            "0° 30 min 00.00 sec S · 78° 15 min 00.00 sec O"
+            "0° 30′ 00.00″ S · 78° 15′ 00.00″ O"
     }
 
     @Test
@@ -16,6 +16,6 @@ class LocationHumanFormatterTest {
         LocationHumanFormatter.accuracy(null) shouldBe "No disponible"
         LocationHumanFormatter.altitude(null) shouldBe "No disponible"
         LocationHumanFormatter.accuracy(12f) shouldBe "±12 m"
-        LocationHumanFormatter.altitude(1000.0) shouldBe "1000 m s. n. m."
+        LocationHumanFormatter.altitude(1000.0) shouldBe "1000 m (altitud GPS, referencia WGS84)"
     }
 }

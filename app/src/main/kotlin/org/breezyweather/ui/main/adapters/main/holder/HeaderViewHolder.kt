@@ -68,7 +68,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
 
         if (BreezyWeather.instance.debugMode) {
             timezoneText.visibility = View.VISIBLE
-            timezoneText.text = arrayOf(if (location.countryCode == "EC") "Ecuador" else location.countryCode, if (location.countryCode == "EC" && location.timeZone.id == "America/Guayaquil") "Quito" else location.timeZone.id).joinToString(
+            timezoneText.text = arrayOf(if (location.countryCode == "EC") "Ecuador" else location.countryCode, when (location.timeZone.id) { "America/Guayaquil" -> "Hora continental (Quito) · UTC−5"; "Pacific/Galapagos" -> "Hora de Galápagos · UTC−6"; else -> location.timeZone.id }).joinToString(
                 context.getString(R.string.dot_separator)
             )
         }

@@ -518,6 +518,30 @@ class WeatherUpdateJob @AssistedInject constructor(
             return true
         }
 
+        /**
+         * Solicitud identificable para el autosoporte.
+         * El UUID corresponde a la peticion propuesta; el llamador debe
+         * verificar si WorkManager la acepto al utilizar KEEP.
+         */
+        fun startNowTracked(
+            context: Context,
+            location: Location? = null,
+        ): String? {
+            val wm = context.workManager
+            if (wm.isRunning(TAG)) return null
+
+            val inputData = workDataOf(
+                KEY_LOCATION to location?.formattedId
+            )
+            val request = OneTimeWorkRequestBuilder<WeatherUpdateJob>()
+                .addTag(TAG)
+                .addTag(WORK_NAME_MANUAL)
+                .setInputData(inputData)
+                .build()
+            wm.enqueueUniqueWork(WORK_NAME_MANUAL, ExistingWorkPolicy.KEEP, request)
+            return request.id.toString()
+        }
+
         fun stop(context: Context) {
             val wm = context.workManager
             val workQuery = WorkQuery.Builder.fromTags(listOf(TAG))

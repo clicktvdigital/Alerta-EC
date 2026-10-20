@@ -168,13 +168,6 @@ class MainAdapter(
                 }
                 mViewTypeList.add(getViewType(c))
             }
-            // Agrupar el resumen cuadrado con las mediciones, después de los pronósticos.
-            if (mViewTypeList.remove(ViewType.PRECIPITATION)) {
-                val lastForecast = mViewTypeList.indexOfLast {
-                    it == ViewType.HOURLY || it == ViewType.DAILY || it == ViewType.PRECIPITATION_NOWCAST
-                }
-                mViewTypeList.add(maxOf(lastForecast, mViewTypeList.indexOf(ViewType.HEADER)) + 1, ViewType.PRECIPITATION)
-            }
             // El acceso a aportes aparece tras el primer pronóstico; las alertas conservan prioridad.
             val forecastPosition = mViewTypeList.indexOfFirst {
                 it == ViewType.HOURLY || it == ViewType.DAILY

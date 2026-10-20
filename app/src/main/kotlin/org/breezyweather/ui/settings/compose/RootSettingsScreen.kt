@@ -137,6 +137,18 @@ fun RootSettingsView(
                 }
             }
             largeSeparatorItem()
+            clickablePreferenceItem(R.string.alertaec_autosupport_title) { _ ->
+                PreferenceViewWithCard(
+                    title = "Centro de ayuda y autosoporte",
+                    iconId = R.drawable.ic_about,
+                    summary = "Diagnosticar conexion, ubicacion y notificaciones",
+                    isFirst = true,
+                    isLast = true,
+                ) {
+                    onNavigateTo(SettingsScreenRouter.AutoSupport.route)
+                }
+            }
+            largeSeparatorItem()
             clickablePreferenceItem(R.string.settings_debug) { id ->
                 PreferenceViewWithCard(
                     titleId = id,

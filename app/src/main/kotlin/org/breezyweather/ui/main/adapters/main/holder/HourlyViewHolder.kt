@@ -32,6 +32,8 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonGroup
 import org.breezyweather.R
 import org.breezyweather.common.activities.BreezyActivity
+import org.breezyweather.alertaec.AlertaEcRecommendations
+import org.breezyweather.alertaec.AlertaEcWeatherAdapter
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.common.extensions.formatPercent
 import org.breezyweather.common.extensions.currentLocale
@@ -154,7 +156,13 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 )
             }
         }
+        val visibleRecommendation = AlertaEcWeatherAdapter.recommendationEventForDisplay(location)
+            ?.let(AlertaEcRecommendations::forEvent)
         highlights.text = SpannableStringBuilder().apply {
+            visibleRecommendation?.let {
+                append(context.getString(R.string.alertaec_preventive_advice, it))
+                if (highlightLines.isNotEmpty()) append("\n\n")
+            }
             highlightLines.forEachIndexed { index, line ->
                 if (index > 0) append("\n\n")
                 append(line)

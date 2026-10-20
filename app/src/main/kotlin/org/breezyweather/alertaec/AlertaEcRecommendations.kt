@@ -1,44 +1,89 @@
 package org.breezyweather.alertaec
 
+import java.util.Calendar
+import java.util.TimeZone
+
 /** Consejos generales; no sustituyen instrucciones oficiales. */
 internal object AlertaEcRecommendations {
+    private const val RAIN_PROBABILITY_THRESHOLD = 50
+    private const val BOOTS_ACCUMULATION_MM = 10.0
+    private const val BOOTS_INTENSITY_MM_PER_HOUR = 5.0
+    private const val UV_PROTECTIVE_THRESHOLD = 6.0
+    private const val NIGHT_COLD_HOUR = 18
+    private const val MORNING_COLD_HOUR = 6
+
     fun forEvent(event: AlertaEcEvent): String {
-        val basic = forPhenomenon(event.phenomenon)
-        if (event.state != AlertaEcEventState.FORECAST) return basic
+        val rawBasic = forPhenomenon(event.phenomenon)
+        if (event.state != AlertaEcEventState.FORECAST) return rawBasic
+        val basic = if (isStrongWind(event) &&
+            event.phenomenon == AlertaEcPhenomenon.RAIN
+        ) rawBasic.replace("paraguas", "impermeable") else rawBasic
         val tips = mutableListOf<String>()
-        val mm = event.precipitationAccumulationMm?.takeIf { it.isFinite() && it >= 0.0 }
+        val amount = event.precipitationAccumulationMm?.takeIf { it.isFinite() && it >= 0.0 }
+        val intensity = event.precipitationMmPerHour?.takeIf { it.isFinite() && it >= 0.0 }
         val probability = event.precipitationProbabilityPercent?.takeIf { it in 0..100 }
         val rainy = event.phenomenon == AlertaEcPhenomenon.RAIN ||
             event.phenomenon == AlertaEcPhenomenon.HEAVY_RAIN ||
             event.phenomenon == AlertaEcPhenomenon.THUNDERSTORM
-        if (rainy && ((mm != null && mm >= 0.2) ||
-                (probability != null && probability >= 50))) {
-            tips += "Lleva paraguas o poncho de aguas y calzado antideslizante."
+        val strongWind = isStrongWind(event)
+        val rainExpected = rainy && (amount != null && amount > 0.0 ||
+            probability != null && probability >= RAIN_PROBABILITY_THRESHOLD)
+        if (rainExpected) {
+            if (event.phenomenon != AlertaEcPhenomenon.THUNDERSTORM && !strongWind) {
+                tips += "Lleva sombrilla o impermeable; usa calzado antideslizante."
+            } else {
+                tips += "Lleva impermeable y calzado antideslizante; evita la sombrilla por seguridad."
+            }
+            if ((amount != null && amount >= BOOTS_ACCUMULATION_MM) ||
+                (intensity != null && intensity >= BOOTS_INTENSITY_MM_PER_HOUR)
+            ) {
+                tips += "Considera botas antideslizantes por la cantidad o intensidad prevista."
+            }
         }
         val temp = event.feelsLikeCelsius?.takeIf { it.isFinite() }
             ?: event.temperatureCelsius?.takeIf { it.isFinite() }
+        val localHour = localHour(event)
         when {
             temp != null && temp <= 12.0 -> tips += "Usa chompa y ropa abrigada."
-            temp != null && temp >= 28.0 -> tips += "Lleva agua, sombrero y ropa ligera; busca sombra."
+            temp != null && temp <= 15.0 && localHour != null &&
+                (localHour >= NIGHT_COLD_HOUR || localHour < MORNING_COLD_HOUR) ->
+                tips += "Lleva una chompa para la noche o la madrugada."
+            temp != null && temp >= 28.0 -> tips += "Lleva agua y ropa ligera; busca sombra."
         }
-        val gust = event.windGustKmh?.takeIf { it.isFinite() && it >= 0.0 }
-        val wind = event.windSpeedKmh?.takeIf { it.isFinite() && it >= 0.0 }
-        if ((gust != null && gust >= 50.0) || (wind != null && wind >= 40.0)) {
-            tips += "Aléjate de objetos inestables y evita usar paraguas con ráfagas intensas."
+        val uv = event.uvIndex?.takeIf { it.isFinite() && it >= 0.0 }
+        if (uv != null && uv >= UV_PROTECTIVE_THRESHOLD && isDaytime(localHour)) {
+            tips += "Usa sombrero y protector solar durante las horas de sol."
+        }
+        if (strongWind) {
+            tips += "Aléjate de objetos inestables y evita usar sombrilla con ráfagas intensas."
         }
         val normalized = basic.lowercase()
         val uniqueTips = tips.filterNot { tip ->
             val text = tip.lowercase()
-            when {
-                text.contains("paraguas") && listOf("paraguas", "poncho", "impermeable").any { normalized.contains(it) } -> true
-                text.contains("chompa") && listOf("chompa", "ropa abrigada", "ropa por capas").any { normalized.contains(it) } -> true
-                text.contains("sombrero") && listOf("sombrero", "gorra", "ropa ligera").any { normalized.contains(it) } -> true
-                text.contains("ráfagas") && listOf("ráfagas", "objetos que puedan caer").any { normalized.contains(it) } -> true
-                else -> normalized.contains(text)
-            }
+            normalized.contains(text) ||
+                (text.contains("chompa") && listOf("chompa", "ropa abrigada", "ropa por capas").any(normalized::contains)) ||
+                (text.contains("sombrero") && listOf("sombrero", "gorra", "ropa ligera").any(normalized::contains)) ||
+                (text.startsWith("lleva sombrilla") && normalized.contains("paraguas")) ||
+                (text.contains("ráfagas") && listOf("ráfagas", "objetos que puedan caer").any(normalized::contains))
         }
         return (listOf(basic) + uniqueTips).joinToString(" ")
     }
+
+    private fun isStrongWind(event: AlertaEcEvent): Boolean {
+        val gust = event.windGustKmh?.takeIf { it.isFinite() && it >= 0.0 }
+        val wind = event.windSpeedKmh?.takeIf { it.isFinite() && it >= 0.0 }
+        return (gust != null && gust >= 50.0) || (wind != null && wind >= 40.0)
+    }
+
+    private fun localHour(event: AlertaEcEvent): Int? {
+        val millis = event.startTimeMillis?.takeIf { it > 0L } ?: return null
+        val zoneId = event.timeZoneId?.takeIf { it.isNotBlank() } ?: return null
+        val zone = TimeZone.getTimeZone(zoneId)
+        if (zoneId != zone.id && zoneId != "UTC") return null
+        return Calendar.getInstance(zone).apply { timeInMillis = millis }.get(Calendar.HOUR_OF_DAY)
+    }
+
+    private fun isDaytime(hour: Int?): Boolean = hour != null && hour in 7..17
 
     fun forPhenomenon(phenomenon: AlertaEcPhenomenon): String = when (phenomenon) {
         AlertaEcPhenomenon.RAIN -> "Lleva paraguas o poncho de aguas, chompa impermeable y calzado antideslizante. Consulta el pronóstico actualizado."

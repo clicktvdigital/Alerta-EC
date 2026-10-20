@@ -10,6 +10,7 @@ data class ActiveLocationSnapshot(
     val altitude: Double?,
     val accuracy: Float?,
     val timestamp: Long,
+    val verticalAccuracyMeters: Float? = null,
 )
 
 object ActiveLocationController {
@@ -19,6 +20,7 @@ object ActiveLocationController {
     private const val KEY_LONGITUDE = "longitude"
     private const val KEY_ALTITUDE = "altitude"
     private const val KEY_ACCURACY = "accuracy"
+    private const val KEY_VERTICAL_ACCURACY = "vertical_accuracy"
     private const val KEY_TIMESTAMP = "timestamp"
 
     fun start(context: Context) {
@@ -45,8 +47,9 @@ object ActiveLocationController {
         val altitude = preferences.getString(KEY_ALTITUDE, null)
             ?.takeIf { it.isNotBlank() }
             ?.toDoubleOrNull()
+            ?.takeIf { it.isFinite() }
         val storedAccuracy = preferences.getFloat(KEY_ACCURACY, -1f)
-        val accuracy = storedAccuracy.takeIf { it >= 0f }
+        val accuracy = storedAccuracy.takeIf { it.isFinite() && it >= 0f }
 
         return ActiveLocationSnapshot(
             latitude = latitude,
@@ -54,6 +57,8 @@ object ActiveLocationController {
             altitude = altitude,
             accuracy = accuracy,
             timestamp = timestamp,
+            verticalAccuracyMeters = preferences.getFloat(KEY_VERTICAL_ACCURACY, -1f)
+                .takeIf { it.isFinite() && it >= 0f },
         )
     }
 }
