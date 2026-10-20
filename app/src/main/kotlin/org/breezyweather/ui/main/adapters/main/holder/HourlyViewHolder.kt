@@ -106,16 +106,24 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 return@map context.getString(R.string.alertaec_hourly_missing, highlight.offsetHours)
             }
             val details = buildList {
-                forecast.temperature?.temperature?.let {
-                    add(it.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW))
-                }
+                val temperatureText = forecast.temperature?.temperature?.let {
+                    it.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)
+                } ?: "—"
+                add(context.getString(R.string.alertaec_hourly_temperature, temperatureText))
                 (forecast.weatherText?.takeIf { it.isNotBlank() }
                     ?: forecast.weatherCode?.let { WeatherViewController.getWeatherText(it) })
                     ?.takeIf { it.isNotBlank() }
                     ?.let(::add)
-                forecast.precipitationProbability?.total?.let {
-                    add(context.getString(R.string.alertaec_hourly_rain, it.formatPercent(context, UnitWidth.NARROW)))
-                }
+                val probabilityText = forecast.precipitationProbability?.total?.inPercent
+                    ?.takeIf { it.isFinite() && it in 0.0..100.0 }
+                    ?.let { it.formatPercent(context, UnitWidth.NARROW) }
+                    ?: "—"
+                add(context.getString(R.string.alertaec_hourly_probability, probabilityText))
+                val accumulationText = forecast.precipitation?.total?.inMillimeters
+                    ?.takeIf { it.isFinite() && it >= 0.0 }
+                    ?.let { String.format("%.1f", it) }
+                    ?: "—"
+                add(context.getString(R.string.alertaec_hourly_precipitation, accumulationText))
                 forecast.wind?.speed?.let {
                     add(context.getString(R.string.alertaec_hourly_wind, it.formatMeasure(context, unitWidth = UnitWidth.NARROW)))
                 }

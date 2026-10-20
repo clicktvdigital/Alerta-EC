@@ -85,17 +85,20 @@ object AlertaEcNotifier {
         val temperatureUnit = settings.getTemperatureUnit(context)
 
         val interval = event.startTimeMillis?.let {
-            AlertaEcNotificationText.interval(it, nowMillis, location.timeZone)
+            if (event.state == AlertaEcEventState.FORECAST) {
+                AlertaEcNotificationText.hourlyPeriod(it, nowMillis, location.timeZone)
+            } else {
+                AlertaEcNotificationText.interval(it, nowMillis, location.timeZone)
+            }
         } ?: "Hora no disponible"
-        val compact = buildList {
-            add(event.precipitationProbabilityPercent?.takeIf { it in 0..100 }
-                ?.let { "Prob. $it%" } ?: "Prob. —")
-            add(event.precipitationAccumulationMm?.takeIf { it.isFinite() && it >= 0 }
-                ?.let { String.format("%.1f mm", it) } ?: "Precip. —")
-            add(event.temperatureCelsius?.takeIf { it.isFinite() }?.let {
-                it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)
-            } ?: "Temp. —")
-        }.joinToString(" · ")
+        val temperatureText = event.temperatureCelsius?.takeIf { it.isFinite() }?.let {
+            "Temp. ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}"
+        } ?: "Temp. —"
+        val compact = listOf(
+            temperatureText,
+            AlertaEcNotificationText.probabilityPercent(event.precipitationProbabilityPercent?.toDouble()),
+            AlertaEcNotificationText.accumulationMm(event.precipitationAccumulationMm)
+        ).joinToString(" · ")
         val details = buildList {
             add("$stateLabel · ${event.headline}")
             add("$interval · $compact")

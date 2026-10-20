@@ -28,17 +28,14 @@ internal class NotificationForecastSummary(context: Context, location: Location)
     val phenomenon = NotificationWeatherText.nonBlank(hour?.weatherText) ?: "Pronóstico horario"
     val temperatureText = temperature?.takeIf { it.inCelsius.isFinite() }?.formatMeasure(
         context, settings.getTemperatureUnit(context), unitWidth = UnitWidth.NARROW
-    ) ?: "Temp. —"
-    val interval = hour?.let { AlertaEcNotificationText.interval(it.date.time, now, location.timeZone) }
+    )?.let { "Temp. $it" } ?: "Temp. —"
+    val interval = hour?.let { AlertaEcNotificationText.hourlyPeriod(it.date.time, now, location.timeZone) }
         ?: "Hora no disponible"
     val values = listOf(
-        hour?.precipitationProbability?.total?.inPercent?.takeIf { it.isFinite() && it in 0.0..100.0 }
-            ?.let { "Prob. ${it.roundToInt()}%" } ?: "Prob. —",
-        hour?.precipitation?.total?.inMillimeters?.takeIf { it.isFinite() && it >= 0 }
-            ?.let { String.format("%.1f mm", it) } ?: "Precip. —",
+        AlertaEcNotificationText.probabilityPercent(hour?.precipitationProbability?.total?.inPercent),
+        AlertaEcNotificationText.accumulationMm(hour?.precipitation?.total?.inMillimeters)
     ).joinToString(" · ")
-    val metrics = "$interval · $values"
-    val compact = "$values · $temperatureText"
+    val compact = "$temperatureText · $values"
     val details = buildList {
         add("$phenomenon · $place")
         add("$interval · $compact")
