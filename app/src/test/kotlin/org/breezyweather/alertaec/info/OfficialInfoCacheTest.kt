@@ -83,7 +83,7 @@ class OfficialInfoCacheTest {
         val directory = Files.createTempDirectory("official-info-cache").toFile()
         val cache = OfficialInfoCache(directory)
         assertTrue(cache.save(listOf(item())).success)
-        assertEquals(OfficialInfoFreshness.ARCHIVED, cache.readWithFreshness(3_000L).single().freshness)
+        assertEquals(OfficialInfoFreshness.ARCHIVED, cache.readWithFreshness(3_000L, OfficialInfoArchivePolicy(retainExpiredForMillis = 1_000L)).single().freshness)
     }
 
     @Test
