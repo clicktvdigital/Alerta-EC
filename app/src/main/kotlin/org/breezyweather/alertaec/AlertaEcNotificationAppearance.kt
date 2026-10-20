@@ -71,10 +71,16 @@ internal object AlertaEcRainEpisodeEvaluator {
         }
         if (currentIndex < 0) {
             val ended = cleaned.last().endingDate.time <= nowMillis
-            return AlertaEcRainDecision(
-                if (ended && wet.any { it }) AlertaEcRainEpisodeState.FINISHED
-                else AlertaEcRainEpisodeState.NO_DATA
-            )
+            if (ended && wet.any { it }) {
+                // The last sample boundary is the real episode end; keep this key
+                // stable across repeated evaluations and leave terminal validity null.
+                val finishedAt = cleaned.last().endingDate.time
+                return AlertaEcRainDecision(
+                    state = AlertaEcRainEpisodeState.FINISHED,
+                    transitionKey = "${AlertaEcRainEpisodeState.FINISHED}:$finishedAt",
+                )
+            }
+            return AlertaEcRainDecision(AlertaEcRainEpisodeState.NO_DATA)
         }
 
         val currentWet = wet[currentIndex]
