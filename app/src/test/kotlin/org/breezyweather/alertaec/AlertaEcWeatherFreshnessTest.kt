@@ -5,6 +5,7 @@ import breezyweather.domain.weather.model.Alert
 import breezyweather.domain.weather.model.Base
 import breezyweather.domain.weather.model.Hourly
 import breezyweather.domain.weather.model.Weather
+import breezyweather.domain.weather.model.UV
 import breezyweather.domain.weather.reference.WeatherCode
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
