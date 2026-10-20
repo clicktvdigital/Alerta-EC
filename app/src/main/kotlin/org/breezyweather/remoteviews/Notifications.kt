@@ -35,6 +35,7 @@ import breezyweather.domain.weather.model.Alert
 import breezyweather.domain.weather.model.Weather
 import breezyweather.domain.weather.reference.AlertSeverity
 import org.breezyweather.alertaec.AlertaEcNotificationAppearance
+import org.breezyweather.alertaec.AlertaEcRainEpisodeEvaluator
 import org.breezyweather.alertaec.AlertaEcWeatherAdapter
 import org.breezyweather.R
 import org.breezyweather.common.extensions.buildNotificationChannel
@@ -49,7 +50,9 @@ import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.getMinutelyDescription
 import org.breezyweather.domain.weather.model.getMinutelyTitle
 import org.breezyweather.domain.weather.model.hasMinutelyPrecipitation
+import java.security.MessageDigest
 import java.text.DateFormat
+import java.nio.charset.StandardCharsets
 
 object Notifications {
 
@@ -150,6 +153,12 @@ object Notifications {
 
         notificationManager.createNotificationChannelsCompat(
             listOf(
+                buildNotificationChannel(AlertaEcNotificationAppearance.PRECIPITATION_IMMINENT, IMPORTANCE_DEFAULT) {
+                    setName(context.getString(R.string.notification_channel_precipitation))
+                    setVibrationEnabled(true)
+                    setVibrationPattern(longArrayOf(0, 180))
+                    setGroup(GROUP_BREEZY_WEATHER)
+                },
                 buildNotificationChannel(CHANNEL_ALERT, IMPORTANCE_HIGH) {
                     setName(context.getString(R.string.notification_channel_alerts))
                     setGroup(GROUP_BREEZY_WEATHER)
@@ -350,56 +359,84 @@ object Notifications {
         return id
     }
 
+    private fun precipitationLocationKey(location: Location): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(location.formattedId.toByteArray(StandardCharsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+
     // precipitation.
     fun checkAndSendPrecipitation(context: Context, location: Location) {
-        if (!SettingsManager.getInstance(context).isPrecipitationPushEnabled) {
+        val settings = SettingsManager.getInstance(context)
+        if (!settings.isPrecipitationPushEnabled) {
             context.cancelNotification(ID_PRECIPITATION)
             return
         }
-        if (location.weather?.minutelyForecast.isNullOrEmpty()) {
+        val weather = location.weather
+        val samples = weather?.minutelyForecast
+        if (samples.isNullOrEmpty()) {
             context.cancelNotification(ID_PRECIPITATION)
             return
         }
-        // val config = ConfigStore(context, PREFERENCE_SHORT_TERM_PRECIPITATION_ALERT)
-        // val timestamp = config.getLong(KEY_PRECIPITATION_DATE, 0)
+        if (weather == null || !weather.hasMinutelyPrecipitation) {
+            context.cancelNotification(ID_PRECIPITATION)
+            return
+        }
 
-        if (!location.weather!!.hasMinutelyPrecipitation) {
-            context.cancelNotification(ID_PRECIPITATION)
-            return
-        }
-
-        if (location.weather!!.hasMinutelyPrecipitation) {
-            val config = ConfigStore(context, PREFERENCE_NOTIFICATION)
-            val key = "PRECIPITATION_LAST_${location.formattedId}"
-            val now = System.currentTimeMillis()
-            val last = config.getLong(key, 0)
-            val quietUpdate = last > 0 && now - last < 30 * 60 * 1000L
-            context.notify(
-                ID_PRECIPITATION,
-                getNotificationBuilder(
+        val config = ConfigStore(context, PREFERENCE_NOTIFICATION)
+        val now = System.currentTimeMillis()
+        val locationKey = precipitationLocationKey(location)
+        val regularKey = "PRECIPITATION_LAST_${location.formattedId}"
+        val last = config.getLong(regularKey, 0)
+        val quietUpdate = last > 0 && now - last < 30 * 60 * 1000L
+        val decision = AlertaEcRainEpisodeEvaluator.evaluate(samples, now)
+        val stateKey = "PRECIPITATION_STATE_$locationKey"
+        val validUntilKey = "PRECIPITATION_STATE_VALID_UNTIL_$locationKey"
+        val episodeKeyName = "PRECIPITATION_EPISODE_$locationKey"
+        val transitionKeyName = "PRECIPITATION_TRANSITION_$locationKey"
+        val previousState = config.getString(stateKey, null)?.let { value ->
+            runCatching { org.breezyweather.alertaec.AlertaEcRainEpisodeState.valueOf(value) }.getOrNull()
+        }?.takeIf { config.getLong(validUntilKey, 0L) > now }
+        val previousEpisodeKey = config.getString(episodeKeyName, null)
+        val previousTransitionKey = config.getString(transitionKeyName, null)
+        val episodeKey = AlertaEcRainEpisodeEvaluator.stableEpisodeKey(previousState, previousEpisodeKey, decision)
+        val transitionKey = AlertaEcRainEpisodeEvaluator.stableNotificationTransitionKey(
+            previousState, episodeKey, previousTransitionKey, decision
+        )
+        val audibleKey = "PRECIPITATION_AUDIBLE_$locationKey"
+        val alreadyNotified = transitionKey != null && config.getString(audibleKey, null) == transitionKey
+        val audible = settings.isPrecipitationAudibleEnabled && decision.canNotifyPreventively && !alreadyNotified
+        val channel = if (audible) AlertaEcNotificationAppearance.PRECIPITATION_IMMINENT else
+            weatherChannel(context, AlertaEcNotificationAppearance.PRECIPITATION)
+        context.notify(
+            ID_PRECIPITATION,
+            getNotificationBuilder(
+                context,
+                R.drawable.ic_notification_rain,
+                weather.getMinutelyTitle(context),
+                location.geographicName,
+                weather.getMinutelyDescription(context, location),
+                PendingIntent.getActivity(
                     context,
-                    R.drawable.ic_notification_rain,
-                    location.weather!!.getMinutelyTitle(context),
-                    location.geographicName,
-                    location.weather!!.getMinutelyDescription(context, location),
-                    PendingIntent.getActivity(
-                        context,
-                        ID_PRECIPITATION,
-                        IntentHelper.buildMainActivityIntent(location),
-                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                    ),
-                    weatherChannel(context, AlertaEcNotificationAppearance.PRECIPITATION)
-                ).apply {
-                    if (quietUpdate) setSilent(true)
-                }.build()
-            )
-            if (!quietUpdate && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-                config.edit().putLong(key, now).apply()
-            }
-            /*config.edit()
-                .putString(KEY_PRECIPITATION_LOCATION_KEY, location.formattedId)
-                .putLong(KEY_PRECIPITATION_DATE, System.currentTimeMillis())
-                .apply()*/
+                    ID_PRECIPITATION,
+                    IntentHelper.buildMainActivityIntent(location),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                ),
+                channel
+            ).apply {
+                if (!audible || (!settings.isAlertSoundEnabled && !settings.isAlertVibrationEnabled) || quietUpdate) {
+                    setSilent(true)
+                }
+            }.build()
+        )
+        config.edit()
+            .putString(stateKey, decision.state.name)
+            .putLong(validUntilKey, decision.validUntilMillis ?: 0L)
+            .putString(episodeKeyName, episodeKey)
+            .putString(transitionKeyName, transitionKey)
+            .apply()
+        if (audible && transitionKey != null) config.edit().putString(audibleKey, transitionKey).apply()
+        if (!quietUpdate && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            config.edit().putLong(regularKey, now).apply()
         }
     }
 

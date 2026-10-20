@@ -154,6 +154,14 @@ class SettingsManager private constructor(
         }
         get() = config.getBoolean("precipitation_notification_switch", true)
 
+    /** Explicit consent for audible/vibrating preventive minutely rain notifications. */
+    var isPrecipitationAudibleEnabled: Boolean
+        set(value) {
+            config.edit().putBoolean("precipitation_audible_switch", value).apply()
+            notifySettingsChanged()
+        }
+        get() = config.getBoolean("precipitation_audible_switch", false)
+
     var isAlertSoundEnabled: Boolean
         set(value) {
             config.edit().putBoolean("alert_sound_switch", value).apply()

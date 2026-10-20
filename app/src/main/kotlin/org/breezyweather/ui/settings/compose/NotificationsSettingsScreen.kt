@@ -171,6 +171,22 @@ fun NotificationsSettingsScreen(
                     }
                 )
             }
+            smallSeparatorItem()
+            switchPreferenceItem(R.string.settings_notifications_precipitation_audible_title) { id ->
+                SwitchPreferenceView(
+                    titleId = id,
+                    summaryOnId = R.string.settings_enabled,
+                    summaryOffId = R.string.settings_disabled,
+                    checked = SettingsManager.getInstance(context).isPrecipitationAudibleEnabled,
+                    enabled = SettingsManager.getInstance(context).isPrecipitationPushEnabled &&
+                        SettingsManager.getInstance(context).updateInterval != UpdateInterval.INTERVAL_NEVER &&
+                        hasNotificationPermission,
+                    isLast = true,
+                    onValueChanged = {
+                        SettingsManager.getInstance(context).isPrecipitationAudibleEnabled = it
+                    }
+                )
+            }
             sectionFooterItem(R.string.settings_notifications_section_general)
 
             largeSeparatorItem()
