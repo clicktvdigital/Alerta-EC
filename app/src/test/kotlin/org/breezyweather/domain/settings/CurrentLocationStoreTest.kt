@@ -67,21 +67,25 @@ class CurrentLocationStoreTest {
     @Test
     fun missingMetadataRetainsOldReadingAndClearRemovesPosition() {
         val store = store()
-        store.updateCurrentLocation(1.0, 2.0, 5f, 100.0, 1700000000000, "gps")
+        store.updateCurrentLocation(
+            longitude = 1.0, latitude = 2.0, accuracy = 5f, altitude = 100.0,
+            timestampMillis = 1700000000000, provider = "gps"
+        )
         val refreshBeforeRejectedUpdate = store.lastSuccessfulRefresh
-        store.updateCurrentLocation(3.0, 4.0)
+        store.updateCurrentLocation(longitude = 3.0, latitude = 4.0)
 
-        store.lastKnownLatitude shouldBe 1.0
-        store.lastKnownLongitude shouldBe 2.0
+        store.lastKnownLatitude shouldBe 2.0
+        store.lastKnownLongitude shouldBe 1.0
         store.accuracyMeters shouldBe 5f
         store.altitudeMeters shouldBe 100.0
         store.measuredAtMillis shouldBe 1700000000000L
         store.provider shouldBe "gps"
         store.lastSuccessfulRefresh shouldBe refreshBeforeRejectedUpdate
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) { store.updateCurrentLocation(Double.NaN, 0.0) }
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) { store.updateCurrentLocation(longitude = Double.NaN, latitude = 0.0) }
 
         store.clearCurrentLocation()
         store.isUsable shouldBe false
+        store.lastKnownLatitude shouldBe 0.0
         store.lastKnownLongitude shouldBe 0.0
         store.accuracyMeters shouldBe null
         store.altitudeMeters shouldBe null
@@ -92,11 +96,17 @@ class CurrentLocationStoreTest {
     @Test
     fun newerTimestampReplacesOlderReading() {
         val store = store()
-        store.updateCurrentLocation(1.0, 2.0, 5f, 100.0, 1700000000000, "gps")
-        store.updateCurrentLocation(3.0, 4.0, 8f, 120.0, 1700000001000, "network")
+        store.updateCurrentLocation(
+            longitude = 1.0, latitude = 2.0, accuracy = 5f, altitude = 100.0,
+            timestampMillis = 1700000000000, provider = "gps"
+        )
+        store.updateCurrentLocation(
+            longitude = 3.0, latitude = 4.0, accuracy = 8f, altitude = 120.0,
+            timestampMillis = 1700000001000, provider = "network"
+        )
 
-        store.lastKnownLatitude shouldBe 3.0
-        store.lastKnownLongitude shouldBe 4.0
+        store.lastKnownLatitude shouldBe 4.0
+        store.lastKnownLongitude shouldBe 3.0
         store.accuracyMeters shouldBe 8f
         store.altitudeMeters shouldBe 120.0
         store.measuredAtMillis shouldBe 1700000001000L
