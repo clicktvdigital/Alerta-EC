@@ -36,6 +36,8 @@ internal class NotificationForecastSummary(context: Context, location: Location)
         AlertaEcNotificationText.accumulationMm(hour?.precipitation?.total?.inMillimeters)
     ).joinToString(" · ")
     val compact = "$temperatureText · $values"
+    /** Compatibility text for existing widget consumers; it includes the new hourly metrics. */
+    val metrics = "$interval · $compact"
     val details = buildList {
         add("$phenomenon · $place")
         add("$interval · $compact")

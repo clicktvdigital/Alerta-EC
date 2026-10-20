@@ -114,9 +114,10 @@ class HourlyViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                     ?: forecast.weatherCode?.let { WeatherViewController.getWeatherText(it) })
                     ?.takeIf { it.isNotBlank() }
                     ?.let(::add)
-                val probabilityText = forecast.precipitationProbability?.total?.inPercent
-                    ?.takeIf { it.isFinite() && it in 0.0..100.0 }
-                    ?.let { it.formatPercent(context, UnitWidth.NARROW) }
+                val probability = forecast.precipitationProbability?.total
+                val probabilityText = probability
+                    ?.takeIf { it.inPercent.isFinite() && it.inPercent in 0.0..100.0 }
+                    ?.formatPercent(context, UnitWidth.NARROW)
                     ?: "—"
                 add(context.getString(R.string.alertaec_hourly_probability, probabilityText))
                 val accumulationText = forecast.precipitation?.total?.inMillimeters
