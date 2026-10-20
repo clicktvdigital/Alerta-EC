@@ -78,7 +78,7 @@ internal object NoaaSatelliteFrames {
                     .filter {
                         val age = java.time.Duration.between(it.observedAt, now)
                         !age.isNegative && age.toMinutes() < 360
-                    }.sortedBy { it.observedAt }.takeLast(24).toList()
+                    }.sortedBy { it.observedAt }.toList().takeLast(24)
             } finally {
                 connection.disconnect()
             }

@@ -69,7 +69,6 @@ object AlertaEcWeatherAdapter {
                     sourceName = location.forecastSource,
                 )
             }
-    }
 
     private fun fromOfficialAlert(alert: Alert, location: Location) = AlertaEcEvent(
         id = "official-${alert.alertId}",
