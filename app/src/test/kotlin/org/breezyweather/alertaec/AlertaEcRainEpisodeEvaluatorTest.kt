@@ -1,7 +1,7 @@
 package org.breezyweather.alertaec
 
 import breezyweather.domain.weather.model.Minutely
-import org.breezyweather.unit.precipitation.millimeters
+import org.breezyweather.unit.precipitation.Precipitation.Companion.millimeters
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.util.Date
