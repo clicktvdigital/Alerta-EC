@@ -40,9 +40,11 @@ class EmergencyCenterViewModelTest {
             clock = EmergencyCenterClock { 1_000L },
             readDispatcher = dispatcher,
         )
+        assertEquals(true, viewModel.uiState.value.isLoading)
         advanceUntilIdle()
 
-        assertEquals(EmergencyCenterUiState(readState = OfficialInfoSelectionReadState.EMPTY), viewModel.uiState.value)
+        assertEquals(false, viewModel.uiState.value.isLoading)
+        assertEquals(EmergencyCenterUiState(readState = OfficialInfoSelectionReadState.EMPTY, isLoading = false), viewModel.uiState.value)
         verify(exactly = 1) { selector.select(1_000L) }
     }
 
@@ -64,8 +66,10 @@ class EmergencyCenterViewModelTest {
             clock = EmergencyCenterClock { 2_000L },
             readDispatcher = dispatcher,
         )
+        assertEquals(true, viewModel.uiState.value.isLoading)
         advanceUntilIdle()
 
+        assertEquals(false, viewModel.uiState.value.isLoading)
         assertEquals(listOf(current), viewModel.uiState.value.current)
         assertEquals(listOf(history), viewModel.uiState.value.history)
         assertEquals(OfficialInfoSelectionReadState.LOADED, viewModel.uiState.value.readState)
@@ -83,8 +87,10 @@ class EmergencyCenterViewModelTest {
             clock = EmergencyCenterClock { 3_000L },
             readDispatcher = dispatcher,
         )
+        assertEquals(true, viewModel.uiState.value.isLoading)
         advanceUntilIdle()
 
+        assertEquals(false, viewModel.uiState.value.isLoading)
         assertEquals(emptyList<OfficialInfoCachedItem>(), viewModel.uiState.value.current)
         assertEquals(emptyList<OfficialInfoCachedItem>(), viewModel.uiState.value.history)
         assertEquals(OfficialInfoSelectionReadState.READ_ERROR, viewModel.uiState.value.readState)
@@ -111,11 +117,19 @@ class EmergencyCenterViewModelTest {
             clock = EmergencyCenterClock { now },
             readDispatcher = dispatcher,
         )
+        assertEquals(true, viewModel.uiState.value.isLoading)
         advanceUntilIdle()
+        assertEquals(false, viewModel.uiState.value.isLoading)
         assertEquals(listOf(first), viewModel.uiState.value.current)
+        assertEquals(emptyList<OfficialInfoCachedItem>(), viewModel.uiState.value.history)
+        assertEquals(OfficialInfoSelectionReadState.LOADED, viewModel.uiState.value.readState)
 
         now = 5_000L
         viewModel.reload()
+        assertEquals(true, viewModel.uiState.value.isLoading)
+        assertEquals(listOf(first), viewModel.uiState.value.current)
+        assertEquals(emptyList<OfficialInfoCachedItem>(), viewModel.uiState.value.history)
+        assertEquals(OfficialInfoSelectionReadState.LOADED, viewModel.uiState.value.readState)
         advanceUntilIdle()
 
         assertEquals(listOf(second), viewModel.uiState.value.current)
@@ -135,9 +149,10 @@ class EmergencyCenterViewModelTest {
             clock = EmergencyCenterClock { 6_000L },
             readDispatcher = dispatcher,
         )
+        assertEquals(true, viewModel.uiState.value.isLoading)
         advanceUntilIdle()
 
-        assertEquals(EmergencyCenterUiState(readState = OfficialInfoSelectionReadState.READ_ERROR), viewModel.uiState.value)
+        assertEquals(EmergencyCenterUiState(readState = OfficialInfoSelectionReadState.READ_ERROR, isLoading = false), viewModel.uiState.value)
     }
 
     @Test
@@ -162,6 +177,46 @@ class EmergencyCenterViewModelTest {
 
         assertEquals(1, viewModel.uiState.value.current.size)
         verify(exactly = 1) { selector.select(7_000L) }
+    }
+
+    @Test
+    fun cancelledReadCannotPublishObsoleteResultAfterNewReload() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        Dispatchers.setMain(dispatcher)
+        val selector = mockk<OfficialInfoSelector>()
+        val first = cachedItem("first", OfficialInfoFreshness.ACTIVE)
+        val stale = cachedItem("stale", OfficialInfoFreshness.ACTIVE)
+        val fresh = cachedItem("fresh", OfficialInfoFreshness.ACTIVE)
+        var selectionCount = 0
+        var viewModel: EmergencyCenterViewModel? = null
+        every { selector.select(8_000L) } answers {
+            when (++selectionCount) {
+                1 -> selection(OfficialInfoSelectionReadState.LOADED, current = listOf(first))
+                2 -> {
+                    viewModel!!.reload()
+                    selection(OfficialInfoSelectionReadState.LOADED, current = listOf(stale))
+                }
+                3 -> selection(OfficialInfoSelectionReadState.LOADED, current = listOf(fresh))
+                else -> error("unexpected selection count: $selectionCount")
+            }
+        }
+
+        viewModel = EmergencyCenterViewModel(
+            selector = selector,
+            clock = EmergencyCenterClock { 8_000L },
+            readDispatcher = dispatcher,
+        )
+        advanceUntilIdle()
+        assertEquals(listOf(first), viewModel!!.uiState.value.current)
+
+        viewModel!!.reload()
+        assertEquals(true, viewModel!!.uiState.value.isLoading)
+        assertEquals(listOf(first), viewModel!!.uiState.value.current)
+        advanceUntilIdle()
+
+        assertEquals(listOf(fresh), viewModel!!.uiState.value.current)
+        assertEquals(false, viewModel!!.uiState.value.isLoading)
+        verify(exactly = 3) { selector.select(8_000L) }
     }
 
     private fun selection(
