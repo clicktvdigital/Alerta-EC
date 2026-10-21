@@ -1,8 +1,6 @@
 package org.breezyweather.ui.emergency
 
 import io.mockk.every
-import io.mockk.any
-import io.mockk.firstArg
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
