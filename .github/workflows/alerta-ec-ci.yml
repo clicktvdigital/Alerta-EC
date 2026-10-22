@@ -1,6 +1,7 @@
 name: Alerta EC - Verificacion continua
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - alerta-ec
