@@ -37,6 +37,7 @@ sourceSets {
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("io.kotest:kotest-assertions-core:6.2.5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
