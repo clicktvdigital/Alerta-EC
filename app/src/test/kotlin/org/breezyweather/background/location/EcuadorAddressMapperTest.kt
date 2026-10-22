@@ -8,7 +8,7 @@ class EcuadorAddressMapperTest {
     @Test
     fun cityAndParishAreNeverInventedNeighborhoods() {
         val result = EcuadorAddressMapper.fromAddressInfo(
-            LocationAddressInfo(countryCode = "EC", city = "Quito", cityDistrict = "Cochapamba")
+            LocationAddressInfo(countryCode = "EC", city = "Quito", admin3 = "Cochapamba")
         )
         result.neighborhood shouldBe null
         result.sector shouldBe null
@@ -20,7 +20,7 @@ class EcuadorAddressMapperTest {
         val result = EcuadorAddressMapper.fromAddressInfo(
             LocationAddressInfo(
                 countryCode = "EC", neighborhood = "Barrio de prueba", quarter = "Sector de prueba",
-                cityDistrict = "Parroquia de prueba", city = "Ciudad de prueba"
+                admin3 = "Parroquia de prueba", city = "Ciudad de prueba"
             )
         )
         result.neighborhood shouldBe "Barrio de prueba"

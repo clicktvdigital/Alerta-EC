@@ -45,7 +45,7 @@ class AlertaEcNotificationAppearanceTest {
         org.breezyweather.remoteviews.Notifications.selectChannel(true, true, AlertaEcNotificationAppearance.SOUND_CRITICAL, "forecast") shouldBe AlertaEcNotificationAppearance.SOUND_CRITICAL
         org.breezyweather.remoteviews.Notifications.selectChannel(false, true, null, "forecast") shouldBe AlertaEcNotificationAppearance.VIBRATION_FORECAST
         org.breezyweather.remoteviews.Notifications.selectChannel(false, false, null, "forecast") shouldBe "forecast"
-        org.breezyweather.remoteviews.Notifications.selectChannel(true, false, AlertaEcNotificationAppearance.SOUND_RAIN, "forecast") shouldBe AlertaEcNotificationAppearance.SOUND_RAIN
+        org.breezyweather.remoteviews.Notifications.selectChannel(true, false, AlertaEcNotificationAppearance.SOUND_RAIN, "forecast") shouldBe AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION
         org.breezyweather.remoteviews.Notifications.selectChannel(true, true, null, "forecast") shouldBe AlertaEcNotificationAppearance.VIBRATION_FORECAST
 
         org.breezyweather.remoteviews.Notifications.shouldPostToChannel(true, true, 0, false) shouldBe false
