@@ -828,6 +828,9 @@
     <string name="settings_notifications_alerts_title">Notifications of severe weather alerts</string>
     <string name="settings_notifications_precipitations_title">Notifications of precipitations</string>
     <string name="settings_notifications_precipitation_audible_title">Preventive rain sound and vibration</string>
+    <string name="settings_notifications_alert_voice_title">Local Spanish voice for ALERTA EC</string>
+    <string name="settings_notifications_alert_voice_test">Test Spanish voice</string>
+    <string name="settings_notifications_alert_voice_test_summary">Plays only when this screen is visible; it never reads alerts automatically.</string>
     <string name="settings_notifications_section_forecast">Forecast</string>
     <string name="settings_notifications_forecast_today_title">Notification for the day’s forecast</string>
     <string name="settings_notifications_forecast_time_today_title">Notification time for the day’s forecast</string>
@@ -1370,4 +1373,21 @@
     <string name="notification_channel_severe">Severe weather alerts</string>
     <string name="notification_channel_extreme">Extreme weather alerts</string>
     <string name="alertaec_autosupport_title">Centro de ayuda y autosoporte</string>
+    <string name="active_location_evidence_title">Real GPS and detailed address</string>
+    <string name="active_location_evidence_permissions">Location permissions: %s</string>
+    <string name="active_location_evidence_permission_precise">precise granted</string>
+    <string name="active_location_evidence_permission_approximate">approximate granted</string>
+    <string name="active_location_evidence_permission_missing">permissions missing</string>
+    <string name="active_location_evidence_no_position">No GPS position available.</string>
+    <string name="active_location_evidence_decimal">Decimal coordinates: %s</string>
+    <string name="active_location_evidence_dms">DMS coordinates: %s</string>
+    <string name="active_location_evidence_horizontal">Horizontal accuracy: %s</string>
+    <string name="active_location_evidence_vertical">Vertical accuracy: %s</string>
+    <string name="active_location_evidence_altitude">Altitude: %s</string>
+    <string name="active_location_evidence_measured_at">Measurement: %s</string>
+    <string name="active_location_evidence_age">Age: %s s</string>
+    <string name="active_location_evidence_stale">Stale data: more than 120 seconds old.</string>
+    <string name="active_location_evidence_address_title">Address returned by geocoder</string>
+    <string name="active_location_evidence_address_loading">Address not available yet.</string>
+    <string name="active_location_evidence_address_unavailable">Address unavailable.</string>
 </resources>

@@ -19,6 +19,24 @@ package org.breezyweather.ui.settings.compose
 import android.Manifest
 import android.app.Activity
 import android.os.Build
+import android.text.format.DateFormat
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import org.breezyweather.background.location.ActiveLocationController
+import org.breezyweather.background.location.DetailedLocationAddress
+import org.breezyweather.background.location.DetailedLocationProvider
+import org.breezyweather.background.location.LocationHumanFormatter
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -77,6 +95,7 @@ fun LocationSettingsScreen(
     context: Activity,
     onNavigateBack: () -> Unit,
     locationSources: ImmutableList<LocationSource>,
+    detailedLocationProvider: DetailedLocationProvider,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = generateCollapsedScrollBehavior()
@@ -281,6 +300,10 @@ fun LocationSettingsScreen(
                 }
             }
             sectionFooterItem(R.string.location_service_native)
+            item(key = "active_location_evidence") {
+                ActiveLocationEvidence(context, detailedLocationProvider)
+            }
+            largeSeparatorItem()
 
             // TODO: Duplicate code from weather sources
             locationSources.filterIsInstance<ConfigurableSource>().forEach { preferenceSource ->
@@ -332,6 +355,82 @@ fun LocationSettingsScreen(
             }
 
             bottomInsetItem()
+        }
+    }
+}
+
+@Composable
+private fun ActiveLocationEvidence(
+    context: Activity,
+    detailedLocationProvider: DetailedLocationProvider,
+) {
+    var snapshot by remember { mutableStateOf(ActiveLocationController.getLatest(context)) }
+    var address by remember { mutableStateOf<DetailedLocationAddress?>(null) }
+    var addressFailed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            snapshot = ActiveLocationController.getLatest(context)
+            delay(1_000L)
+        }
+    }
+
+    DisposableEffect(snapshot?.latitude, snapshot?.longitude) {
+        address = null
+        addressFailed = false
+        val current = snapshot
+        val disposable = if (current == null) {
+            null
+        } else {
+            detailedLocationProvider.request(current.latitude, current.longitude)
+                .subscribe(
+                    { address = it },
+                    { addressFailed = true },
+                )
+        }
+        onDispose { disposable?.dispose() }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(dimensionResource(R.dimen.normal_margin))) {
+            Text(stringResource(R.string.active_location_evidence_title), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            val fine = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            val coarse = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            Text(stringResource(R.string.active_location_evidence_permissions, when {
+                fine -> stringResource(R.string.active_location_evidence_permission_precise)
+                coarse -> stringResource(R.string.active_location_evidence_permission_approximate)
+                else -> stringResource(R.string.active_location_evidence_permission_missing)
+            }))
+
+            if (snapshot == null) {
+                Text(stringResource(R.string.active_location_evidence_no_position))
+            } else {
+                val current = snapshot!!
+                val ageSeconds = ((System.currentTimeMillis() - current.timestamp).coerceAtLeast(0L)) / 1_000L
+                val stale = ageSeconds > 120L
+                Text(stringResource(R.string.active_location_evidence_decimal, LocationHumanFormatter.decimalCoordinates(current.latitude, current.longitude)))
+                Text(stringResource(R.string.active_location_evidence_dms, LocationHumanFormatter.dmsCoordinates(current.latitude, current.longitude)))
+                Text(stringResource(R.string.active_location_evidence_horizontal, LocationHumanFormatter.accuracy(current.accuracy)))
+                Text(stringResource(R.string.active_location_evidence_vertical, LocationHumanFormatter.accuracy(current.verticalAccuracyMeters)))
+                Text(stringResource(R.string.active_location_evidence_altitude, LocationHumanFormatter.altitude(current.altitude)))
+                Text(stringResource(R.string.active_location_evidence_measured_at, DateFormat.format("yyyy-MM-dd HH:mm:ss z", current.timestamp)))
+                Text(stringResource(R.string.active_location_evidence_age, ageSeconds))
+                if (stale) Text(stringResource(R.string.active_location_evidence_stale))
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.active_location_evidence_address_title), style = MaterialTheme.typography.titleSmall)
+                val lines = address?.completeAddressLines.orEmpty()
+                if (lines.isEmpty()) {
+                    Text(stringResource(if (addressFailed) R.string.active_location_evidence_address_unavailable else R.string.active_location_evidence_address_loading))
+                } else {
+                    lines.forEach { Text(it) }
+                }
+            }
         }
     }
 }

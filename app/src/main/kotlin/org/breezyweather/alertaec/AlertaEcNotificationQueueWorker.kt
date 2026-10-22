@@ -34,14 +34,16 @@ class AlertaEcNotificationQueueWorker @AssistedInject constructor(
         if (weather == null) {
             return if (runAttemptCount < 10) Result.retry() else Result.success()
         }
-        AlertaEcNotifier.checkAndNotify(context, location.copy(weather = weather), fromQueueWorker = true)
-        if (AlertaEcNotificationQueueStore.pending(context).isNotEmpty()) {
-            val nowMillis = System.currentTimeMillis()
-            val remainingMillis = (AlertaEcNotificationQueuePolicy.nextEligibleAt(
-                AlertaEcNotificationQueueStore.lastShownAt(context)
-            ) - nowMillis).coerceAtLeast(0L)
-            AlertaEcNotificationQueueScheduler.schedule(context, (remainingMillis + 999L) / 1000L, appendToChain = true)
-        }
+        val result = AlertaEcNotifier.checkAndNotify(
+            context,
+            location.copy(weather = weather),
+            fromQueueWorker = true,
+        )
+        AlertaEcNotificationQueueScheduler.scheduleContinuation(
+            context,
+            result,
+            appendToChain = true,
+        )
         return Result.success()
     }
 }

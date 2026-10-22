@@ -28,7 +28,7 @@ internal object AlertaEcNotificationQueueStore {
 
     @Synchronized fun save(context: Context, ids: List<String>) {
         ConfigStore(context, NAME).edit()
-            .putString(KEY_PENDING, ids.distinct().take(100).joinToString("\n"))
+            .putString(KEY_PENDING, ids.distinct().take(AlertaEcNotificationQueuePolicy.MAX_PENDING_IDS).joinToString("\n"))
             .apply()
     }
 
@@ -38,7 +38,11 @@ internal object AlertaEcNotificationQueueStore {
 
     @Synchronized fun nextValid(context: Context, events: List<AlertaEcEvent>, nowMillis: Long): AlertaEcEvent? {
         val valid = AlertaEcNotificationQueuePolicy.informational(events, nowMillis).associateBy { it.id }
-        val ids = pending(context).filter { it in valid }
+        val ids = AlertaEcNotificationQueuePolicy.nextValidPendingIds(
+            pendingIds = pending(context),
+            validEventIds = valid.keys,
+            notifiedEventIds = AlertaEcEventDeduplicator.notifiedEventIds(context),
+        )
         save(context, ids)
         return ids.firstNotNullOfOrNull { valid[it] }
     }

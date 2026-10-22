@@ -10,11 +10,67 @@ internal object AlertaEcNotificationAppearance {
     const val SEVERE = "weather_severe"
     const val EXTREME = "weather_extreme"
 
+    // Versioned because Android channel sound settings are immutable after creation.
+    const val SOUND_RAIN = "alertaec_sound_rain_v1"
+    const val SOUND_STORM = "alertaec_sound_storm_v1"
+    const val SOUND_FLOOD_LANDSLIDE = "alertaec_sound_flood_landslide_v1"
+    const val SOUND_VOLCANIC = "alertaec_sound_volcanic_v1"
+    const val SOUND_CRITICAL = "alertaec_sound_critical_v1"
+    const val SOUND_RAIN_NO_VIBRATION = "alertaec_sound_rain_no_vibration_v1"
+    const val SOUND_STORM_NO_VIBRATION = "alertaec_sound_storm_no_vibration_v1"
+    const val SOUND_FLOOD_LANDSLIDE_NO_VIBRATION = "alertaec_sound_flood_landslide_no_vibration_v1"
+    const val SOUND_VOLCANIC_NO_VIBRATION = "alertaec_sound_volcanic_no_vibration_v1"
+    const val SOUND_CRITICAL_NO_VIBRATION = "alertaec_sound_critical_no_vibration_v1"
+    const val VIBRATION_FORECAST = "alertaec_vibration_forecast_v1"
+    const val VIBRATION_SEVERE = "alertaec_vibration_severe_v1"
+    const val VIBRATION_EXTREME = "alertaec_vibration_extreme_v1"
+    // Stable visual-only channels for the both-preferences-disabled case.
+    const val SILENT_SEVERE = "alertaec_silent_severe_v1"
+    const val SILENT_EXTREME = "alertaec_silent_extreme_v1"
+
     // Only official provider severity authorizes an intrusive channel.
     fun officialChannel(severity: AlertSeverity): String = when (severity) {
         AlertSeverity.EXTREME -> EXTREME
         AlertSeverity.SEVERE -> SEVERE
         else -> "forecast"
+    }
+
+    /** Selects a sound only from an already-supported phenomenon/severity pair. */
+    fun officialSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertSeverity): String? = when {
+        severity == AlertSeverity.EXTREME -> SOUND_CRITICAL
+        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.FLOOD -> SOUND_FLOOD_LANDSLIDE
+        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.LANDSLIDE -> SOUND_FLOOD_LANDSLIDE
+        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> SOUND_VOLCANIC
+        else -> null
+    }
+
+    fun eventSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertaEcSeverity): String? = when {
+        severity == AlertaEcSeverity.EMERGENCY -> SOUND_CRITICAL
+        severity == AlertaEcSeverity.WARNING && phenomenon in setOf(AlertaEcPhenomenon.FLOOD, AlertaEcPhenomenon.LANDSLIDE) -> SOUND_FLOOD_LANDSLIDE
+        severity == AlertaEcSeverity.WARNING && phenomenon == AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> SOUND_VOLCANIC
+        severity <= AlertaEcSeverity.ADVISORY && phenomenon == AlertaEcPhenomenon.THUNDERSTORM -> SOUND_STORM
+        severity <= AlertaEcSeverity.ADVISORY && phenomenon in setOf(AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN) -> SOUND_RAIN
+        else -> null
+    }
+
+    fun eventChannel(severity: AlertaEcSeverity): String = when (severity) {
+        AlertaEcSeverity.EMERGENCY -> EXTREME
+        AlertaEcSeverity.WATCH, AlertaEcSeverity.WARNING -> SEVERE
+        else -> "forecast"
+    }
+
+    fun soundResource(channel: String): Int? = when (channel) {
+        SOUND_RAIN -> R.raw.alertaec_tono_lluvia_informativa
+        SOUND_STORM -> R.raw.alertaec_tono_tormenta_preventiva
+        SOUND_FLOOD_LANDSLIDE -> R.raw.alertaec_tono_inundacion_deslizamiento_grave
+        SOUND_VOLCANIC -> R.raw.alertaec_tono_actividad_volcanica
+        SOUND_CRITICAL -> R.raw.alertaec_tono_emergencia_critica
+        SOUND_RAIN_NO_VIBRATION -> R.raw.alertaec_tono_lluvia_informativa
+        SOUND_STORM_NO_VIBRATION -> R.raw.alertaec_tono_tormenta_preventiva
+        SOUND_FLOOD_LANDSLIDE_NO_VIBRATION -> R.raw.alertaec_tono_inundacion_deslizamiento_grave
+        SOUND_VOLCANIC_NO_VIBRATION -> R.raw.alertaec_tono_actividad_volcanica
+        SOUND_CRITICAL_NO_VIBRATION -> R.raw.alertaec_tono_emergencia_critica
+        else -> null
     }
 
     fun icon(phenomenon: AlertaEcPhenomenon): Int = when (phenomenon) {

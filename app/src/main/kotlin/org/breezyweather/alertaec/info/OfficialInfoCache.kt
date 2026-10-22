@@ -28,6 +28,13 @@ class OfficialInfoCache(
             saveUnlocked(items)
         }
 
+    /** Adds or replaces entries while retaining records already cached. */
+    fun merge(items: Iterable<OfficialInfoItem>): OfficialInfoCacheWriteResult =
+        synchronized(lockForCache()) {
+            cleanupStaleTemporaryFiles()
+            saveUnlocked(readUnlocked() + items.toList())
+        }
+
     fun read(): List<OfficialInfoItem> = synchronized(lockForCache()) {
         readUnlocked()
     }

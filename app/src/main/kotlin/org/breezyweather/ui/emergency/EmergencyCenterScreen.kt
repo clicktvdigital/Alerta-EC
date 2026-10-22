@@ -204,7 +204,6 @@ private fun Enum<*>.label(): String = when (name) {
 
 private fun String.isValidHttpUrl(): Boolean = runCatching {
     val uri = URI(this)
-    (uri.scheme.equals("http", ignoreCase = true) ||
-        uri.scheme.equals("https", ignoreCase = true)) &&
+    uri.scheme.equals("https", ignoreCase = true) &&
         !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null
 }.getOrDefault(false)

@@ -1,13 +1,8 @@
 package org.breezyweather.alertaec
 
-import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import breezyweather.domain.location.model.Location
 import org.breezyweather.R
 import org.breezyweather.common.extensions.notificationBuilder
@@ -23,17 +18,7 @@ object AlertaEcNotifier {
     private const val ID_BASE = 5000
     private const val ID_RANGE = 1000
 
-    fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis(), fromQueueWorker: Boolean = false) {
-        if (!SettingsManager.getInstance(context).isAlertPushEnabled) return
-        if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
-
-        val manager = NotificationManagerCompat.from(context)
-        val channel = org.breezyweather.remoteviews.Notifications.weatherChannel(context, "forecast")
-        if (!manager.areNotificationsEnabled() || manager.getNotificationChannel(channel)?.importance == 0) return
-
+    fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis(), fromQueueWorker: Boolean = false): NotificationPostResult? {
         // OFFICIAL_EVENT ya se envía desde remoteviews.Notifications.
         val events = AlertaEcWeatherAdapter.fromLocation(location, nowMillis)
             .filter { AlertaEcNotificationPolicy.shouldNotify(it, nowMillis) }
@@ -41,37 +26,123 @@ object AlertaEcNotifier {
         AlertaEcNotificationQueueStore.saveLocation(context, location.formattedId)
         val newEvents = AlertaEcEventDeduplicator.filterNewEvents(context, events)
         val priority = AlertaEcNotificationQueuePolicy.priority(newEvents)
-        priority.forEach { event ->
-            sendNotification(context, location, event, nowMillis)
-            AlertaEcEventDeduplicator.markNotified(context, event)
+        if (SettingsManager.getInstance(context).isAlertPushEnabled) {
+            priority.forEach { event ->
+                if (AlertaEcEventClaims.tryClaim(event.id)) {
+                    var phase = NotificationPostPhase.NOT_INVOKED
+                    var resultResolved = false
+                    try {
+                        val result = postInformationalNotification(
+                            canNotifyEvent = { canNotifyEvent(context, event) },
+                            poster = { onNotifyInvoked ->
+                                sendNotification(context, location, event, nowMillis, onNotifyInvoked)
+                            },
+                            onPostReturned = {
+                                try {
+                                    AlertaEcEventDeduplicator.markNotified(context, event)
+                                    NotificationBookkeepingResult.COMPLETED
+                                } catch (_: RuntimeException) {
+                                    NotificationBookkeepingResult.FAILED
+                                }
+                            },
+                            onPhaseChanged = { phase = it },
+                        )
+                        AlertaEcEventClaims.resolve(event.id, result)
+                        resultResolved = true
+                    } finally {
+                        if (!resultResolved) {
+                            if (phase == NotificationPostPhase.NOT_INVOKED) {
+                                AlertaEcEventClaims.release(event.id)
+                            } else {
+                                AlertaEcEventClaims.retainUncertain(event.id)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         val informational = AlertaEcNotificationQueuePolicy.informational(newEvents, nowMillis)
         AlertaEcNotificationQueueStore.enqueue(context, informational.map { it.id })
         AlertaEcNotificationQueueStore.nextValid(context, events, nowMillis)
-        if (AlertaEcNotificationQueuePolicy.canShowNext(
+        if (!SettingsManager.getInstance(context).isAlertPushEnabled) {
+            return AlertaEcNotificationQueueStore.pending(context).takeIf { it.isNotEmpty() }
+                ?.let { NotificationPostResult.BLOCKED }
+        }
+        if (!AlertaEcNotificationQueuePolicy.canShowNext(
                 AlertaEcNotificationQueueStore.lastShownAt(context), nowMillis
             )
-        ) {
-            AlertaEcNotificationQueueStore.nextValid(context, events, nowMillis)?.let { event ->
-                sendNotification(context, location, event, nowMillis)
-                AlertaEcEventDeduplicator.markNotified(context, event)
-                AlertaEcNotificationQueueStore.remove(context, event.id)
-                AlertaEcNotificationQueueStore.markShown(context, nowMillis)
+        ) return null
 
+        val result = AlertaEcNotificationQueueStore.nextValid(context, events, nowMillis)?.let { event ->
+            if (!AlertaEcEventClaims.tryClaim(event.id)) return@let null
+            var phase = NotificationPostPhase.NOT_INVOKED
+            var resultResolved = false
+            try {
+                postInformationalNotification(
+                    canNotifyEvent = { canNotifyEvent(context, event) },
+                    poster = { onNotifyInvoked ->
+                        sendNotification(context, location, event, nowMillis, onNotifyInvoked)
+                    },
+                    onPostReturned = {
+                        bookkeepInformationalNotification(
+                            { AlertaEcEventDeduplicator.markNotified(context, event) },
+                            { AlertaEcNotificationQueueStore.remove(context, event.id) },
+                            { AlertaEcNotificationQueueStore.markShown(context, nowMillis) },
+                        )
+                    },
+                    onPhaseChanged = { phase = it },
+                ).also {
+                    AlertaEcEventClaims.resolve(event.id, it)
+                    resultResolved = true
+                }
+            } finally {
+                if (!resultResolved) {
+                    if (phase == NotificationPostPhase.NOT_INVOKED) {
+                        AlertaEcEventClaims.release(event.id)
+                    } else {
+                        AlertaEcEventClaims.retainUncertain(event.id)
+                    }
+                }
             }
         }
-        if (!fromQueueWorker && AlertaEcNotificationQueueStore.pending(context).isNotEmpty()) {
-            val remainingMillis = (AlertaEcNotificationQueuePolicy.nextEligibleAt(
-                AlertaEcNotificationQueueStore.lastShownAt(context)
-            ) - nowMillis).coerceAtLeast(0L)
-            AlertaEcNotificationQueueScheduler.schedule(
-                context, (remainingMillis + 999L) / 1000L
+        if (!fromQueueWorker) {
+            AlertaEcNotificationQueueScheduler.scheduleContinuation(
+                context, result, appendToChain = false, nowMillis = nowMillis
             )
         }
+        return result
     }
 
-    private fun sendNotification(context: Context, location: Location, event: AlertaEcEvent, nowMillis: Long) {
+    private fun canNotifyEvent(context: Context, event: AlertaEcEvent): Boolean {
+        // Revalidación de solo lectura después del claim y antes del preflight.
+        if (!AlertaEcEventDeduplicator.isStillUnnotified(
+                event.id,
+                AlertaEcEventDeduplicator.notifiedEventIds(context),
+            )
+        ) return false
+        // Revalida justo antes de publicar: si el evento caducó, el claim se libera
+        // y no se llama a notify.
+        if (!AlertaEcNotificationPolicy.shouldNotify(event, System.currentTimeMillis())) return false
+        val settings = SettingsManager.getInstance(context)
+        val requested = org.breezyweather.remoteviews.Notifications.selectChannel(
+            settings.isAlertSoundEnabled,
+            settings.isAlertVibrationEnabled,
+            AlertaEcNotificationAppearance.eventSoundChannel(event.phenomenon, event.severity),
+            AlertaEcNotificationAppearance.eventChannel(event.severity)
+        )
+        val channel = org.breezyweather.remoteviews.Notifications.weatherChannel(context, requested)
+        return org.breezyweather.remoteviews.Notifications.canPostToChannel(context, channel, AlertaEcNotificationAppearance.eventChannel(event.severity))
+    }
+
+
+    private fun sendNotification(
+        context: Context,
+        location: Location,
+        event: AlertaEcEvent,
+        nowMillis: Long,
+        onNotifyInvoked: () -> Unit,
+    ) {
         val notificationId = if (
             event.severity == AlertaEcSeverity.INFORMATION ||
             event.severity == AlertaEcSeverity.ADVISORY
@@ -139,8 +210,14 @@ object AlertaEcNotifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val requestedChannel = org.breezyweather.remoteviews.Notifications.selectChannel(
+            settings.isAlertSoundEnabled,
+            settings.isAlertVibrationEnabled,
+            AlertaEcNotificationAppearance.eventSoundChannel(event.phenomenon, event.severity),
+            AlertaEcNotificationAppearance.eventChannel(event.severity)
+        )
         val notification = context.notificationBuilder(
-            org.breezyweather.remoteviews.Notifications.weatherChannel(context, "forecast")
+            org.breezyweather.remoteviews.Notifications.weatherChannel(context, requestedChannel)
         ).apply {
             setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             setSmallIcon(AlertaEcNotificationAppearance.icon(event.phenomenon))
@@ -175,6 +252,7 @@ object AlertaEcNotifier {
             )
         }.build()
 
+        onNotifyInvoked()
         context.notify(notificationId, notification)
     }
 

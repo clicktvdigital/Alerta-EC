@@ -14,6 +14,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.view.accessibility.AccessibilityManager
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
 import org.breezyweather.domain.settings.SettingsManager
 import java.lang.ref.WeakReference
 
@@ -81,7 +82,9 @@ object AlertVoice {
         val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val notifications = activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val accessibility = activity.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
-        if (activity.isFinishing || activity.isDestroyed || !activity.hasWindowFocus() ||
+        if (activity.isFinishing || activity.isDestroyed ||
+            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
+            !activity.hasWindowFocus() ||
             (activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked ||
             !settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled ||
             audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL ||
@@ -158,7 +161,7 @@ object AlertVoice {
                 if (granted != AudioManager.AUDIOFOCUS_REQUEST_GRANTED ||
                     tts.setVoice(voice) == TextToSpeech.ERROR
                 ) {
-                    finish("Android no pudo iniciar la voz.")
+                    finish("Android bloqueó el audio o no pudo iniciar la voz.")
                     return@post
                 }
                 tts.setAudioAttributes(attributes)

@@ -22,6 +22,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.annotation.CallSuper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.common.bus.EventBus
 import org.breezyweather.common.extensions.hasPermission
+import org.breezyweather.alertaec.accessibility.AlertVoice
 import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.common.utils.helpers.PermissionHelper
 import org.breezyweather.domain.settings.SettingsChangedMessage
@@ -53,6 +55,7 @@ import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
 import org.breezyweather.ui.settings.compose.AutoSupportSettingsScreen
 import org.breezyweather.ui.settings.compose.DebugSettingsScreen
 import org.breezyweather.ui.settings.compose.LocationSettingsScreen
+import org.breezyweather.background.location.DetailedLocationProvider
 import org.breezyweather.ui.settings.compose.MainScreenSettingsScreen
 import org.breezyweather.ui.settings.compose.ModulesSettingsScreen
 import org.breezyweather.ui.settings.compose.NotificationsSettingsScreen
@@ -69,6 +72,8 @@ private const val PERMISSION_CODE_POST_NOTIFICATION = 0
 class SettingsActivity : BreezyActivity() {
 
     @Inject lateinit var sourceManager: SourceManager
+
+    @Inject lateinit var detailedLocationProvider: DetailedLocationProvider
 
     @Inject lateinit var refreshHelper: RefreshHelper
 
@@ -107,6 +112,18 @@ class SettingsActivity : BreezyActivity() {
     )
 
     private var requestPostNotificationPermissionSucceedCallback: (() -> Unit)? = null
+
+    @CallSuper
+    override fun onResume() {
+        super.onResume()
+        AlertVoice.resume(this)
+    }
+
+    @CallSuper
+    override fun onPause() {
+        AlertVoice.pause()
+        super.onPause()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -306,7 +323,8 @@ class SettingsActivity : BreezyActivity() {
                 LocationSettingsScreen(
                     context = this@SettingsActivity,
                     onNavigateBack = { onBack() },
-                    locationSources = sourceManager.getLocationSources()
+                    locationSources = sourceManager.getLocationSources(),
+                    detailedLocationProvider = detailedLocationProvider
                 )
             }
             composable(SettingsScreenRouter.WeatherProviders.route) {

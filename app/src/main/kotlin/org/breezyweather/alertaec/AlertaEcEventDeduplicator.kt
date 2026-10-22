@@ -21,6 +21,15 @@ object AlertaEcEventDeduplicator {
         return AlertaEcNotificationPolicy.filterNewEvents(events, remembered)
     }
 
+    internal fun notifiedEventIds(context: Context): Set<String> =
+        ConfigStore(context, PREFERENCES).getStringSet(KEY_NOTIFIED_EVENT_IDS, emptySet())
+            ?.filterNotNull()
+            ?.toSet()
+            ?: emptySet()
+
+    internal fun isStillUnnotified(eventId: String, notifiedEventIds: Set<String>): Boolean =
+        eventId !in notifiedEventIds
+
     fun markNotified(context: Context, event: AlertaEcEvent) {
         val config = ConfigStore(context, PREFERENCES)
         val remembered = config.getStringSet(KEY_NOTIFIED_EVENT_IDS, emptySet())

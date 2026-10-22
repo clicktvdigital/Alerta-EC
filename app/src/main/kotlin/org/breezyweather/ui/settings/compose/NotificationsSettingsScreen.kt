@@ -18,6 +18,7 @@ package org.breezyweather.ui.settings.compose
 
 import android.content.Context
 import android.os.Build
+import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ListItemDefaults
@@ -29,10 +30,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import org.breezyweather.BreezyWeather
+import org.breezyweather.alertaec.accessibility.AlertVoice
+import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.R
 import org.breezyweather.background.forecast.TodayForecastNotificationJob
 import org.breezyweather.background.forecast.TomorrowForecastNotificationJob
 import org.breezyweather.common.extensions.plus
+import org.breezyweather.common.utils.helpers.SnackbarHelper
 import org.breezyweather.common.options.UpdateInterval
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.ui.common.composables.AnimatedVisibilitySlideVertically
@@ -184,6 +188,44 @@ fun NotificationsSettingsScreen(
                     isLast = true,
                     onValueChanged = {
                         SettingsManager.getInstance(context).isPrecipitationAudibleEnabled = it
+                    }
+                )
+            }
+            smallSeparatorItem()
+            switchPreferenceItem(R.string.settings_notifications_alert_voice_title) { id ->
+                SwitchPreferenceView(
+                    titleId = id,
+                    summaryOnId = R.string.settings_enabled,
+                    summaryOffId = R.string.settings_disabled,
+                    checked = SettingsManager.getInstance(context).isAlertVoiceEnabled,
+                    enabled = hasNotificationPermission &&
+                        SettingsManager.getInstance(context).isAlertPushEnabled &&
+                        SettingsManager.getInstance(context).isAlertSoundEnabled,
+                    onValueChanged = {
+                        SettingsManager.getInstance(context).isAlertVoiceEnabled = it
+                    }
+                )
+            }
+            smallSeparatorItem()
+            listPreferenceItem(R.string.settings_notifications_alert_voice_test) { id ->
+                PreferenceViewWithCard(
+                    titleId = id,
+                    summaryId = R.string.settings_notifications_alert_voice_test_summary,
+                    enabled = hasNotificationPermission,
+                    isLast = true,
+                    onClick = {
+                        val activity = context as? BreezyActivity
+                        if (activity != null && activity.lifecycle.currentState.isAtLeast(
+                                Lifecycle.State.RESUMED
+                            )
+                        ) {
+                            AlertVoice.test(activity) { message ->
+                                SnackbarHelper.showSnackbar(
+                                    message,
+                                    activity = activity
+                                )
+                            }
+                        }
                     }
                 )
             }

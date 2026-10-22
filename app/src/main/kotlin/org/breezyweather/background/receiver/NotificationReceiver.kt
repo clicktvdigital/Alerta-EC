@@ -45,9 +45,7 @@ class NotificationReceiver : BroadcastReceiver() {
             // Cancel weather update and dismiss notification
             ACTION_CANCEL_WEATHER_UPDATE -> cancelWeatherUpdate(context)
             ACTION_ALERTA_EC_DISMISSED -> {
-                if (org.breezyweather.alertaec.AlertaEcNotificationQueueStore.pending(context).isNotEmpty()) {
-                    org.breezyweather.alertaec.AlertaEcNotificationQueueScheduler.schedule(context, 0L, appendToChain = true)
-                }
+                org.breezyweather.alertaec.AlertaEcNotificationQueueScheduler.scheduleAfterDismissal(context)
             }
         }
     }

@@ -16,7 +16,7 @@ object EcuadorAddressMapper {
         val locality = firstNonBlank(address.locality)
 
         val parish = if (isEcuador) {
-            firstNonBlank(address.cityDistrict, address.admin3)
+            firstNonBlank(address.admin3)
         } else {
             null
         }
@@ -24,7 +24,6 @@ object EcuadorAddressMapper {
         val canton = if (isEcuador) {
             firstNonBlank(
                 address.admin2,
-                address.admin3,
                 address.city,
             )
         } else {

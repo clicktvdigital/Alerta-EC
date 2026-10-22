@@ -19,10 +19,17 @@ package org.breezyweather.remoteviews
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
+import android.Manifest
 import android.content.Context
+import android.content.ContentResolver
+import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.net.Uri
+import android.os.Build
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_DEFAULT
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_HIGH
@@ -192,13 +199,140 @@ object Notifications {
                 }
             ).filter { notificationManager.getNotificationChannel(it.id) == null }
         )
+
+        notificationManager.createNotificationChannelsCompat(
+            listOfNotNull(
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_RAIN, IMPORTANCE_DEFAULT, R.string.notification_channel_precipitation),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_STORM, IMPORTANCE_DEFAULT, R.string.notification_channel_precipitation),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE, IMPORTANCE_HIGH, R.string.notification_channel_severe),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_VOLCANIC, IMPORTANCE_HIGH, R.string.notification_channel_severe),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_CRITICAL, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION, IMPORTANCE_DEFAULT, R.string.notification_channel_precipitation, false),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION, IMPORTANCE_DEFAULT, R.string.notification_channel_precipitation, false),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION, IMPORTANCE_HIGH, R.string.notification_channel_severe, false),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION, IMPORTANCE_HIGH, R.string.notification_channel_severe, false),
+                soundChannel(context, AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION, IMPORTANCE_HIGH, R.string.notification_channel_extreme, false),
+                vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_FORECAST, IMPORTANCE_LOW, R.string.notification_channel_forecast),
+                vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_SEVERE, IMPORTANCE_HIGH, R.string.notification_channel_severe),
+                vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
+                silentChannel(context, AlertaEcNotificationAppearance.SILENT_SEVERE, IMPORTANCE_HIGH, R.string.notification_channel_severe),
+                silentChannel(context, AlertaEcNotificationAppearance.SILENT_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
+            ).filter { notificationManager.getNotificationChannel(it.id) == null }
+        )
+    }
+
+    private fun soundChannel(context: Context, id: String, importance: Int, name: Int, vibrationEnabled: Boolean = true): NotificationChannelCompat? {
+        val resource = AlertaEcNotificationAppearance.soundResource(id) ?: return null
+        return buildNotificationChannel(id, importance) {
+            setName(context.getString(name))
+            setGroup(GROUP_BREEZY_WEATHER)
+            setSound(
+                Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.packageName + "/" + resource),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            setVibrationEnabled(vibrationEnabled)
+            setVibrationPattern(longArrayOf(0, 180))
+        }
+    }
+
+    private fun vibrationChannel(context: Context, id: String, importance: Int, name: Int): NotificationChannelCompat =
+        buildNotificationChannel(id, importance) {
+            setName(context.getString(name))
+            setGroup(GROUP_BREEZY_WEATHER)
+            setSound(null, null)
+            setVibrationEnabled(true)
+            setVibrationPattern(longArrayOf(0, 180))
+        }
+
+    private fun silentChannel(context: Context, id: String, importance: Int, name: Int): NotificationChannelCompat =
+        buildNotificationChannel(id, importance) {
+            setName(context.getString(name))
+            setGroup(GROUP_BREEZY_WEATHER)
+            setSound(null, null)
+            setVibrationEnabled(false)
+        }
+
+    private fun categoryChannel(channelId: String): String? = when (channelId) {
+        AlertaEcNotificationAppearance.SOUND_RAIN,
+        AlertaEcNotificationAppearance.SOUND_STORM,
+        AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION,
+        AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION,
+        AlertaEcNotificationAppearance.VIBRATION_FORECAST -> CHANNEL_FORECAST
+        AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE,
+        AlertaEcNotificationAppearance.SOUND_VOLCANIC,
+        AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION,
+        AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION,
+        AlertaEcNotificationAppearance.VIBRATION_SEVERE -> AlertaEcNotificationAppearance.SEVERE
+        AlertaEcNotificationAppearance.SOUND_CRITICAL,
+        AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION,
+        AlertaEcNotificationAppearance.VIBRATION_EXTREME,
+        AlertaEcNotificationAppearance.SILENT_EXTREME -> AlertaEcNotificationAppearance.EXTREME
+        AlertaEcNotificationAppearance.SILENT_SEVERE -> AlertaEcNotificationAppearance.SEVERE
+        else -> null
     }
 
     internal fun weatherChannel(context: Context, requested: String): String =
-        if (NotificationManagerCompat.from(context)
-                .getNotificationChannel(AlertaEcNotificationAppearance.PRECIPITATION) != null
-        ) requested else CHANNEL_ALERT
+        if (NotificationManagerCompat.from(context).getNotificationChannel(requested) != null) requested else CHANNEL_ALERT
 
+    internal fun canPostToChannel(context: Context, channelId: String, logicalChannelId: String? = null): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return false
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return false
+        val channel = manager.getNotificationChannel(channelId) ?: return false
+        val groupBlocked = channel.group?.let { manager.getNotificationChannelGroup(it)?.isBlocked == true } == true
+        val categoryBlocked = if (channelId == AlertaEcNotificationAppearance.VIBRATION_FORECAST || channelId == AlertaEcNotificationAppearance.SOUND_RAIN) {
+            listOf(CHANNEL_FORECAST, AlertaEcNotificationAppearance.PRECIPITATION).any { manager.getNotificationChannel(it)?.importance == 0 }
+        } else {
+            logicalChannelId?.let { manager.getNotificationChannel(it)?.importance == 0 } == true || categoryChannel(channelId)?.let { manager.getNotificationChannel(it)?.importance == 0 } == true
+        }
+        return shouldPostToChannel(true, true, channel.importance, groupBlocked || categoryBlocked)
+    }
+
+    internal fun shouldPostToChannel(
+        notificationsEnabled: Boolean,
+        postNotificationsGranted: Boolean,
+        importance: Int,
+        channelBlocked: Boolean,
+    ): Boolean = notificationsEnabled && postNotificationsGranted && importance != 0 && !channelBlocked
+
+    private fun noVibrationSoundChannel(channel: String): String = when (channel) {
+        AlertaEcNotificationAppearance.SOUND_RAIN -> AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION
+        AlertaEcNotificationAppearance.SOUND_STORM -> AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION
+        AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE -> AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION
+        AlertaEcNotificationAppearance.SOUND_VOLCANIC -> AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION
+        AlertaEcNotificationAppearance.SOUND_CRITICAL -> AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION
+        else -> channel
+    }
+
+    private fun silentChannel(fallbackChannel: String): String = when (fallbackChannel) {
+        AlertaEcNotificationAppearance.SEVERE -> AlertaEcNotificationAppearance.SILENT_SEVERE
+        AlertaEcNotificationAppearance.EXTREME -> AlertaEcNotificationAppearance.SILENT_EXTREME
+        else -> fallbackChannel
+    }
+
+    internal fun selectChannel(soundEnabled: Boolean, vibrationEnabled: Boolean, soundChannel: String?, fallbackChannel: String): String = when {
+        soundEnabled && soundChannel != null -> if (vibrationEnabled) soundChannel else noVibrationSoundChannel(soundChannel)
+        vibrationEnabled -> when (fallbackChannel) {
+            AlertaEcNotificationAppearance.SEVERE -> AlertaEcNotificationAppearance.VIBRATION_SEVERE
+            AlertaEcNotificationAppearance.EXTREME -> AlertaEcNotificationAppearance.VIBRATION_EXTREME
+            else -> AlertaEcNotificationAppearance.VIBRATION_FORECAST
+        }
+        else -> silentChannel(fallbackChannel)
+    }
+
+    internal fun logicalCategory(channelId: String): String? = categoryChannel(channelId)
+
+    internal fun shouldSetSilent(
+        soundEnabled: Boolean,
+        vibrationEnabled: Boolean,
+        intentionalSilence: Boolean = false,
+        quietUpdate: Boolean = false,
+    ): Boolean = intentionalSilence || quietUpdate || (!soundEnabled && !vibrationEnabled)
     private fun getNotificationBuilder(
         context: Context,
         @DrawableRes iconId: Int,
@@ -242,9 +376,18 @@ object Notifications {
         }
         alerts.forEach { alert ->
             val key = "${location.formattedId}|${alert.alertId}|${alert.severity}|${alert.startDate?.time}"
-            val channel = weatherChannel(context, AlertaEcNotificationAppearance.officialChannel(alert.severity))
-            val manager = NotificationManagerCompat.from(context)
-            if (key !in remembered && manager.getNotificationChannel(channel)?.importance != 0) {
+            val phenomenon = AlertaEcWeatherAdapter.phenomenonFromText(alert.headline.orEmpty() + " " + alert.description.orEmpty())
+            val soundChannel = if (SettingsManager.getInstance(context).isAlertSoundEnabled) AlertaEcNotificationAppearance.officialSoundChannel(phenomenon, alert.severity) else null
+            val channel = weatherChannel(
+                context,
+                selectChannel(
+                    SettingsManager.getInstance(context).isAlertSoundEnabled,
+                    SettingsManager.getInstance(context).isAlertVibrationEnabled,
+                    soundChannel,
+                    AlertaEcNotificationAppearance.officialChannel(alert.severity)
+                )
+            )
+            if (key !in remembered && canPostToChannel(context, channel, AlertaEcNotificationAppearance.officialChannel(alert.severity))) {
                 sendAlertNotification(context, location, alert, alerts.size > 1)
                 remembered.add(key)
             }
@@ -284,6 +427,11 @@ object Notifications {
             DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.DEFAULT).format(it)
         }
         val description = alert.description?.replace("\n", "<br />")?.parseAsHtml() ?: ""
+        val phenomenon = AlertaEcWeatherAdapter.phenomenonFromText(alert.headline.orEmpty() + " " + alert.description.orEmpty())
+        val settings = SettingsManager.getInstance(context)
+        val soundChannel = if (settings.isAlertSoundEnabled) {
+            AlertaEcNotificationAppearance.officialSoundChannel(phenomenon, alert.severity)
+        } else null
         val builder = getNotificationBuilder(
             context,
             AlertaEcNotificationAppearance.icon(AlertaEcWeatherAdapter.phenomenonFromText(alert.headline.orEmpty())),
@@ -298,7 +446,15 @@ object Notifications {
                 IntentHelper.buildMainActivityShowAlertsIntent(location, alert.alertId),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             ),
-            weatherChannel(context, AlertaEcNotificationAppearance.officialChannel(alert.severity))
+            weatherChannel(
+                context,
+                selectChannel(
+                    settings.isAlertSoundEnabled,
+                    settings.isAlertVibrationEnabled,
+                    soundChannel,
+                    AlertaEcNotificationAppearance.officialChannel(alert.severity)
+                )
+            )
         ).setStyle(
             NotificationCompat.BigTextStyle()
                 .setBigContentTitle(
@@ -313,6 +469,7 @@ object Notifications {
             builder.setGroup(ALERT_GROUP_KEY)
             builder.setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         }
+        if (shouldSetSilent(settings.isAlertSoundEnabled, settings.isAlertVibrationEnabled)) builder.setSilent(true)
         return builder.build()
     }
 
@@ -405,8 +562,17 @@ object Notifications {
         val audibleKey = "PRECIPITATION_AUDIBLE_$locationKey"
         val alreadyNotified = transitionKey != null && config.getString(audibleKey, null) == transitionKey
         val audible = settings.isPrecipitationAudibleEnabled && decision.canNotifyPreventively && !alreadyNotified
-        val channel = if (audible) AlertaEcNotificationAppearance.PRECIPITATION_IMMINENT else
-            weatherChannel(context, AlertaEcNotificationAppearance.PRECIPITATION)
+        val channel = if (audible) {
+            weatherChannel(
+                context,
+                selectChannel(
+                    settings.isAlertSoundEnabled,
+                    settings.isAlertVibrationEnabled,
+                    AlertaEcNotificationAppearance.SOUND_RAIN,
+                    CHANNEL_FORECAST
+                )
+            )
+        } else weatherChannel(context, AlertaEcNotificationAppearance.PRECIPITATION)
         context.notify(
             ID_PRECIPITATION,
             getNotificationBuilder(
@@ -423,7 +589,13 @@ object Notifications {
                 ),
                 channel
             ).apply {
-                if (!audible || (!settings.isAlertSoundEnabled && !settings.isAlertVibrationEnabled) || quietUpdate) {
+                if (shouldSetSilent(
+                        settings.isAlertSoundEnabled,
+                        settings.isAlertVibrationEnabled,
+                        intentionalSilence = !audible,
+                        quietUpdate = quietUpdate
+                    )
+                ) {
                     setSilent(true)
                 }
             }.build()
