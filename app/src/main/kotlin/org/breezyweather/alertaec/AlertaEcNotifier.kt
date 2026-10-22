@@ -18,7 +18,7 @@ object AlertaEcNotifier {
     private const val ID_BASE = 5000
     private const val ID_RANGE = 1000
 
-    fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis(), fromQueueWorker: Boolean = false): NotificationPostResult? {
+    internal fun checkAndNotify(context: Context, location: Location, nowMillis: Long = System.currentTimeMillis(), fromQueueWorker: Boolean = false): NotificationPostResult? {
         // OFFICIAL_EVENT ya se envía desde remoteviews.Notifications.
         val events = AlertaEcWeatherAdapter.fromLocation(location, nowMillis)
             .filter { AlertaEcNotificationPolicy.shouldNotify(it, nowMillis) }
