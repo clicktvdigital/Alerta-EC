@@ -23,6 +23,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import breezyweather.domain.location.model.Location
 import org.breezyweather.R
+import org.breezyweather.alertaec.AlertaEcNotificationText
 import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.formatPercent
 import org.breezyweather.common.extensions.formatMeasure
