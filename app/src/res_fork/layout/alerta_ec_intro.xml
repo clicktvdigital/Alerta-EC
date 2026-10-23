@@ -3,7 +3,7 @@
     android:id="@+id/alerta_ec_intro"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#07131F"
+    android:background="#000000"
     android:clickable="true"
     android:contentDescription="@string/alertaec_intro_description"
     android:importantForAccessibility="yes"

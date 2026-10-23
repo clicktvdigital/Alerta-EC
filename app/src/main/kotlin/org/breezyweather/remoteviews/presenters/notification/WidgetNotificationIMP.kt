@@ -97,7 +97,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         }
 
         val notification = context.notificationBuilder(Notifications.CHANNEL_WIDGET).apply {
-            priority = NotificationCompat.PRIORITY_MAX
+            priority = NotificationCompat.PRIORITY_LOW
             setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             if (temperature != null) {
                 setSmallIcon(
@@ -169,9 +169,9 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
                 )
             }
             setTextViewText(R.id.notification_base_realtimeTemp, summary.temperatureText)
-            setTextViewText(R.id.notification_base_aqiAndWind, summary.place)
-            setTextViewText(R.id.notification_base_weather, summary.phenomenon)
-            setTextViewText(R.id.notification_base_time, summary.metrics)
+            setTextViewText(R.id.notification_base_aqiAndWind, summary.phenomenon)
+            setTextViewText(R.id.notification_base_weather, context.getString(R.string.alertaec_notification_name))
+            setViewVisibility(R.id.notification_base_time, android.view.View.GONE)
             setContentDescription(R.id.notification_base, "${summary.phenomenon} · ${summary.place} · ${summary.compact}")
 
         }
@@ -190,6 +190,7 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         isWidgetNotificationUsingFeelsLike: Boolean,
     ): RemoteViews {
         val weather = location.weather ?: return viewsP
+        val summary = NotificationForecastSummary(context, location)
 
         // today
         val views = buildBaseView(
@@ -214,20 +215,25 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
             views.setViewVisibility(R.id.notification_big_feels_like, android.view.View.VISIBLE)
         } ?: views.setViewVisibility(R.id.notification_big_feels_like, android.view.View.GONE)
 
+        views.setTextViewText(R.id.notification_big_location, summary.place)
+
         val conditionParts = mutableListOf<String>()
-        weather.hourlyForecast.firstOrNull {
-            it.date.time > System.currentTimeMillis() - 3_600_000L
-        }?.acquiredAt?.let {
-            conditionParts.add("Recibido: " + java.text.DateFormat.getDateTimeInstance().apply {
+        weather.base.currentUpdateTime?.takeIf { it.time in 1..System.currentTimeMillis() }?.let {
+            conditionParts.add("Actualizado: " + java.text.DateFormat.getDateTimeInstance().apply {
                 timeZone = location.timeZone
             }.format(it))
         }
-        conditionParts.add("Fuente: ${location.forecastSource}")
+        location.forecastSource.takeIf { it.isNotBlank() }?.let { source -> conditionParts.add("Fuente: " + source) }
         weather.current?.relativeHumidity?.let {
             conditionParts.add(context.getString(R.string.humidity) + ": " + it.formatPercent(context, UnitWidth.NARROW))
         }
-        weather.nextHourlyForecast.firstOrNull()?.precipitationProbability?.total?.let {
-            conditionParts.add(context.getString(R.string.alertaec_notification_forecast_rain) + ": " + it.formatPercent(context, UnitWidth.NARROW))
+        weather.nextHourlyForecast.firstOrNull()?.let { hourly ->
+            hourly.precipitationProbability?.total?.let {
+                conditionParts.add(context.getString(R.string.alertaec_notification_forecast_rain) + ": " + it.formatPercent(context, UnitWidth.NARROW))
+            }
+            hourly.precipitation?.total?.inMillimeters?.let {
+                conditionParts.add("Precipitación: " + AlertaEcNotificationText.accumulationMm(it))
+            }
         }
         if (conditionParts.isNotEmpty()) {
             views.setTextViewText(R.id.notification_big_conditions, conditionParts.joinToString(" · "))
@@ -266,6 +272,11 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         } else {
             views.setViewVisibility(R.id.notification_big_air_quality, android.view.View.GONE)
         }
+
+        views.setViewVisibility(
+            R.id.notification_big_hourly,
+            if (weather.nextHourlyForecast.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        )
 
         val viewIds = arrayOf(
             Triple(R.id.notification_big_week_1, R.id.notification_big_temp_1, R.id.notification_big_icon_1),

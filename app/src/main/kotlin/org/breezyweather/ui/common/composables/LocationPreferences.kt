@@ -18,6 +18,7 @@ package org.breezyweather.ui.common.composables
 
 import android.Manifest
 import android.content.Context
+import android.location.Location as AndroidLocation
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -123,8 +124,43 @@ fun LocationPreference(
         }
         if (location.isCurrentPosition) {
             val fix = org.breezyweather.domain.settings.CurrentLocationStore(context)
-            val samePoint = fix.isUsable && fix.lastKnownLatitude == location.latitude &&
-                fix.lastKnownLongitude == location.longitude
+            val measuredAtMillis = fix.measuredAtMillis
+            val ageMillis = measuredAtMillis?.let { System.currentTimeMillis() - it }
+            val validTimestamp = ageMillis != null && ageMillis in 0L..120_000L
+            val horizontalAccuracyMeters = fix.accuracyMeters?.takeIf { it.isFinite() && it > 0f }
+            val provider = fix.provider?.trim()?.lowercase(java.util.Locale.ROOT)
+            val hasAndroidLocationProvenance = provider in setOf(
+                "fused",
+                "gps",
+                "gnss",
+                "network",
+                "passive"
+            )
+            val activeCoordinatesAreValid = location.latitude.isFinite() &&
+                location.longitude.isFinite() &&
+                location.latitude in -90.0..90.0 &&
+                location.longitude in -180.0..180.0
+            val distanceMeters = if (fix.isUsable && activeCoordinatesAreValid) {
+                FloatArray(1).also { results ->
+                    AndroidLocation.distanceBetween(
+                        fix.lastKnownLatitude,
+                        fix.lastKnownLongitude,
+                        location.latitude,
+                        location.longitude,
+                        results
+                    )
+                }[0].toDouble()
+            } else {
+                Double.NaN
+            }
+            val toleranceMeters = horizontalAccuracyMeters?.toDouble()?.times(2.0)
+            val samePoint = fix.isUsable &&
+                validTimestamp &&
+                hasAndroidLocationProvenance &&
+                horizontalAccuracyMeters != null &&
+                distanceMeters.isFinite() &&
+                toleranceMeters != null &&
+                distanceMeters <= toleranceMeters
             Text(
                 text = buildString {
                     append("Coordenadas del clima: ${location.latitude}, ${location.longitude}")

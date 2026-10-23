@@ -10,34 +10,38 @@ import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
 
-/** All forecast values on the compact line belong to the same hourly interval. */
+/** Values used by the compact notification. Keep this payload deliberately short. */
 internal class NotificationForecastSummary(context: Context, location: Location) {
     private val now = System.currentTimeMillis()
+    private val current = location.weather?.current
     private val hour = location.weather?.hourlyForecast?.firstOrNull {
         it.date.time > now - 3_600_000L && it.date.time < now + 86_400_000L
     }
     private val settings = SettingsManager.getInstance(context)
     private val temperature = if (settings.isWidgetNotificationUsingFeelsLike) {
-        hour?.temperature?.feelsLikeTemperature ?: hour?.temperature?.temperature
+        current?.temperature?.feelsLikeTemperature ?: current?.temperature?.temperature
+            ?: hour?.temperature?.feelsLikeTemperature ?: hour?.temperature?.temperature
     } else {
-        hour?.temperature?.temperature
+        current?.temperature?.temperature ?: hour?.temperature?.temperature
     }
     val place = location.geographicName.takeIf { it.isNotBlank() }
         ?: listOf(location.admin1, location.country).firstOrNull { !it.isNullOrBlank() }
         ?: "Ubicación no disponible"
-    val phenomenon = NotificationWeatherText.nonBlank(hour?.weatherText) ?: "Pronóstico horario"
+    val phenomenon = NotificationWeatherText.nonBlank(current?.weatherText)
+        ?: NotificationWeatherText.nonBlank(hour?.weatherText)
+        ?: "Condiciones no disponibles"
     val temperatureText = temperature?.takeIf { it.inCelsius.isFinite() }?.formatMeasure(
         context, settings.getTemperatureUnit(context), unitWidth = UnitWidth.NARROW
-    )?.let { "Temp. $it" } ?: "Temp. —"
+    ) ?: "—"
     val interval = hour?.let { AlertaEcNotificationText.hourlyPeriod(it.date.time, now, location.timeZone) }
         ?: "Hora no disponible"
     val values = listOf(
         AlertaEcNotificationText.probabilityPercent(hour?.precipitationProbability?.total?.inPercent),
         AlertaEcNotificationText.accumulationMm(hour?.precipitation?.total?.inMillimeters)
     ).joinToString(" · ")
-    val compact = "$temperatureText · $values"
-    /** Compatibility text for existing widget consumers; it includes the new hourly metrics. */
-    val metrics = "$interval · $compact"
+    val compact = "$temperatureText · $phenomenon"
+    /** Secondary data is retained for the expanded notification only. */
+    val metrics = values.takeIf { it.isNotBlank() }
     val details = buildList {
         add("$phenomenon · $place")
         add("$interval · $compact")

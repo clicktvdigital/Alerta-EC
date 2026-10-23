@@ -1361,6 +1361,7 @@
     <string name="alertaec_share_message">🇪🇨🦅 ¡Conoce ALERTA EC! Pronósticos y prevención meteorológica para Ecuador. Aplicación Android gratuita desarrollada por Richard Ontaneda, fundador de CLICK TV DIGITAL. 🌐 Proyecto: https://github.com/clicktvdigital/Alerta-EC 📦 Descarga estable: https://github.com/clicktvdigital/Alerta-EC/releases/latest 🔄 Obtainium: https://github.com/ImranR98/Obtainium/releases</string>
     <string name="alertaec_creators_title">Creadores</string>
     <string name="alertaec_credit_developer">Fundador de CLICK TV DIGITAL, creador y desarrollador principal de ALERTA EC. 🇪🇨</string>
+    <string name="alertaec_notification_name">ALERTA EC</string>
     <string name="alertaec_notification_conditions_missing">Conditions unavailable</string>
     <string name="alertaec_notification_cached_details">Weather reception time unknown</string>
     <string name="alertaec_notification_feels_like">Feels like</string>

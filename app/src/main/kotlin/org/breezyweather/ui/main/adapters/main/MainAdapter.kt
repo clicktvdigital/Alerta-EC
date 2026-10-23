@@ -108,6 +108,7 @@ class MainAdapter(
                 mViewTypeList.add(ViewType.ALERT)
             }
             mViewTypeList.add(ViewType.HEADER)
+            val enabledCardDisplayList = mutableListOf<CardDisplay>()
             for (c in cardDisplayList) {
                 if (c === CardDisplay.CARD_NOWCAST &&
                     (!weather.hasMinutelyPrecipitation || weather.minutelyForecast.size < 3)
@@ -166,18 +167,24 @@ class MainAdapter(
                 ) {
                     continue
                 }
-                mViewTypeList.add(getViewType(c))
+                enabledCardDisplayList.add(c)
             }
-            // El acceso a aportes aparece tras el primer pronóstico; las alertas conservan prioridad.
-            val forecastPosition = mViewTypeList.indexOfFirst {
-                it == ViewType.HOURLY || it == ViewType.DAILY
+            // Los pronósticos ocupan primero sus posiciones fijas; las demás tarjetas
+            // conservan el orden elegido por el usuario y quedan agrupadas después.
+            listOf(
+                CardDisplay.CARD_HOURLY_FORECAST,
+                CardDisplay.CARD_DAILY_FORECAST
+            ).forEach { forecast ->
+                if (forecast in enabledCardDisplayList) {
+                    mViewTypeList.add(getViewType(forecast))
+                }
             }
-            val donationPosition = if (forecastPosition >= 0) {
-                forecastPosition + 1
-            } else {
-                mViewTypeList.indexOf(ViewType.HEADER) + 1
-            }
-            mViewTypeList.add(donationPosition, VIEW_TYPE_DONATIONS)
+            enabledCardDisplayList
+                .filterNot { it == CardDisplay.CARD_HOURLY_FORECAST || it == CardDisplay.CARD_DAILY_FORECAST }
+                .forEach { card -> mViewTypeList.add(getViewType(card)) }
+
+            // La información complementaria y los aportes quedan después de todas las tarjetas.
+            mViewTypeList.add(VIEW_TYPE_DONATIONS)
             mViewTypeList.add(ViewType.FOOTER)
         }
         for (i in 0..mViewTypeList.size) {
