@@ -59,7 +59,7 @@ internal object NoaaSatelliteFrames {
             connection.readTimeout = 20000
             try {
                 val html = connection.inputStream.bufferedReader().use { it.readText() }
-                val pattern = Regex("[0-9]{11}_GOES19-ABI-FD-GEOCOLOR-678x678[.]jpg")
+                val pattern = Regex("[0-9]{11}_GOES19-ABI-FD-GEOCOLOR-1808x1808[.]jpg")
                 val now = Instant.now()
                 pattern.findAll(html).mapNotNull { match ->
                     runCatching {

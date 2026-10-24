@@ -610,6 +610,8 @@ class MapFragment : MainModuleFragment() {
                     })
                     panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
                     root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
+                    player.resume()
                 }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             // Limitar todos los controles juntos para conservar mapa visible con paneles abiertos.

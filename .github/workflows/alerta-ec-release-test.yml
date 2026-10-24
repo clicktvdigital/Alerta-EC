@@ -20,7 +20,7 @@ jobs:
       - name: Validar etiqueta y version de Gradle
         id: version
         env:
-          RELEASE_TAG: "v0.1.10"
+          RELEASE_TAG: "v0.1.11"
         run: |
           python3 - <<'PYVERSION'
           import os
@@ -41,8 +41,8 @@ jobs:
               raise SystemExit("La etiqueta no coincide con versionName de app/build.gradle.kts")
           if package.group(1) != "com.clicktvdigital.alertaec":
               raise SystemExit("applicationId no coincide con el paquete de produccion esperado")
-          if int(code.group(1)) != 110:
-              raise SystemExit("versionCode debe ser 110 para v0.1.10")
+          if int(code.group(1)) != 111:
+              raise SystemExit("versionCode debe ser 111 para v0.1.11")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={tag_version}\n")
               output.write(f"version_code={code.group(1)}\n")
@@ -120,9 +120,9 @@ jobs:
       - name: Entregar APK de prueba sin publicar Release
         uses: actions/upload-artifact@v4
         with:
-          name: ALERTA-EC-v0.1.10-RELEASE-PRUEBA
+          name: ALERTA-EC-v0.1.11-RELEASE-PRUEBA
           path: |
-            release-assets/Alerta-EC-v0.1.10.apk
-            release-assets/Alerta-EC-v0.1.10.apk.sha256
+            release-assets/Alerta-EC-v0.1.11.apk
+            release-assets/Alerta-EC-v0.1.11.apk.sha256
           if-no-files-found: error
           retention-days: 7

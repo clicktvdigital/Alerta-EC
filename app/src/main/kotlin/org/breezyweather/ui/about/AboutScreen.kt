@@ -363,7 +363,7 @@ internal fun AboutScreen(
                         text = stringResource(R.string.alertaec_base_credits),
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
                 item { SectionTitle(stringResource(R.string.about_contributors)) }
@@ -432,7 +432,7 @@ private fun Header() {
         Image(
             painter = painterResource(R.drawable.alertaec_logo_acerca),
             contentDescription = null,
-            modifier = Modifier.size(72.dp)
+            modifier = Modifier.size(112.dp)
         )
         Spacer(
             modifier = Modifier
@@ -443,7 +443,7 @@ private fun Header() {
             text = stringResource(R.string.brand_name),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -457,7 +457,7 @@ private fun Header() {
             text = versionFormatted,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }
@@ -563,7 +563,7 @@ private fun ContributorView(
             if (contribution != null) {
                 Text(
                     text = stringResource(contribution),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         }

@@ -15,9 +15,14 @@ import kotlinx.coroutines.CancellationException
 
 internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: Boolean = false) : LinearLayout(context) {
     private val modeSelector = android.widget.Spinner(context)
-    private val image = NoaaZoomImageView(context)
+    private val image = NoaaZoomImageView(context).apply {
+        setBackgroundColor(android.graphics.Color.rgb(8, 14, 20))
+        minimumHeight = (resources.displayMetrics.density * 220f).toInt()
+        contentDescription = "Imagen NOAA"
+    }
     private val timeLabel = TextView(context)
     private val playButton = Button(context)
+    private val retryButton = Button(context)
     private val timeline = SeekBar(context)
     private var frames: List<NoaaSatelliteFrame> = emptyList()
     private var index = 0
@@ -29,15 +34,22 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     private val retryIntervalMs = 60 * 1000L
     private var retryAfterFailure = false
 
-    private fun loadSelectedMode(position: Int) {
-        playing = false
+    private fun loadSelectedMode(position: Int, force: Boolean = false) {
+        if (!force && displayedMode == position && modeJob?.isActive == true) return
+        val wasPlaying = playing
+        val sameMode = displayedMode == position
         handler.removeCallbacks(advance)
-        playButton.text = "▶ Reproducir"
+        if (!sameMode) {
+            playing = false
+            playButton.text = "▶ Reproducir"
+        }
         modeJob?.cancel()
         lastModeRefreshAt = android.os.SystemClock.elapsedRealtime()
         retryAfterFailure = false
+        requestId++
+        loadJob?.cancel()
+        loadingFrameUrl = null
         val request = ++modeRequestId
-        val sameMode = displayedMode == position
         displayedMode = position
         if (!sameMode) setFrames(emptyList())
         timeLabel.text = "Consultando imágenes NOAA..."
@@ -54,6 +66,12 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
                 if (updated.isNotEmpty()) {
                     retryAfterFailure = false
                     setFrames(updated)
+                    if (sameMode && wasPlaying) {
+                        playing = true
+                        playButton.text = "⏸ Pausar"
+                        handler.removeCallbacks(advance)
+                        handler.postDelayed(advance, 1200L)
+                    }
                 } else {
                     retryAfterFailure = true
                     val now = java.time.Instant.now()
@@ -80,7 +98,11 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     private val failedFrameUrls = mutableSetOf<String>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var loadJob: Job? = null
+    private var loadingFrameUrl: String? = null
     private var requestId = 0L
+    private var framesVersion = 0L
+    private var displayedFrameUrl: String? = null
+    private var displayedFrameVersion = -1L
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private val advance = object : Runnable {
@@ -93,8 +115,9 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             val next = (1..frames.size).map { (index + it) % frames.size }.firstOrNull { frames[it].imageUrl !in failedFrameUrls }
             if (next == null) {
                 playing = false
+                handler.removeCallbacks(this)
                 playButton.text = "▶ Reproducir"
-                timeLabel.text = "No se pudieron cargar las imágenes NOAA"
+                timeLabel.text = "No se pudieron cargar las imágenes NOAA. Pulsa «Reintentar NOAA»."
                 return
             }
             index = next
@@ -122,6 +145,12 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
         addView(playButton)
+        retryButton.text = "↻ Reintentar NOAA"
+        retryButton.setOnClickListener {
+            frames.getOrNull(index)?.imageUrl?.let(failedFrameUrls::remove)
+            loadSelectedMode(modeSelector.selectedItemPosition, force = true)
+        }
+        addView(retryButton)
         addView(timeline)
 
         playButton.setOnClickListener {
@@ -144,10 +173,16 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     }
 
     fun setFrames(items: List<NoaaSatelliteFrame>) {
+        val previousUrl = frames.getOrNull(index)?.imageUrl
         failedFrameUrls.clear()
-        frames = items.sortedBy { it.observedAt }
-        index = 0
+        frames = items.sortedBy { it.observedAt }.takeLast(48)
+        if (frames.none { it.imageUrl == displayedFrameUrl }) {
+            framesVersion++
+        }
+        index = frames.indexOfFirst { it.imageUrl == previousUrl }.takeIf { it >= 0 }
+            ?: (frames.size - 1).coerceAtLeast(0)
         timeline.max = (frames.size - 1).coerceAtLeast(0)
+        timeline.progress = index
         showFrame()
     }
 
@@ -155,6 +190,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val frame = frames.getOrNull(index) ?: run {
             requestId++
             loadJob?.cancel()
+            loadingFrameUrl = null
             playing = false
             handler.removeCallbacks(advance)
             playButton.text = "▶ Reproducir"
@@ -186,22 +222,38 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             return
         }
         timeline.progress = index
-        timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime)
+        if (isCurrentFrameVisibleAndValid()) {
+            timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime)
+            return
+        }
+        if (loadingFrameUrl == frame.imageUrl && loadJob?.isActive == true) return
+        timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime) + " · Cargando imagen..."
+        if (displayedFrameUrl != frame.imageUrl || displayedFrameVersion != framesVersion) {
+            image.setImageDrawable(null)
+        }
         loadJob?.cancel()
+        loadingFrameUrl = frame.imageUrl
         val request = ++requestId
-        image.setImageDrawable(null)
         loadJob = scope.launch {
             val bitmap = runCatching { NoaaImageLoader.load(frame.imageUrl) }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrNull()
             if (request == requestId) {
+                loadingFrameUrl = null
                 if (bitmap != null) {
                     failedFrameUrls.remove(frame.imageUrl)
+                    displayedFrameUrl = frame.imageUrl
+                    displayedFrameVersion = framesVersion
                     image.showBitmap(bitmap)
+                    timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime)
                 } else {
                     failedFrameUrls.add(frame.imageUrl)
                     timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime) +
                         " · Imagen no disponible"
+                    if (playing) {
+                        handler.removeCallbacks(advance)
+                        handler.postDelayed(advance, 1200L)
+                    }
                 }
             }
         }
@@ -221,9 +273,18 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val interval = if (retryAfterFailure) retryIntervalMs else refreshIntervalMs
         if (modeJob?.isActive != true && (lastModeRefreshAt == 0L || now - lastModeRefreshAt >= interval)) {
             loadSelectedMode(modeSelector.selectedItemPosition)
-        } else {
+        } else if (!isCurrentFrameVisibleAndValid()) {
             showFrame()
         }
+    }
+
+    private fun isCurrentFrameVisibleAndValid(): Boolean {
+        val frame = frames.getOrNull(index) ?: return false
+        val age = java.time.Duration.between(frame.observedAt, java.time.Instant.now())
+        return displayedFrameVersion == framesVersion &&
+            displayedFrameUrl == frame.imageUrl &&
+            frame.imageUrl !in failedFrameUrls &&
+            !age.isNegative && age.toMinutes() < 360
     }
 
     fun pause() {
@@ -232,8 +293,10 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         handler.removeCallbacks(advance)
         requestId++
         loadJob?.cancel()
+        loadingFrameUrl = null
         modeRequestId++
         modeJob?.cancel()
+        lastModeRefreshAt = 0L
     }
 
     fun release() {
@@ -241,6 +304,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         modeJob?.cancel()
         requestId++
         loadJob?.cancel()
+        loadingFrameUrl = null
         scope.coroutineContext[Job]?.cancel()
         playing = false
         handler.removeCallbacks(advance)

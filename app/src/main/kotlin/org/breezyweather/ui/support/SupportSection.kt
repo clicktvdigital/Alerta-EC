@@ -34,6 +34,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -143,7 +145,7 @@ internal fun SupportSection() {
                 )
                 Text(
                     "Gracias por apoyar este proyecto independiente de CLICK TV DIGITAL.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         }
@@ -154,7 +156,7 @@ internal fun SupportSection() {
         Text(
             "Al pagar, verifica el destinatario y el valor en tu aplicación bancaria. " +
                 "Ninguna donación da prioridad en emergencias.",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyLarge
         )
 
         // Importes orientativos: no se envían al enlace o QR de ningún proveedor.
@@ -174,7 +176,7 @@ internal fun SupportSection() {
                     val seleccionado = montoSeleccionado == monto
                     Button(
                         onClick = { montoSeleccionado = monto },
-                        modifier = Modifier.weight(1f).heightIn(min = 86.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 96.dp),
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = if (seleccionado) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.secondaryContainer,
@@ -188,7 +190,7 @@ internal fun SupportSection() {
                         ) {
                             Text(
                                 (if (seleccionado) "✓ " else "") + "$emoji $nombre",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge,
                             )
                             Text("USD $monto", style = MaterialTheme.typography.titleMedium)
                         }
@@ -199,12 +201,12 @@ internal fun SupportSection() {
         Text(
             "💛 Aporte sugerido: USD $montoSeleccionado. También puedes elegir otro importe " +
                 "si la plataforma de pago lo permite. Ningún valor se cobra ni se transfiere desde ALERTA EC.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
         )
         Text(
             "Elige cómo deseas aportar. Verifica el destinatario y escribe o confirma el valor " +
                 "antes de autorizar cualquier pago.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
         )
 
         apoyos.forEachIndexed { indice, apoyo ->
@@ -213,24 +215,24 @@ internal fun SupportSection() {
                     if (apoyo.marca != null) {
                         PaymentBrand(
                             resource = apoyo.marca,
-                            modifier = Modifier.fillMaxWidth().height(
-                                if (apoyo.nombre == "PayPhone") 56.dp else 76.dp
-                            )
+                            // Reservar un area comun evita comprimir los textos de marca y
+                            // deja que ContentScale.Fit conserve la proporcion de cada logo.
+                            modifier = Modifier.fillMaxWidth().height(88.dp)
                         )
                     }
                     Text(
                         apoyo.nombre,
                         style = MaterialTheme.typography.titleLarge,
                     )
-                    Text(apoyo.explicacion, style = MaterialTheme.typography.bodyMedium)
+                    Text(apoyo.explicacion, style = MaterialTheme.typography.bodyLarge)
                     Button(
                         onClick = { abrirPago(apoyo.url) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
-                    ) { Text("💚 Continuar con ${apoyo.nombre}") }
+                    ) { Text("💚 Continuar con ${apoyo.nombre}", style = MaterialTheme.typography.labelLarge) }
                     OutlinedButton(
                         onClick = { qrSeleccionado = indice },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                    ) { Text("📷 Ver QR y copiar enlace") }
+                    ) { Text("📷 Ver QR y copiar enlace", style = MaterialTheme.typography.labelLarge) }
                 }
             }
         }
@@ -239,21 +241,26 @@ internal fun SupportSection() {
         otrosApoyos.forEach { (nombre, url, marca) ->
             OutlinedButton(
                 onClick = { abrirPago(url) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
             ) {
                 Image(
                     painter = painterResource(marca),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(width = 64.dp, height = 40.dp).background(Color.Black),
+                    contentScale = ContentScale.Fit,
                 )
                 Spacer(modifier = Modifier.width(14.dp))
-                Text("Abrir $nombre")
+                Text(
+                    "Abrir $nombre",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
         }
         Button(
             onClick = { compartirAplicacion(context) },
             modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
-        ) { Text("Compartir ALERTA EC con familiares y amigos") }
+        ) { Text("Compartir ALERTA EC con familiares y amigos", style = MaterialTheme.typography.labelLarge) }
     }
 
     if (qrSeleccionado in apoyos.indices) {
@@ -419,7 +426,7 @@ private fun PaymentBrand(resource: Int, modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(resource),
         contentDescription = null,
-        modifier = modifier,
+        modifier = modifier.background(Color.Black),
         contentScale = ContentScale.Fit,
     )
 }
