@@ -229,7 +229,7 @@ class PrecipitationNowcastViewHolder(parent: ViewGroup) : AbstractMainCardViewHo
                         verticalLabelPosition = Position.Vertical.Bottom,
                         line = LineComponent(fill = Fill(lineColor.toArgb())),
                         labelComponent = TextComponent(color = labelColor),
-                        label = { line.value }
+                        label = { "" } // Etiquetas en leyenda separada para no tapar las barras
                     )
                 }
             } else {
