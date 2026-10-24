@@ -291,7 +291,7 @@ class MapFragment : MainModuleFragment() {
     private var currentMap: org.maplibre.android.maps.MapLibreMap? = null
     private var inamhiSelection = InamhiMapPreferences.Selection()
     private val inamhiStates = mutableMapOf<String, InamhiLayerStatus.State>()
-    private val inamhiButtons = mutableMapOf<String, android.widget.Button>()
+    private val inamhiButtons = mutableMapOf<String, android.widget.Switch>()
     private var lastInamhiAttemptAt = -300_000L
 
     private var addressRequest: io.reactivex.rxjava3.disposables.Disposable? = null
@@ -428,8 +428,11 @@ class MapFragment : MainModuleFragment() {
             add("🇪🇨 Fuente configurada: INAMHI · Pronósticos WRF")
             InamhiLayers.all.forEach { layer ->
                 val enabled = inamhiSelection.enabled(layer)
-                inamhiButtons[layer]?.text = "${InamhiLayers.title(layer)} INAMHI: " +
-                    if (enabled) "activada" else "desactivada"
+                inamhiButtons[layer]?.apply {
+                    text = "${InamhiLayers.title(layer)} · " +
+                        if (enabled) "ACTIVA" else "DESACTIVADA"
+                    if (isChecked != enabled) isChecked = enabled
+                }
                 add(InamhiLayerStatus.describe(
                     InamhiLayers.title(layer), enabled,
                     inamhiStates[layer] ?: InamhiLayerStatus.State(), now
@@ -696,17 +699,42 @@ class MapFragment : MainModuleFragment() {
                 }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             mapButtons.addView(inamhiScroll, android.widget.LinearLayout.LayoutParams(-1, -2))
+            // CAPAS V4 INTERRUPTORES: botones visibles, seleccionables y accesibles.
+            mapButtons.addView(android.widget.TextView(context).apply {
+                text = "🗺️ CAPAS METEOROLÓGICAS · INAMHI"
+                textSize = 17f
+                setTextColor(android.graphics.Color.WHITE)
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setBackgroundColor(android.graphics.Color.rgb(26, 49, 71))
+                setPadding(20, 14, 20, 14)
+            }, android.widget.LinearLayout.LayoutParams(-1, -2))
             InamhiLayers.all.forEach { layer ->
-                val button = android.widget.Button(context).apply {
-                    setOnClickListener {
-                        val selection = InamhiMapPreferences.read(context)
-                        InamhiMapPreferences.setEnabled(context, layer, !selection.enabled(layer))
-                        syncInamhiPreferences()
+                val toggle = android.widget.Switch(context).apply {
+                    text = InamhiLayers.title(layer)
+                    textSize = 15f
+                    setTextColor(android.graphics.Color.WHITE)
+                    setBackgroundColor(android.graphics.Color.rgb(31, 43, 60))
+                    setPadding(22, 12, 22, 12)
+                    minHeight = (55f * resources.displayMetrics.density).toInt()
+                    isChecked = InamhiMapPreferences.read(context).enabled(layer)
+                    setOnCheckedChangeListener { _, chosen ->
+                        if (InamhiMapPreferences.read(context).enabled(layer) != chosen) {
+                            InamhiMapPreferences.setEnabled(context, layer, chosen)
+                            syncInamhiPreferences()
+                        }
                     }
+                    contentDescription = "Capa meteorológica ${InamhiLayers.title(layer)}"
                 }
-                inamhiButtons[layer] = button
-                mapButtons.addView(button, android.widget.LinearLayout.LayoutParams(-1, -2))
+                inamhiButtons[layer] = toggle
+                mapButtons.addView(toggle, android.widget.LinearLayout.LayoutParams(-1, -2))
             }
+            mapButtons.addView(android.widget.TextView(context).apply {
+                text = "Activada = solicitada. La imagen solo está disponible si el servidor INAMHI responde con datos vigentes. Consulta Información INAMHI para detalles."
+                textSize = 12f
+                setTextColor(android.graphics.Color.rgb(225, 232, 242))
+                setPadding(22, 10, 22, 18)
+                setBackgroundColor(android.graphics.Color.rgb(31, 43, 60))
+            }, android.widget.LinearLayout.LayoutParams(-1, -2))
             mapButtons.addView(android.widget.Button(context).apply {
                 text = "🛰️ Satélite y rayos"
                 setOnClickListener {
