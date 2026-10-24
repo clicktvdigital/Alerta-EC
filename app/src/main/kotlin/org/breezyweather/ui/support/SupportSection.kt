@@ -34,8 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -246,7 +244,7 @@ internal fun SupportSection() {
                 Image(
                     painter = painterResource(marca),
                     contentDescription = null,
-                    modifier = Modifier.size(width = 64.dp, height = 40.dp).background(Color.Black),
+                    modifier = Modifier.size(width = 64.dp, height = 40.dp),
                     contentScale = ContentScale.Fit,
                 )
                 Spacer(modifier = Modifier.width(14.dp))
@@ -426,7 +424,7 @@ private fun PaymentBrand(resource: Int, modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(resource),
         contentDescription = null,
-        modifier = modifier.background(Color.Black),
+        modifier = modifier,
         contentScale = ContentScale.Fit,
     )
 }

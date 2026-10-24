@@ -31,11 +31,12 @@ internal object AlertaEcVideoIntro {
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
+    private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
     private var activeVideo: VideoView? = null
     private var activeRoot: FrameLayout? = null
     private var pendingTimeout: Runnable? = null
-    private var activePoster: View? = null
+    private var pendingAudioFallback: Runnable? = null
     private var previousWindowState: WindowState? = null
     private var previousRootPadding: IntArray? = null
 
@@ -113,27 +114,15 @@ internal object AlertaEcVideoIntro {
                 window.navigationBarColor = BLACK
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
             }
-            // SurfaceView necesita un fondo transparente para mostrar su superficie.
-            view.setBackgroundColor(BLACK)
-            // Insertar sobre las capas antiguas, manteniendo el póster y Omitir delante.
+            // SurfaceView necesita un fondo transparente para mostrar el fondo negro del contenedor.
+            view.setBackgroundColor(Color.TRANSPARENT)
+            // Insertar sobre las capas antiguas, manteniendo Omitir delante.
             frame.addView(
                 view,
                 FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ).apply { gravity = Gravity.CENTER },
-            )
-            val poster = View(context).apply {
-                setBackgroundColor(BLACK)
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            }
-            activePoster = poster
-            frame.addView(
-                poster,
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                ),
             )
             skip.visibility = View.VISIBLE
             skip.alpha = 1f
@@ -142,8 +131,7 @@ internal object AlertaEcVideoIntro {
 
             // No dejar una pantalla negra si el dispositivo no puede decodificar el MP4.
             val timeout = Runnable { if (activeVideo === view) stop() }
-            pendingTimeout = timeout
-            handler.postDelayed(timeout, PREPARE_TIMEOUT_MS)
+            scheduleTimeout(timeout, PREPARE_TIMEOUT_MS)
             view.setOnPreparedListener { player ->
                 if (activeVideo === view) {
                     player.isLooping = false
@@ -155,11 +143,16 @@ internal object AlertaEcVideoIntro {
                     val volume = if (soundEnabled) 1f else 0f
                     // Preparado no significa que haya imagen. No reproducir audio a ciegas.
                     player.setVolume(0f, 0f)
+                    var renderingStarted = false
+                    val audioFallback = Runnable {
+                        if (activeVideo === view && !renderingStarted && soundEnabled) {
+                            player.setVolume(volume, volume)
+                        }
+                    }
                     player.setOnInfoListener { _, what, _ ->
                         if (activeVideo === view && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                            (poster.parent as? ViewGroup)?.removeView(poster)
-                            activePoster = null
-                            // El límite general se programa desde start(), no desde este aviso.
+                            renderingStarted = true
+                            cancelAudioFallback()
                             player.setVolume(volume, volume)
                         }
                         false
@@ -167,25 +160,25 @@ internal object AlertaEcVideoIntro {
                     runCatching { view.start() }
                         .onSuccess {
                             // Sustituir el límite de preparación por uno único de reproducción.
-                            pendingTimeout?.let(handler::removeCallbacks)
                             val duration = player.duration.takeIf { it > 0 }?.toLong()
-                            handler.postDelayed(timeout, (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS)
+                            scheduleTimeout(
+                                timeout,
+                                (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
+                            )
+                            if (soundEnabled) {
+                                pendingAudioFallback = audioFallback
+                                handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
+                            }
                         }
                         .onFailure { stop() }
                 }
             }
             view.setOnCompletionListener {
                 if (activeVideo === view) {
-                    pendingTimeout?.let(handler::removeCallbacks)
-                    pendingTimeout = null
+                    cancelTimeout()
+                    cancelAudioFallback()
                     skip.visibility = View.GONE
                     view.visibility = View.GONE
-                    val endingPoster = View(context).apply {
-                        setBackgroundColor(BLACK)
-                    }
-                    activePoster = endingPoster
-                    frame.addView(endingPoster, FrameLayout.LayoutParams(-1, -1))
-                    skip.bringToFront()
                     val finish = Runnable {
                         if (activeVideo === view) {
                             frame.animate().cancel()
@@ -198,8 +191,7 @@ internal object AlertaEcVideoIntro {
                                 .start()
                         }
                     }
-                    pendingTimeout = finish
-                    handler.post(finish)
+                    scheduleTimeout(finish, 0L)
                 }
             }
             view.setOnErrorListener { _, _, _ ->
@@ -218,10 +210,8 @@ internal object AlertaEcVideoIntro {
     }
 
     fun stop() {
-        pendingTimeout?.let(handler::removeCallbacks)
-        pendingTimeout = null
-        activePoster?.let { (it.parent as? ViewGroup)?.removeView(it) }
-        activePoster = null
+        cancelTimeout()
+        cancelAudioFallback()
         val view = activeVideo
         activeVideo = null
         val root = activeRoot
@@ -251,5 +241,21 @@ internal object AlertaEcVideoIntro {
             it.alpha = 1f
             it.visibility = View.GONE
         }
+    }
+
+    private fun scheduleTimeout(timeout: Runnable, delayMs: Long) {
+        cancelTimeout()
+        pendingTimeout = timeout
+        handler.postDelayed(timeout, delayMs)
+    }
+
+    private fun cancelTimeout() {
+        pendingTimeout?.let(handler::removeCallbacks)
+        pendingTimeout = null
+    }
+
+    private fun cancelAudioFallback() {
+        pendingAudioFallback?.let(handler::removeCallbacks)
+        pendingAudioFallback = null
     }
 }
