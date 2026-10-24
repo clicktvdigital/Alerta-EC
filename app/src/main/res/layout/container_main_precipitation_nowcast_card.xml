@@ -40,10 +40,13 @@
             android:id="@+id/nowcasting_block_subtitle"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="@dimen/large_margin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             style="@style/content_text"
             tools:text="Rain Wednesday evening"
             app:layout_constraintTop_toBottomOf="@+id/nowcasting_block_title"
-            app:layout_constraintStart_toStartOf="@+id/nowcasting_block_title_icon" />
+            app:layout_constraintStart_toStartOf="@+id/nowcasting_block_title_icon"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
             android:id="@+id/container_main_minutely_chart"
@@ -54,7 +57,10 @@
             android:paddingBottom="@dimen/large_margin"
             app:scrollEnabled="false"
             app:chartStyle="@style/NowcastingChart"
-            app:layout_constraintTop_toTopOf="@+id/nowcasting_block_subtitle"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/nowcasting_block_subtitle"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

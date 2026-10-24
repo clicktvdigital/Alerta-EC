@@ -84,6 +84,17 @@ import org.breezyweather.ui.settings.preference.composables.SectionHeader
 import java.text.Collator
 
 @Composable
+private fun AlertaEcDataItem(title: String, value: String, accent: Color) {
+    Text(text = title, style = MaterialTheme.typography.labelLarge, color = accent)
+    Text(
+        text = value,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(bottom = 10.dp)
+    )
+}
+
+@Composable
 fun LocationPreference(
     activity: MainActivity,
     location: Location,
@@ -161,48 +172,78 @@ fun LocationPreference(
                 distanceMeters.isFinite() &&
                 toleranceMeters != null &&
                 distanceMeters <= toleranceMeters
-            Text(
-                text = buildString {
-                    append("Coordenadas del clima: ${location.latitude}, ${location.longitude}")
-                    append("\nPermiso de ubicación: ")
-                    append(
-                        when {
-                            context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) -> "precisa"
-                            context.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) -> "aproximada"
-                            else -> "no concedido; datos guardados"
-                        }
-                    )
+            val permissionText = when {
+                context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) -> "Precisa"
+                context.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) -> "Aproximada"
+                else -> "No concedido: datos guardados"
+            }
+            androidx.compose.material3.Surface(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("📍 Mi ubicación", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(10.dp))
+                    AlertaEcDataItem("¿Cuáles son mis coordenadas?",
+                        "${location.latitude}, ${location.longitude}", MaterialTheme.colorScheme.primary)
+                    AlertaEcDataItem("¿Qué permiso tiene la aplicación?",
+                        permissionText, MaterialTheme.colorScheme.primary)
+                    AlertaEcDataItem("¿Es una posición GPS reciente?",
+                        if (samePoint) {
+                            if (fix.isRecent) "Sí, posición reciente" else "Última posición conocida"
+                        } else "No hay medición GPS asociada a las coordenadas del clima",
+                        if (samePoint) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                     if (samePoint) {
-                        append("\nEstado GPS: ")
-                        append(if (fix.isRecent) "posición reciente" else "última posición conocida; actualización pendiente")
-                        append("\nPrecisión de ubicación (GPS/red): ")
-                        append(fix.accuracyMeters?.let { "±$it m (estimada)" } ?: "no disponible")
-                        append("\nAltitud del dispositivo: ")
-                        append(fix.altitudeMeters?.let { "$it m (referencia del proveedor)" } ?: "no disponible")
-                        append("\nHora de la medición (UTC): ")
-                        append(fix.measuredAtMillis?.let { java.time.Instant.ofEpochMilli(it).toString() }
-                            ?: "no disponible")
-                        fix.measuredAtMillis?.let {
-                            val ageSeconds = (System.currentTimeMillis() - it) / 1000
-                            append("\nAntigüedad al abrir: ")
-                            append(if (ageSeconds >= 0) "$ageSeconds s" else "reloj del dispositivo inconsistente")
-                            if (ageSeconds > 120) append(" · última posición guardada; actualizar ubicación")
+                        AlertaEcDataItem("Precisión horizontal estimada",
+                            horizontalAccuracyMeters?.let {
+                                "±%.1f m".format(java.util.Locale.getDefault(), it)
+                            } ?: "No disponible", MaterialTheme.colorScheme.primary)
+                        AlertaEcDataItem("Altitud que informa el teléfono",
+                            fix.altitudeMeters?.let {
+                                "%.1f m · referencia del proveedor".format(java.util.Locale.getDefault(), it)
+                            } ?: "No disponible", MaterialTheme.colorScheme.primary)
+                        val localTime = fix.measuredAtMillis?.let {
+                            java.time.Instant.ofEpochMilli(it)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+                        } ?: "No disponible"
+                        AlertaEcDataItem("Fecha y hora local de la medición", localTime,
+                            MaterialTheme.colorScheme.tertiary)
+                        AlertaEcDataItem("Proveedor de posición", fix.provider ?: "No informado",
+                            MaterialTheme.colorScheme.primary)
+                        val ageSeconds = measuredAtMillis?.let { (System.currentTimeMillis() - it) / 1000L }
+                        if (ageSeconds != null) {
+                            AlertaEcDataItem("Antigüedad al abrir esta pantalla",
+                                if (ageSeconds >= 0) "$ageSeconds segundos" else "Reloj del dispositivo inconsistente",
+                                MaterialTheme.colorScheme.tertiary)
                         }
-                        append("\nProveedor de ubicación: ${fix.provider ?: "no informado"}")
-                    } else {
-                        append("\nPrecisión, altitud y hora: sin medición asociada a estas coordenadas")
                     }
-                    append("\nFuente meteorológica: ${location.forecastSource}")
-                    append("\nResolución meteorológica: no informada; depende del modelo")
-                    append(" y no equivale a la precisión GPS.")
-                    append(" No se confirma resolución de barrio ni desplazamiento de lluvia.")
-                    if (location.forecastSource == "openmeteo") {
-                        append(" En Ecuador, los intervalos de 15 min pueden ser interpolados de datos horarios.")
-                    }
-                },
-                modifier = Modifier.padding(horizontal = 16.dp),
-                style = MaterialTheme.typography.bodySmall
-            )
+                }
+            }
+            androidx.compose.material3.Surface(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("🌦️ Datos meteorológicos", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Spacer(Modifier.height(8.dp))
+                    AlertaEcDataItem("¿De dónde viene el pronóstico?",
+                        location.forecastSource.ifBlank { "No informado" }, MaterialTheme.colorScheme.primary)
+                    Text(
+                        "La precisión GPS no es la resolución del modelo meteorológico. " +
+                            "No se garantiza lluvia a nivel de calle o barrio. " +
+                            (if (location.forecastSource == "openmeteo")
+                                "En Ecuador, los intervalos de 15 minutos pueden interpolarse desde datos horarios."
+                            else "Consulta la cobertura y vigencia de cada fuente."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
         }
         PreferenceView(
             titleId = R.string.settings_weather_sources,

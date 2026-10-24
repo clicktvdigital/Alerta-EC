@@ -37,36 +37,30 @@ class InamhiMapViewHolder(
 
         composeView.setContent {
             BreezyWeatherTheme(!ThemeManager.isLightTheme(context, location)) {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Text(
+                        text = "🗺️ Meteorología de Ecuador",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Lluvias · Temperatura · Capas INAMHI",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Fuentes y cobertura indicadas dentro del visor. " +
+                            "El pronóstico no equivale a observación en tiempo real.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "🗺️ Mapa meteorológico de Ecuador 🇪🇨",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "Explora el mapa de Ecuador y consulta las capas INAMHI de precipitación y temperatura.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            text = "Fuente: INAMHI · Datos sujetos a disponibilidad y cobertura.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Button(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(context, MapActivity::class.java)
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Abrir mapa meteorológico")
-                        }
+                        Text("Explorar mapa meteorológico")
                     }
                 }
             }
