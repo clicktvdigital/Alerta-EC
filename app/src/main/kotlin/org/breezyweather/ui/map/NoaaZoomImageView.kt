@@ -58,8 +58,14 @@ internal class NoaaZoomImageView(context: Context) : ImageView(context) {
     }
 
     fun showBitmap(bitmap: Bitmap) {
+        // V5: mantener el zoom durante la reproducción si el siguiente
+        // fotograma tiene las mismas dimensiones que el anterior.
+        val previous = drawable
+        val preserve = zoom > 1f && previous != null &&
+            previous.intrinsicWidth == bitmap.width &&
+            previous.intrinsicHeight == bitmap.height
         setImageBitmap(bitmap)
-        post { resetZoom() }
+        post { if (preserve) constrain() else resetZoom() }
     }
 
     fun resetZoom() {

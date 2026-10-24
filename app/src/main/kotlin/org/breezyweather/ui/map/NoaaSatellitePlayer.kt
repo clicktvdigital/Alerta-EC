@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
 internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: Boolean = false) : LinearLayout(context) {
-    private val modeSelector = android.widget.Spinner(context)
+    private var selectedMode = 0
+    private val modeButtons = mutableListOf<Button>()
     private val image = NoaaZoomImageView(context).apply {
         setBackgroundColor(android.graphics.Color.rgb(8, 14, 20))
         minimumHeight = (resources.displayMetrics.density * 220f).toInt()
@@ -128,19 +129,33 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
 
     init {
         orientation = VERTICAL
-        modeSelector.adapter = android.widget.ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, listOf("☁️ Nubes", "⚡ Rayos", "🌎 Vista amplia"))
-        addView(modeSelector)
-        modeSelector.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: android.widget.AdapterView<*>?,
-                view: android.view.View?,
-                position: Int,
-                id: Long
-            ) {
-                loadSelectedMode(position)
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        // V5: botones NOAA visibles, con estado seleccionado, sin desplegable oculto.
+        val choices = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
         }
+        listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia").forEachIndexed { position, label ->
+            val button = Button(context).apply {
+                textSize = 12f
+                isAllCaps = false
+                setPadding(2, 6, 2, 6)
+                setOnClickListener {
+                    if (selectedMode != position) {
+                        selectedMode = position
+                        refreshModeButtons()
+                        loadSelectedMode(position)
+                    }
+                }
+            }
+            modeButtons.add(button)
+            choices.addView(button, android.widget.LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        }
+        addView(choices)
+        addView(TextView(context).apply {
+            text = "NOAA GOES-19 · Norte de Sudamérica (incluye Ecuador). Imágenes regionales, no de calles."
+            textSize = 12f
+            setPadding(12, 6, 12, 9)
+        })
+        refreshModeButtons()
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
@@ -148,7 +163,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         retryButton.text = "↻ Reintentar NOAA"
         retryButton.setOnClickListener {
             frames.getOrNull(index)?.imageUrl?.let(failedFrameUrls::remove)
-            loadSelectedMode(modeSelector.selectedItemPosition, force = true)
+            loadSelectedMode(selectedMode, force = true)
         }
         addView(retryButton)
         addView(timeline)
@@ -160,6 +175,8 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             handler.removeCallbacks(advance)
             if (playing) handler.postDelayed(advance, 1200L)
         }
+        // Comenzar en el modo Nubes sin depender de selección de Spinner.
+        loadSelectedMode(selectedMode)
         timeline.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -172,6 +189,14 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         })
     }
 
+    private fun refreshModeButtons() {
+        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia")
+        modeButtons.forEachIndexed { index, button ->
+            button.text = if (selectedMode == index) "✓ ${labels[index]}" else labels[index]
+            button.contentDescription = "${labels[index]}" +
+                if (selectedMode == index) " · seleccionada" else " · pulsar para mostrar"
+        }
+    }
     fun setFrames(items: List<NoaaSatelliteFrame>) {
         val previousUrl = frames.getOrNull(index)?.imageUrl
         failedFrameUrls.clear()
@@ -217,7 +242,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             if (modeJob?.isActive != true &&
                 (lastModeRefreshAt == 0L || nowElapsed - lastModeRefreshAt >= if (retryAfterFailure) retryIntervalMs else refreshIntervalMs)
             ) {
-                loadSelectedMode(modeSelector.selectedItemPosition)
+                loadSelectedMode(selectedMode)
             }
             return
         }
@@ -228,9 +253,8 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         }
         if (loadingFrameUrl == frame.imageUrl && loadJob?.isActive == true) return
         timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime) + " · Cargando imagen..."
-        if (displayedFrameUrl != frame.imageUrl || displayedFrameVersion != framesVersion) {
-            image.setImageDrawable(null)
-        }
+        // V5: no borrar el fotograma anterior al reproducir;
+        // preservarlo conserva el zoom mientras se descarga el siguiente.
         loadJob?.cancel()
         loadingFrameUrl = frame.imageUrl
         val request = ++requestId
@@ -272,7 +296,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val now = android.os.SystemClock.elapsedRealtime()
         val interval = if (retryAfterFailure) retryIntervalMs else refreshIntervalMs
         if (modeJob?.isActive != true && (lastModeRefreshAt == 0L || now - lastModeRefreshAt >= interval)) {
-            loadSelectedMode(modeSelector.selectedItemPosition)
+            loadSelectedMode(selectedMode)
         } else if (!isCurrentFrameVisibleAndValid()) {
             showFrame()
         }

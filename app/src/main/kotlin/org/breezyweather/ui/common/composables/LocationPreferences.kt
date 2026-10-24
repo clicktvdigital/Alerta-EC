@@ -134,114 +134,22 @@ fun LocationPreference(
             }
         }
         if (location.isCurrentPosition) {
-            val fix = org.breezyweather.domain.settings.CurrentLocationStore(context)
-            val measuredAtMillis = fix.measuredAtMillis
-            val ageMillis = measuredAtMillis?.let { System.currentTimeMillis() - it }
-            val validTimestamp = ageMillis != null && ageMillis in 0L..120_000L
-            val horizontalAccuracyMeters = fix.accuracyMeters?.takeIf { it.isFinite() && it > 0f }
-            val provider = fix.provider?.trim()?.lowercase(java.util.Locale.ROOT)
-            val hasAndroidLocationProvenance = provider in setOf(
-                "fused",
-                "gps",
-                "gnss",
-                "network",
-                "passive"
-            )
-            val activeCoordinatesAreValid = location.latitude.isFinite() &&
-                location.longitude.isFinite() &&
-                location.latitude in -90.0..90.0 &&
-                location.longitude in -180.0..180.0
-            val distanceMeters = if (fix.isUsable && activeCoordinatesAreValid) {
-                FloatArray(1).also { results ->
-                    AndroidLocation.distanceBetween(
-                        fix.lastKnownLatitude,
-                        fix.lastKnownLongitude,
-                        location.latitude,
-                        location.longitude,
-                        results
-                    )
-                }[0].toDouble()
-            } else {
-                Double.NaN
-            }
-            val toleranceMeters = horizontalAccuracyMeters?.toDouble()?.times(2.0)
-            val samePoint = fix.isUsable &&
-                validTimestamp &&
-                hasAndroidLocationProvenance &&
-                horizontalAccuracyMeters != null &&
-                distanceMeters.isFinite() &&
-                toleranceMeters != null &&
-                distanceMeters <= toleranceMeters
-            val permissionText = when {
-                context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) -> "Precisa"
-                context.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) -> "Aproximada"
-                else -> "No concedido: datos guardados"
-            }
             androidx.compose.material3.Surface(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("📍 Mi ubicación", style = MaterialTheme.typography.titleMedium,
+                    Text("📍 Ubicación en tiempo real", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(10.dp))
-                    AlertaEcDataItem("¿Cuáles son mis coordenadas?",
-                        "${location.latitude}, ${location.longitude}", MaterialTheme.colorScheme.primary)
-                    AlertaEcDataItem("¿Qué permiso tiene la aplicación?",
-                        permissionText, MaterialTheme.colorScheme.primary)
-                    AlertaEcDataItem("¿Es una posición GPS reciente?",
-                        if (samePoint) {
-                            if (fix.isRecent) "Sí, posición reciente" else "Última posición conocida"
-                        } else "No hay medición GPS asociada a las coordenadas del clima",
-                        if (samePoint) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
-                    if (samePoint) {
-                        AlertaEcDataItem("Precisión horizontal estimada",
-                            horizontalAccuracyMeters?.let {
-                                "±%.1f m".format(java.util.Locale.getDefault(), it)
-                            } ?: "No disponible", MaterialTheme.colorScheme.primary)
-                        AlertaEcDataItem("Altitud que informa el teléfono",
-                            fix.altitudeMeters?.let {
-                                "%.1f m · referencia del proveedor".format(java.util.Locale.getDefault(), it)
-                            } ?: "No disponible", MaterialTheme.colorScheme.primary)
-                        val localTime = fix.measuredAtMillis?.let {
-                            java.time.Instant.ofEpochMilli(it)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
-                        } ?: "No disponible"
-                        AlertaEcDataItem("Fecha y hora local de la medición", localTime,
-                            MaterialTheme.colorScheme.tertiary)
-                        AlertaEcDataItem("Proveedor de posición", fix.provider ?: "No informado",
-                            MaterialTheme.colorScheme.primary)
-                        val ageSeconds = measuredAtMillis?.let { (System.currentTimeMillis() - it) / 1000L }
-                        if (ageSeconds != null) {
-                            AlertaEcDataItem("Antigüedad al abrir esta pantalla",
-                                if (ageSeconds >= 0) "$ageSeconds segundos" else "Reloj del dispositivo inconsistente",
-                                MaterialTheme.colorScheme.tertiary)
-                        }
-                    }
-                }
-            }
-            androidx.compose.material3.Surface(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("🌦️ Datos meteorológicos", style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    Spacer(Modifier.height(8.dp))
-                    AlertaEcDataItem("¿De dónde viene el pronóstico?",
-                        location.forecastSource.ifBlank { "No informado" }, MaterialTheme.colorScheme.primary)
-                    Text(
-                        "La precisión GPS no es la resolución del modelo meteorológico. " +
-                            "No se garantiza lluvia a nivel de calle o barrio. " +
-                            (if (location.forecastSource == "openmeteo")
-                                "En Ecuador, los intervalos de 15 minutos pueden interpolarse desde datos horarios."
-                            else "Consulta la cobertura y vigencia de cada fuente."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    Text("Activa el GPS del teléfono y concede permiso de ubicación precisa. " +
+                        "Las coordenadas y la dirección se mostrarán en el mapa y, cuando esté habilitado, " +
+                        "en la notificación; no es necesario mostrarlas aquí.",
+                        style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = {
+                        context.startActivity(android.content.Intent(
+                            android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    }) { Text("Activar o verificar GPS en Android") }
                 }
             }
         }

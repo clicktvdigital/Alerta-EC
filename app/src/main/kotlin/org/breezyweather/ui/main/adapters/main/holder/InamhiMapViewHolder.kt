@@ -108,7 +108,7 @@ class InamhiMapViewHolder(private val composeView: ComposeView) : AbstractMainVi
         super.onBindView(context, location, provider, listAnimationEnabled, itemAnimationEnabled)
         composeView.setContent {
             BreezyWeatherTheme(!ThemeManager.isLightTheme(context, location)) {
-                HomeMapAndFeedback(context)
+                org.breezyweather.ui.support.AlertaEcFeedbackEntry(context)
             }
         }
     }
