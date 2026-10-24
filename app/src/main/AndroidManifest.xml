@@ -586,6 +586,11 @@
             android:label="Centro de Emergencias"
             android:theme="@style/BreezyWeatherTheme" />
 
+        <activity
+            android:name=".ui.map.MapActivity"
+            android:exported="false"
+            android:label="Mapa meteorológico"
+            android:theme="@style/BreezyWeatherTheme" />
     </application>
 
 </manifest>
