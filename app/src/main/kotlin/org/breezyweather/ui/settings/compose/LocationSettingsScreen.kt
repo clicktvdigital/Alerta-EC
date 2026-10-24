@@ -364,13 +364,28 @@ private fun ActiveLocationEvidence(
     context: Activity,
     detailedLocationProvider: DetailedLocationProvider,
 ) {
-    var snapshot by remember { mutableStateOf(ActiveLocationController.getLatest(context)) }
+    fun snapshotUnificado(): org.breezyweather.background.location.ActiveLocationSnapshot? {
+        val activo = ActiveLocationController.getLatest(context)
+        val registro = org.breezyweather.domain.settings.CurrentLocationStore(context)
+        val guardado = registro.measuredAtMillis?.takeIf { registro.isUsable }?.let { fecha ->
+            org.breezyweather.background.location.ActiveLocationSnapshot(
+                latitude = registro.lastKnownLatitude,
+                longitude = registro.lastKnownLongitude,
+                altitude = registro.altitudeMeters,
+                accuracy = registro.accuracyMeters,
+                timestamp = fecha,
+            )
+        }
+        // Aún se muestra si está antiguo, pero nunca se presenta como GPS reciente.
+        return listOfNotNull(activo, guardado).maxByOrNull { it.timestamp }
+    }
+    var snapshot by remember { mutableStateOf(snapshotUnificado()) }
     var address by remember { mutableStateOf<DetailedLocationAddress?>(null) }
     var addressFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            snapshot = ActiveLocationController.getLatest(context)
+            snapshot = snapshotUnificado()
             delay(1_000L)
         }
     }
@@ -409,7 +424,8 @@ private fun ActiveLocationEvidence(
             }))
 
             if (snapshot == null) {
-                Text(stringResource(R.string.active_location_evidence_no_position))
+                Text("Todavía no hay mediciones guardadas. " +
+                    "Activa la ubicación precisa y actualiza el clima desde Inicio.")
             } else {
                 val current = snapshot!!
                 val ageSeconds = ((System.currentTimeMillis() - current.timestamp).coerceAtLeast(0L)) / 1_000L

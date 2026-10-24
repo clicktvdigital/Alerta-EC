@@ -27,6 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -75,11 +80,13 @@ private fun shareReport(context: Context, kind: String, message: String, gps: Bo
         "Fecha del dispositivo: ${java.util.Date()}\n" +
         "Este reporte no se envía automáticamente; el usuario elige cómo compartirlo."
     val intent = Intent(Intent.ACTION_SEND).apply {
-        type = if (attachment == null) "text/plain" else "*/*"
+        type = if (attachment == null) "text/plain"
+            else context.contentResolver.getType(attachment) ?: "application/octet-stream"
         putExtra(Intent.EXTRA_SUBJECT, "Reporte ALERTA EC - $kind")
         putExtra(Intent.EXTRA_TEXT, body)
         if (attachment != null) {
             putExtra(Intent.EXTRA_STREAM, attachment)
+            clipData = android.content.ClipData.newRawUri("Evidencia ALERTA EC", attachment)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
@@ -109,6 +116,9 @@ class InamhiMapViewHolder(private val composeView: ComposeView) : AbstractMainVi
 
 @Composable
 private fun HomeMapAndFeedback(context: Context) {
+    val teclado = LocalSoftwareKeyboardController.current
+    val focoOpinion = remember { FocusRequester() }
+    val focoReporte = remember { FocusRequester() }
     var reviewExpanded by rememberSaveable { mutableStateOf(false) }
     var reportExpanded by rememberSaveable { mutableStateOf(false) }
     var rating by rememberSaveable { mutableIntStateOf(0) }
@@ -120,6 +130,20 @@ private fun HomeMapAndFeedback(context: Context) {
     var attachmentLabel by remember { mutableStateOf("") }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
+    LaunchedEffect(reviewExpanded) {
+        if (reviewExpanded) {
+            delay(200)
+            runCatching { focoOpinion.requestFocus() }
+            teclado?.show()
+        }
+    }
+    LaunchedEffect(reportExpanded) {
+        if (reportExpanded) {
+            delay(200)
+            runCatching { focoReporte.requestFocus() }
+            teclado?.show()
+        }
+    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) { attachment = uri; attachmentLabel = "Fotografía seleccionada" }
@@ -187,7 +211,8 @@ private fun HomeMapAndFeedback(context: Context) {
                     OutlinedTextField(
                         value = opinion, onValueChange = { opinion = it.take(2000) },
                         label = { Text("Tu opinión (opcional)") },
-                        modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 5
+                        modifier = Modifier.fillMaxWidth().focusRequester(focoOpinion),
+                        minLines = 2, maxLines = 5
                     )
                     Button(onClick = { startReviewEmail(context, rating, opinion) },
                         enabled = rating > 0, modifier = Modifier.fillMaxWidth()) {
@@ -222,7 +247,8 @@ private fun HomeMapAndFeedback(context: Context) {
                     OutlinedTextField(
                         value = reportText, onValueChange = { reportText = it.take(3000) },
                         label = { Text("¿Qué ocurrió? ¿Dónde y cuándo?") },
-                        modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6
+                        modifier = Modifier.fillMaxWidth().focusRequester(focoReporte),
+                        minLines = 3, maxLines = 6
                     )
                     Text("Adjuntar evidencia (opcional, un archivo por reporte)",
                         style = MaterialTheme.typography.labelLarge,

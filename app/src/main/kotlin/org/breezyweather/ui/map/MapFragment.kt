@@ -114,6 +114,104 @@ class MapFragment : MainModuleFragment() {
         shouldShowRequestPermissionRationale(android.Manifest.permission.ACCESS_COARSE_LOCATION) ||
             shouldShowRequestPermissionRationale(android.Manifest.permission.ACCESS_FINE_LOCATION)
 
+
+    // Marcador de ubicación GPS: coordenadas medidas, no el centro visual del mapa.
+    private var alertaGpsMarker: org.maplibre.android.annotations.Marker? = null
+    private fun mostrarPuntoGps(pos: org.breezyweather.background.location.ActiveLocationSnapshot) {
+        val mapa = currentMap ?: return
+        if (!styleReady || pos.latitude !in -90.0..90.0 || pos.longitude !in -180.0..180.0) return
+        val punto = LatLng(pos.latitude, pos.longitude)
+        alertaGpsMarker?.let {
+            it.position = punto
+            return
+        }
+        val escala = resources.displayMetrics.density
+        val tamano = (26f * escala).toInt().coerceAtLeast(26)
+        val bitmap = android.graphics.Bitmap.createBitmap(
+            tamano, tamano, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val lienzo = android.graphics.Canvas(bitmap)
+        val pincel = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val mitad = tamano / 2f
+        pincel.color = android.graphics.Color.WHITE
+        lienzo.drawCircle(mitad, mitad, mitad - escala, pincel)
+        pincel.color = android.graphics.Color.rgb(25, 118, 235)
+        lienzo.drawCircle(mitad, mitad, mitad - escala * 3f, pincel)
+        val icono = org.maplibre.android.annotations.IconFactory.getInstance(requireContext())
+            .fromBitmap(bitmap)
+        alertaGpsMarker = mapa.addMarker(
+            org.maplibre.android.annotations.MarkerOptions()
+                .position(punto)
+                .title("Mi posición GPS (aproximada)")
+                .icon(icono)
+        )
+    }
+
+    private fun correccionLocalDireccion(latitud: Double, longitud: Double): Pair<String, String>? {
+        val datos = requireContext().getSharedPreferences("alerta_ec_direccion_usuario", 0)
+        val a = datos.getString("lat", null)?.toDoubleOrNull() ?: return null
+        val b = datos.getString("lon", null)?.toDoubleOrNull() ?: return null
+        val distancia = FloatArray(1)
+        android.location.Location.distanceBetween(a, b, latitud, longitud, distancia)
+        if (distancia[0] > 75f) return null
+        val postal = datos.getString("postal", "")?.trim().orEmpty()
+        val sector = datos.getString("sector", "")?.trim().orEmpty()
+        if (!Regex("[0-9]{6}").matches(postal) || sector.isBlank()) return null
+        return postal to sector
+    }
+
+    private fun editarMiSector() {
+        val ubicacion = latestMapLocation() ?: run {
+            android.widget.Toast.makeText(requireContext(), "Primero obtiene una posición GPS", 1).show()
+            return
+        }
+        val contexto = requireContext()
+        val previa = correccionLocalDireccion(ubicacion.latitude, ubicacion.longitude)
+        val caja = android.widget.LinearLayout(contexto).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(28, 14, 28, 8)
+        }
+        val postal = android.widget.EditText(contexto).apply {
+            hint = "Código postal de 6 dígitos"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            setText(previa?.first.orEmpty())
+        }
+        val sector = android.widget.EditText(contexto).apply {
+            hint = "Sector donde estás realmente"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(true)
+            setText(previa?.second.orEmpty())
+        }
+        caja.addView(postal); caja.addView(sector)
+        android.app.AlertDialog.Builder(contexto)
+            .setTitle("Corregir mi zona en este punto GPS")
+            .setMessage("Información voluntaria. Se mostrará como aportada por ti; " +
+                "no sustituye la cartografía oficial ni corrige todos los lugares de Ecuador.")
+            .setView(caja)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Guardar") { _, _ ->
+                val codigo = postal.text.toString().trim()
+                val nombre = sector.text.toString().trim()
+                if (!Regex("[0-9]{6}").matches(codigo) || nombre.isBlank()) {
+                    android.widget.Toast.makeText(contexto,
+                        "Indica 6 dígitos y el sector", 1).show()
+                } else {
+                    contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).edit()
+                        .putString("lat", ubicacion.latitude.toString())
+                        .putString("lon", ubicacion.longitude.toString())
+                        .putString("postal", codigo)
+                        .putString("sector", nombre)
+                        .apply()
+                    addressLabel?.text = "✏️ Datos aportados por ti · GPS cercano\n" +
+                        "Sector: $nombre · Código postal: $codigo\n" +
+                        "Pulsa para ampliar la dirección"
+                    lastAddressPosition = null
+                }
+            }.show()
+    }
+
     private fun centerMapOn(position: org.breezyweather.background.location.ActiveLocationSnapshot) {
         currentMap?.cameraPosition = CameraPosition.Builder()
             .target(LatLng(position.latitude, position.longitude))
@@ -253,7 +351,14 @@ class MapFragment : MainModuleFragment() {
                             "AlertaEcGPS",
                             "Dirección obtenida correctamente"
                         )
-                        val addressLines = address.completeAddressLines
+                        val personalizado = correccionLocalDireccion(latitude, longitude)
+                        val addressLines = if (personalizado != null) {
+                            listOf("✏️ Sector aportado por ti: ${personalizado.second}",
+                                "✏️ Código postal aportado por ti: ${personalizado.first}") +
+                                address.completeAddressLines.filterNot {
+                                    it.startsWith("Sector:") || it.startsWith("Código postal:")
+                                }
+                        } else address.completeAddressLines
                         addressLabel?.text = addressLines
                             .takeIf { it.isNotEmpty() }
                             ?.joinToString("\n")
@@ -284,6 +389,7 @@ class MapFragment : MainModuleFragment() {
             val position = latestMapLocation()
             if (position != null) {
                 updateGpsInfo(position)
+                mostrarPuntoGps(position)
                 satellitePlayer?.updateTimeZone(
                     EcuadorTimeFormatter.isGalapagosCoordinates(position.latitude, position.longitude)
                 )
@@ -490,11 +596,25 @@ class MapFragment : MainModuleFragment() {
                 textSize = 15f
                 setTextColor(android.graphics.Color.WHITE)
                 setBackgroundColor(android.graphics.Color.rgb(30, 45, 55))
-                setPadding(20, 20, 20, 20)
+                setPadding(20, 12, 20, 12)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setOnClickListener { maxLines = if (maxLines == 2) 16 else 2 }
             }
             addView(addressLabel, android.widget.FrameLayout.LayoutParams(
                 -1, -2, android.view.Gravity.TOP
-            ))
+            ).apply { topMargin = (44f * resources.displayMetrics.density).toInt() })
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+                val margen = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.statusBars()
+                ).top + (8f * resources.displayMetrics.density).toInt()
+                (addressLabel?.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let {
+                    it.topMargin = margen
+                    addressLabel?.layoutParams = it
+                }
+                insets
+            }
+            androidx.core.view.ViewCompat.requestApplyInsets(this)
             val root = this
             val mapButtons = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -623,8 +743,39 @@ class MapFragment : MainModuleFragment() {
                         (available * 0.45f).toInt(), android.view.View.MeasureSpec.AT_MOST
                     ))
                 }
-            }.apply { addView(mapButtons) }
-            addView(controlsScroll, android.widget.FrameLayout.LayoutParams(
+            }.apply { addView(mapButtons); visibility = android.view.View.GONE }
+            val accesos = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setBackgroundColor(android.graphics.Color.rgb(27, 37, 52))
+                addView(android.widget.Button(context).apply {
+                    text = "🔵 Mi GPS"
+                    setOnClickListener {
+                        latestMapLocation()?.let {
+                            centerMapOn(it)
+                            mostrarPuntoGps(it)
+                        }
+                        requestNativeMapLocation(force = true, explicitUserAction = true)
+                    }
+                }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                addView(android.widget.Button(context).apply {
+                    text = "☰ Capas"
+                    setOnClickListener {
+                        controlsScroll.visibility = if (controlsScroll.visibility ==
+                            android.view.View.VISIBLE) android.view.View.GONE
+                        else android.view.View.VISIBLE
+                    }
+                }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                addView(android.widget.Button(context).apply {
+                    text = "✏️ Zona"
+                    setOnClickListener { editarMiSector() }
+                }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+            }
+            val panel = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                addView(controlsScroll, android.widget.LinearLayout.LayoutParams(-1, -2))
+                addView(accesos, android.widget.LinearLayout.LayoutParams(-1, -2))
+            }
+            addView(panel, android.widget.FrameLayout.LayoutParams(
                 -1, -2, android.view.Gravity.BOTTOM
             ))
         }
@@ -706,6 +857,8 @@ class MapFragment : MainModuleFragment() {
                     inamhiOverlay = InamhiMapOverlay(style)
                     inamhiStates.clear()
                     styleReady = true
+                    alertaGpsMarker = null
+                    latestMapLocation()?.let(::mostrarPuntoGps)
                     lastInamhiAttemptAt = -300_000L
                     renderInamhiStatus()
                     loadInamhiOverlay()
@@ -825,6 +978,7 @@ class MapFragment : MainModuleFragment() {
         invalidateInamhiRequest()
         inamhiOverlay = null
         currentMap = null
+        alertaGpsMarker = null
         inamhiStates.clear()
         inamhiButtons.clear()
         lastInamhiAttemptAt = -300_000L
