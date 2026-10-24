@@ -36,6 +36,7 @@ import org.breezyweather.ui.main.adapters.main.holder.AlertViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.ClockViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.DailyViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.DonationsViewHolder
+import org.breezyweather.ui.main.adapters.main.holder.InamhiMapViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.FooterViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.HeaderViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.HourlyViewHolder
@@ -184,6 +185,7 @@ class MainAdapter(
                 .forEach { card -> mViewTypeList.add(getViewType(card)) }
 
             // La información complementaria y los aportes quedan después de todas las tarjetas.
+            mViewTypeList.add(VIEW_TYPE_INAMHI_MAP)
             mViewTypeList.add(VIEW_TYPE_DONATIONS)
             mViewTypeList.add(ViewType.FOOTER)
         }
@@ -214,6 +216,7 @@ class MainAdapter(
         ViewType.SUN -> SunViewHolder(parent)
         ViewType.MOON -> MoonViewHolder(parent)
         ViewType.CLOCK -> ClockViewHolder(parent)
+        VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(ComposeView(parent.context))
         VIEW_TYPE_DONATIONS -> DonationsViewHolder(ComposeView(parent.context))
         ViewType.FOOTER -> FooterViewHolder(ComposeView(parent.context))
         else -> FooterViewHolder(ComposeView(parent.context))
@@ -292,6 +295,7 @@ class MainAdapter(
             ViewType.HEADER,
             ViewType.ALERT,
             ViewType.FOOTER,
+            VIEW_TYPE_INAMHI_MAP,
             VIEW_TYPE_DONATIONS,
 
             // TODO: #1972 - Remove below when we have figured out how to avoid the touch conflict with the chart
@@ -358,6 +362,7 @@ class MainAdapter(
     })
 
     companion object {
+        private const val VIEW_TYPE_INAMHI_MAP = -3
         private const val VIEW_TYPE_DONATIONS = -2
 
         private fun getViewType(cardDisplay: CardDisplay): Int = when (cardDisplay) {

@@ -1,3 +1,7 @@
+## Continuidad ALERTA EC — pasos 1053–1063
+
+La corrección local de compatibilidad JVM y el estado de CI están documentados cronológicamente en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md#alerta-ec--continuidad-de-los-pasos-1053-1063-22-10-2026). Todavía no se ha compilado ni publicado; requiere revisión, commit y push autorizados, y nueva validación remota.
+
 ## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
 
 Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.

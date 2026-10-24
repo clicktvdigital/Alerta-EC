@@ -1129,6 +1129,91 @@ Referencia: [canales de notificación de Android](https://developer.android.com/
 - Pendiente: validar notificaciones inmediatas, urgentes, voz, vibracion, distritos y cobertura nacional.
 - No publicar version estable hasta CI, prueba en telefono y autorizacion.
 
+
+
+
+## Protocolo Termux y NOAA — 2026-10-18
+- Todos los comandos entregados al usuario deben copiar su salida completa al portapapeles mediante: 2>&1 | string collect | tee /dev/stderr | termux-clipboard-set.
+- Usar Fish, un comando por turno y esperar el resultado; salida vacía significa que el comando se ejecutó sin producir texto.
+- Crear respaldo antes de cambios, evitar compilaciones locales y no hacer commit, push, tag ni release sin autorización expresa.
+- Paso 294: NoaaSatellitePlayer.kt actualizado para consultar imágenes NOAA al reanudar cuando transcurran 15 minutos; respaldo NoaaSatellitePlayer.kt.pre_refresh_294; git diff --check sin errores visibles.
+- Pendientes NOAA: recuperación de imágenes fallidas, comprobación real en Android y actualización fiable sin descargas innecesarias.
+
+
+## NOAA — Correcciones verificadas 294-303 (2026-10-18)
+- Paso 294/296: consulta de imágenes al reanudar el mapa si han transcurrido 15 minutos; verificación estática correcta.
+- Paso 298/299: registro de imágenes fallidas, salto durante reproducción y detención si ninguna es utilizable; verificación estática correcta.
+- Paso 300/301: al cambiar modo se detiene la animación, se cancela la consulta anterior y se ignoran respuestas obsoletas; verificación estática correcta.
+- Paso 302/303: mensaje diferenciado para errores de conexión y reinicio del intervalo tras consulta fallida; verificación estática correcta.
+- Respaldos: NoaaSatellitePlayer.kt.pre_refresh_294, .pre_failed_frames_298, .pre_mode_switch_300 y .pre_error_message_302.
+- Pendiente: revisar cancelaciones, validar conectividad y reproducción real en Android, confirmar cobertura satelital de Ecuador continental y Galápagos.
+- No compilar, hacer commit, push, tag ni publicar sin autorización expresa del usuario.
+
+
+## NOAA — Cancelaciones verificadas (pasos 305-307)
+- Se identificó que runCatching capturaba CancellationException en las consultas NOAA y en la carga de imágenes.
+- Paso 306: se añadió propagación explícita de CancellationException en ambas operaciones.
+- Paso 307: cinco verificaciones estáticas OK; git diff --check sin errores.
+- Respaldo: NoaaSatellitePlayer.kt.pre_cancellation_306.
+- Pendiente: comprobar comportamiento real en Android, errores de red y disponibilidad/cobertura de imágenes para Ecuador continental y Galápagos.
+- Mantener un comando Fish por turno y copiar siempre la salida a Termux mediante string collect, tee y termux-clipboard-set.
+
+## NOAA: avances locales pasos 309-326
+
+- Verificadas por HTTP 200 las fuentes oficiales NOAA GOES-19: GEOCOLOR regional, GLM rayos y GEOCOLOR disco completo; sin descargar los JPEG al teléfono.
+- Reproductor con tres modos, cronología, reproducción, pausa, zoom y hora de observación.
+- Actualización normal cada 15 minutos y espera mínima de 60 segundos tras fallo; se evita iniciar otra consulta si existe una activa.
+- Conservación de imágenes anteriores ante fallos, únicamente si siguen vigentes; caducidad de 6 horas y descarte de fotogramas vencidos.
+- Mensaje visible cuando todas las imágenes caducan; se detiene la reproducción.
+- Se preservan respaldos locales de los cambios; no se han compilado APK ni publicado versiones nuevas.
+- PENDIENTE: revisar selección de zona horaria continental/Galápagos en el reproductor, validar casos de fallo y ciclo de vida en Android, ejecutar CI cuando se autorice y continuar otros pendientes de ALERTA EC.
+- IMPORTANTE: las comprobaciones realizadas son estáticas; no equivalen a pruebas de funcionamiento en Android.
+
+
+## NOAA: zona horaria y límites de Galápagos (pasos 330-340)
+
+- NoaaSatellitePlayer admite y actualiza dinámicamente la hora de Galápagos (Pacific/Galapagos, UTC-6) y Ecuador continental (America/Guayaquil, UTC-5).
+- MapFragment reutiliza el GPS existente, actualizado aproximadamente cada cinco segundos, sin iniciar otro servicio de ubicación ni descargar imágenes al cambiar de zona horaria.
+- EcuadorTimeFormatter.isGalapagosCoordinates centraliza la detección aproximada. Sus límites son latitud -1.4016 a 1.6644 y longitud -92.0116 a -89.2548.
+- Estos límites proceden del recurso existente breezytz_ec.json, que contiene un MultiPolygon de un solo rectángulo de cinco puntos para EC-W; NO representa las costas ni una frontera administrativa precisa.
+- BreezyTimeZoneService y sus avisos legales permanecen intactos. Su recurso geográfico tampoco proporciona contornos insulares precisos.
+- Pendiente: validar los límites y las islas periféricas, el funcionamiento en Android, la cobertura real de las imágenes NOAA y la presentación de fechas durante cambios de ubicación.
+- Estado: cambios locales sin compilación, sin commit, sin push y sin publicación. No considerar la integración validada en ejecución.
+
+## Introduccion vertical: pasos 368-373
+- Se incorporo el logotipo vertical original proporcionado por el usuario (864x1536) a los recursos alertaec_logo_acerca.png y alerta_ec_intro_logo.png, con respaldos .pre_vertical_368.
+- El XML de introduccion utiliza el logotipo vertical con contenedor 220x390 dp.
+- Los posters inicial y final del reproductor utilizan FIT_CENTER.
+- Al terminar el video, el logo final permanece 3000 ms y luego se desvanece durante 600 ms.
+- stop() cancela la animacion de salida, restablece alpha=1 y oculta la capa.
+- Validacion estatica: git diff --check sin errores.
+- PENDIENTE: compilacion autorizada y prueba visual en Android; no afirmar que la reproduccion esta validada.
+- No se realizo commit, push, compilacion ni publicacion.
+
+
+
+## ALERTA EC — continuidad de los pasos 1053–1063 (22-10-2026)
+
+Registro cronológico añadido sin sustituir el contenido histórico. La corrección de configuración descrita aquí sigue siendo local y no está validada por compilación.
+
+- **Paso 1053:** se realizó el commit seguro `caf14fbee26a210320ef6f622e684b1baf702c24`, con dos cambios Kotlin. Se conservó el respaldo local `refs/alerta-ec-backups/paso-1053`.
+- **Pasos 1053–1054:** quedaron protegidas exactamente tres rutas y se conservaron sus estados: `app/src/main/kotlin/org/breezyweather/background/location/AdvancedLocationSnapshot.kt` (modificación local preexistente, no leer ni editar); `docs/CONTINUAR_AQUI.md` (su protección general se mantiene; la autorización actual para editarla es una excepción expresa y limitada a esta reparación documental); y `ALERTA_EC_GITHUB_CI_RELEASE_2026-10-14.txt` (archivo local sin seguimiento preexistente, no leer ni editar). `buildSrc/src/main/kotlin/breezy/buildlogic/AndroidConfig.kt` no es una de las tres rutas protegidas: es un archivo de configuración con una corrección local de JVM 17 pendiente de CI.
+- **Pasos 1055–1056:** un error del pre-commit hook agregó documentación al índice. La recuperación exigió verificar explícitamente el OID y comparar `diff-tree` entre el padre y `HEAD`; después se limpió el índice mediante `git restore --staged`, sin perder el contenido de los archivos.
+- **Paso 1057:** se mantuvo la comprobación de rama, `HEAD`, índice y rutas protegidas antes de continuar.
+- **Paso 1058:** push exitoso del commit seguro. Esta constancia histórica no autoriza acciones remotas nuevas.
+- **Pasos 1059–1061:** GitHub Actions ejecutó el run `39728956203`; el job `119659305072` terminó en `FAILURE` en `compileBasicDebugUnitTestKotlin`.
+- **Paso 1062:** el error literal fue `Cannot inline bytecode built with JVM target 17 into bytecode built with JVM target 11`. El diagnóstico vinculó el fallo a la incompatibilidad de targets, sin atribuirlo a warnings.
+- **Paso 1063:** corrección local en `buildSrc/src/main/kotlin/breezy/buildlogic/AndroidConfig.kt`: `GradleJavaVersion.VERSION_11` pasó a `VERSION_17` y `KotlinJvmTarget.JVM_11` pasó a `JVM_17`, sin otras modificaciones en ese archivo.
+- **Estado actual:** la corrección todavía **NO ha sido compilada ni publicada**. Requiere revisión, un commit separado autorizado, push autorizado y nueva validación remota autorizada. No afirmar que existe APK ni Release hasta comprobar artefactos y firma.
+
+### Flujo operativo obligatorio para la continuidad
+
+- Ejecutar un comando Termux Fish por paso y copiar el reporte completo al portapapeles Android con `2>&1 | string collect | tee /dev/stderr | termux-clipboard-set`; verificar salida `0` de `termux-clipboard-set`.
+- Validar `HEAD`, rama, índice y archivos protegidos antes de escribir. No repetir diagnósticos ya resueltos y no atribuir fallos a warnings sin su error literal.
+- No ejecutar compilaciones Gradle, Kotlin, tests ni APK localmente. Usar GitHub Actions únicamente con autorización expresa.
+- No ejecutar `git add -A`; impedir hooks de sincronización que incorporen rutas protegidas. No realizar acciones Git remotas sin autorización específica.
+- No prometer APK antes de comprobar artefactos y firma. Mantener sin cambios el código fuente ajeno a esta corrección, Gradle, dependencias, `versionCode`, firmas y workflows.
+
 <!-- ALERTA_EC_AUTO_START -->
 
 # ALERTA EC - ESTADO MAESTRO DEL PROYECTO
@@ -1170,7 +1255,7 @@ Verificar disponibilidad, permisos, frecuencia de actualizacion, condiciones de 
 ## VIGILANCIA GEOGRAFICA
 - Ubicacion GPS actual.
 - Sectores favoritos y zonas cercanas.
-- Quito y otras zonas configurables.
+- Quito, Atucucho, La Carolina, Valle de Los Chillos y otras zonas configurables.
 - Distancia y relevancia respecto de la ubicacion o ruta.
 - No confundir pronostico, observacion, reporte ciudadano y alerta oficial.
 
@@ -1445,73 +1530,13 @@ Estado: pistas procedurales implementadas e integradas; validación en dispositi
 - Validación local limitada a inspección estática y `git diff --check`; no se ejecutó el workflow de Release ni Gradle en Termux, no se crearon tags/Releases y no se tocó APK instalada, applicationId, keystore o secretos. Pendiente CI y prueba funcional en dispositivo antes de cualquier publicación.
 
 ## Estado NOAA e INAMHI — 2026-10-18
-
 - Rama de trabajo: alerta-ec. Cambios locales pendientes; no se ha realizado commit, push, tag ni Release en esta fase.
 - NOAA GOES-19: verificadas las fuentes de nubes GEOCOLOR, rayos GLM EXTENT3 y vista amplia GEOCOLOR. El 2026-10-18 a las 13:35 UTC, las imagenes mas recientes tenian unos 24-25 minutos de antiguedad; las tres respondieron HTTP 206 a solicitudes parciales y presentaron firma JPEG valida. Esto no sustituye las pruebas de visualizacion en Android.
 - Reproductor NOAA: cambios locales en NoaaSatellitePlayer.kt y MapFragment.kt para reanudar consultas al volver a primer plano, esperar la finalizacion de la carga antes de avanzar y retrasar el primer avance 1200 ms. Pendientes compilacion Kotlin, pruebas de animacion, errores de red, memoria y ciclo de vida en dispositivo.
-- INAMHI WRF: la prueba WMS en un punto de prueba urbano devolvió PNG completamente blanco y opaco para precipitacion 3h, incluso con TRANSPARENT=TRUE, BGCOLOR=0xFFFFFF e image/png8. Otras capas devolvieron colores opacos. No interpretar automaticamente blanco como ausencia de lluvia o NoData. Pendiente estrategia segura que no oculte el mapa.
+- INAMHI WRF: la prueba WMS en Quito devolvio PNG completamente blanco y opaco para precipitacion 3h, incluso con TRANSPARENT=TRUE, BGCOLOR=0xFFFFFF e image/png8. Otras capas devolvieron colores opacos. No interpretar automaticamente blanco como ausencia de lluvia o NoData. Pendiente estrategia segura que no oculte el mapa.
 - Mantener observaciones satelitales NOAA separadas de pronosticos WRF INAMHI y Open-Meteo, indicando fuente, fecha, vigencia y cobertura. La aplicacion debe funcionar en Ecuador continental y Galapagos; la cobertura WRF continental no equivale a cobertura nacional.
 - Preservar GPS, alertas, SOS, accesibilidad, identidad ALERTA EC, licencias y funcionamiento gratuito sin registro.
 - Estado Git previo a documentar: 20 archivos modificados, 19 archivos nuevos y 111 respaldos locales .pre_* sin seguimiento. No agregar respaldos ni archivos no revisados automaticamente.
 - La documentacion historica de versiones anteriores se conserva. Verificar versionName/versionCode reales antes de cualquier publicacion. No cambiar applicationId ni firma. Flujo obligatorio: CI -> pruebas en dispositivo -> documentacion -> autorizacion expresa -> Release estable.
 
 <!-- ALERTA_EC_AUTO_END -->
-
-
-## Protocolo Termux y NOAA — 2026-10-18
-- Todos los comandos entregados al usuario deben copiar su salida completa al portapapeles mediante: 2>&1 | string collect | tee /dev/stderr | termux-clipboard-set.
-- Usar Fish, un comando por turno y esperar el resultado; salida vacía significa que el comando se ejecutó sin producir texto.
-- Crear respaldo antes de cambios, evitar compilaciones locales y no hacer commit, push, tag ni release sin autorización expresa.
-- Paso 294: NoaaSatellitePlayer.kt actualizado para consultar imágenes NOAA al reanudar cuando transcurran 15 minutos; respaldo NoaaSatellitePlayer.kt.pre_refresh_294; git diff --check sin errores visibles.
-- Pendientes NOAA: recuperación de imágenes fallidas, comprobación real en Android y actualización fiable sin descargas innecesarias.
-
-
-## NOAA — Correcciones verificadas 294-303 (2026-10-18)
-- Paso 294/296: consulta de imágenes al reanudar el mapa si han transcurrido 15 minutos; verificación estática correcta.
-- Paso 298/299: registro de imágenes fallidas, salto durante reproducción y detención si ninguna es utilizable; verificación estática correcta.
-- Paso 300/301: al cambiar modo se detiene la animación, se cancela la consulta anterior y se ignoran respuestas obsoletas; verificación estática correcta.
-- Paso 302/303: mensaje diferenciado para errores de conexión y reinicio del intervalo tras consulta fallida; verificación estática correcta.
-- Respaldos: NoaaSatellitePlayer.kt.pre_refresh_294, .pre_failed_frames_298, .pre_mode_switch_300 y .pre_error_message_302.
-- Pendiente: revisar cancelaciones, validar conectividad y reproducción real en Android, confirmar cobertura satelital de Ecuador continental y Galápagos.
-- No compilar, hacer commit, push, tag ni publicar sin autorización expresa del usuario.
-
-
-## NOAA — Cancelaciones verificadas (pasos 305-307)
-- Se identificó que runCatching capturaba CancellationException en las consultas NOAA y en la carga de imágenes.
-- Paso 306: se añadió propagación explícita de CancellationException en ambas operaciones.
-- Paso 307: cinco verificaciones estáticas OK; git diff --check sin errores.
-- Respaldo: NoaaSatellitePlayer.kt.pre_cancellation_306.
-- Pendiente: comprobar comportamiento real en Android, errores de red y disponibilidad/cobertura de imágenes para Ecuador continental y Galápagos.
-- Mantener un comando Fish por turno y copiar siempre la salida a Termux mediante string collect, tee y termux-clipboard-set.
-
-## NOAA: avances locales pasos 309-326
-
-- Verificadas por HTTP 200 las fuentes oficiales NOAA GOES-19: GEOCOLOR regional, GLM rayos y GEOCOLOR disco completo; sin descargar los JPEG al teléfono.
-- Reproductor con tres modos, cronología, reproducción, pausa, zoom y hora de observación.
-- Actualización normal cada 15 minutos y espera mínima de 60 segundos tras fallo; se evita iniciar otra consulta si existe una activa.
-- Conservación de imágenes anteriores ante fallos, únicamente si siguen vigentes; caducidad de 6 horas y descarte de fotogramas vencidos.
-- Mensaje visible cuando todas las imágenes caducan; se detiene la reproducción.
-- Se preservan respaldos locales de los cambios; no se han compilado APK ni publicado versiones nuevas.
-- PENDIENTE: revisar selección de zona horaria continental/Galápagos en el reproductor, validar casos de fallo y ciclo de vida en Android, ejecutar CI cuando se autorice y continuar otros pendientes de ALERTA EC.
-- IMPORTANTE: las comprobaciones realizadas son estáticas; no equivalen a pruebas de funcionamiento en Android.
-
-
-## NOAA: zona horaria y límites de Galápagos (pasos 330-340)
-
-- NoaaSatellitePlayer admite y actualiza dinámicamente la hora de Galápagos (Pacific/Galapagos, UTC-6) y Ecuador continental (America/Guayaquil, UTC-5).
-- MapFragment reutiliza el GPS existente, actualizado aproximadamente cada cinco segundos, sin iniciar otro servicio de ubicación ni descargar imágenes al cambiar de zona horaria.
-- EcuadorTimeFormatter.isGalapagosCoordinates centraliza la detección aproximada. Sus límites son latitud -1.4016 a 1.6644 y longitud -92.0116 a -89.2548.
-- Estos límites proceden del recurso existente breezytz_ec.json, que contiene un MultiPolygon de un solo rectángulo de cinco puntos para EC-W; NO representa las costas ni una frontera administrativa precisa.
-- BreezyTimeZoneService y sus avisos legales permanecen intactos. Su recurso geográfico tampoco proporciona contornos insulares precisos.
-- Pendiente: validar los límites y las islas periféricas, el funcionamiento en Android, la cobertura real de las imágenes NOAA y la presentación de fechas durante cambios de ubicación.
-- Estado: cambios locales sin compilación, sin commit, sin push y sin publicación. No considerar la integración validada en ejecución.
-
-## Introduccion vertical: pasos 368-373
-- Se incorporo el logotipo vertical original proporcionado por el usuario (864x1536) a los recursos alertaec_logo_acerca.png y alerta_ec_intro_logo.png, con respaldos .pre_vertical_368.
-- El XML de introduccion utiliza el logotipo vertical con contenedor 220x390 dp.
-- Los posters inicial y final del reproductor utilizan FIT_CENTER.
-- Al terminar el video, el logo final permanece 3000 ms y luego se desvanece durante 600 ms.
-- stop() cancela la animacion de salida, restablece alpha=1 y oculta la capa.
-- Validacion estatica: git diff --check sin errores.
-- PENDIENTE: compilacion autorizada y prueba visual en Android; no afirmar que la reproduccion esta validada.
-- No se realizo commit, push, compilacion ni publicacion.
