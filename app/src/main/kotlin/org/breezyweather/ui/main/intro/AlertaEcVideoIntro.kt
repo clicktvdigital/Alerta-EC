@@ -199,7 +199,7 @@ internal object AlertaEcVideoIntro {
                 true
             }
             view.setVideoURI(
-                Uri.parse("android.resource://${context.packageName}/${R.raw.alertaec_cinematic_intro}")
+                Uri.parse("android.resource://${context.packageName}/${if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION || context.resources.configuration.smallestScreenWidthDp >= 600) R.raw.alertaec_cinematic_intro_tv else R.raw.alertaec_cinematic_intro}")
             )
             view.requestFocus()
         } catch (_: RuntimeException) {
