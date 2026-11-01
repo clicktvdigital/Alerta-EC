@@ -91,7 +91,11 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
-            frame.setBackgroundColor(BLACK)
+            if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION || context.resources.configuration.smallestScreenWidthDp >= 600) {
+                frame.setBackgroundResource(R.drawable.alertaec_tv_splash)
+            } else {
+                frame.setBackgroundColor(BLACK)
+            }
             previousRootPadding = intArrayOf(frame.paddingLeft, frame.paddingTop, frame.paddingRight, frame.paddingBottom)
             ViewCompat.setOnApplyWindowInsetsListener(frame) { view, insets ->
                 val safeInsets = insets.getInsets(

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="BreezyWeatherTheme.Main" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/colorSplashScreen</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/alertaec_tv_empty_icon</item>
+        <item name="postSplashScreenTheme">@style/BreezyWeatherTheme</item>
+    </style>
+</resources>
