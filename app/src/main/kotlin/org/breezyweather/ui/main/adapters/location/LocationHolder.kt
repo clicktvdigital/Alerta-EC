@@ -131,6 +131,18 @@ class LocationHolder(
         }
 
         mBinding.container.setOnClickListener { mClickListener(model.location.formattedId) }
+        // Navegacion con control remoto, exclusivamente en Android TV.
+        if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) {
+            mBinding.container.isFocusable = true
+            mBinding.sortButton.isFocusable = false
+            val normalStroke = mBinding.root.strokeWidth
+            val focusStroke = (3f * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+            mBinding.root.strokeColor = context.getThemeColor(com.google.android.material.R.attr.colorPrimary)
+            mBinding.container.setOnFocusChangeListener { _, focused ->
+                mBinding.root.strokeWidth = if (focused) focusStroke else normalStroke
+            }
+        }
         // TODO
         mBinding.sortButton.setOnTouchListener { _: View?, event: MotionEvent ->
             if (event.action == MotionEvent.ACTION_DOWN) {

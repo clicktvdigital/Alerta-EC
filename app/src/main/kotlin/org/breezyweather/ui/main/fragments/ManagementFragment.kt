@@ -261,6 +261,31 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                                 stringResource(R.string.action_add_new_location)
                             )
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = {
+                                showManualCoordinateEntry(requireContext()) { lat, lon, label ->
+                                    viewModel.askToAddLocation(requireContext(), lat, lon, label)
+                                }
+                            }
+                        ) {
+                            Text("GPS")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = {
+                                showLauncherWeatherLocationPicker(
+                                    requireContext(),
+                                    validLocationListState.value
+                                ) {
+                                    viewModel.broadcastLauncherWeatherNow(requireContext())
+                                }
+                            }
+                        ) {
+                            Text("Clima TV")
+                        }
                     }
                 }
             }
@@ -400,6 +425,15 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center
                             )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                showManualCoordinateEntry(requireContext()) { lat, lon, label ->
+                                    viewModel.askToAddLocation(requireContext(), lat, lon, label)
+                                }
+                            }
+                        ) {
+                            Text("📍 Introducir coordenadas GPS")
                         }
                         OutlinedButton(
                             onClick = {

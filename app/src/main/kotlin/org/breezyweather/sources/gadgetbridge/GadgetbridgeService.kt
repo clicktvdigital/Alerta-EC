@@ -50,8 +50,18 @@ class GadgetbridgeService @Inject constructor() : BroadcastSource {
         allLocations: List<Location>,
         updatedLocationIds: Array<String>?,
     ): Bundle? {
-        if (!allLocations.any { it.weather?.current != null }) {
-            LogHelper.log(msg = "Not sending GadgetBridge data, current weather is null")
+        val preferredId = LauncherWeatherLocation.preferredId(context)
+        val chosen = if (preferredId != null) {
+            // Never replace an explicitly selected location with another city.
+            allLocations.firstOrNull { it.formattedId == preferredId }
+        } else {
+            allLocations.firstOrNull {
+                it.isCurrentPosition && it.weather?.current != null
+            } ?: allLocations.firstOrNull { it.weather?.current != null }
+        }
+
+        if (chosen?.weather?.current == null) {
+            LogHelper.log(msg = "Not sending launcher weather: selected location has no current data")
             return null
         }
 
@@ -66,7 +76,7 @@ class GadgetbridgeService @Inject constructor() : BroadcastSource {
             )
             putString(
                 "WeatherJson",
-                Json.encodeToString(getWeatherData(context, allLocations[0]))
+                Json.encodeToString(getWeatherData(context, chosen))
             )
         }
     }
@@ -80,7 +90,8 @@ class GadgetbridgeService @Inject constructor() : BroadcastSource {
 
         return GadgetbridgeData(
             timestamp = location.weather?.base?.forecastUpdateTime?.time?.div(1000)?.toInt(),
-            location = location.getPlace(context),
+            location = location.customName?.trim()?.takeIf { it.isNotEmpty() }
+                ?: location.getPlace(context),
             currentTemp = current?.temperature?.temperature?.inKelvins?.roundToInt(),
             currentConditionCode = getWeatherCode(current?.weatherCode, current?.cloudCover),
             currentCondition = current?.weatherText,

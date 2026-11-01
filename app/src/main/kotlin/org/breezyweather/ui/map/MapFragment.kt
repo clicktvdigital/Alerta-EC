@@ -724,6 +724,27 @@ class MapFragment : MainModuleFragment() {
                         }
                     }
                     contentDescription = "Capa meteorológica ${InamhiLayers.title(layer)}"
+                    // Foco visible al navegar con un mando Android TV.
+                    val isTelevision = (
+                        resources.configuration.uiMode and
+                            android.content.res.Configuration.UI_MODE_TYPE_MASK
+                        ) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                        context.packageManager.hasSystemFeature(
+                            android.content.pm.PackageManager.FEATURE_LEANBACK
+                        ) ||
+                        context.packageManager.hasSystemFeature(
+                            android.content.pm.PackageManager.FEATURE_TELEVISION
+                        )
+                    if (isTelevision) {
+                        isFocusable = true
+                        isFocusableInTouchMode = false
+                        setOnFocusChangeListener { view, focused ->
+                            view.setBackgroundColor(
+                                if (focused) android.graphics.Color.rgb(35, 115, 190)
+                                else android.graphics.Color.rgb(31, 43, 60)
+                            )
+                        }
+                    }
                 }
                 inamhiButtons[layer] = toggle
                 mapButtons.addView(toggle, android.widget.LinearLayout.LayoutParams(-1, -2))

@@ -277,6 +277,12 @@ class MainActivityViewModel @Inject constructor(
         postUpdate(locationList)
     }
 
+    fun broadcastLauncherWeatherNow(context: Context) {
+        viewModelScope.launchIO {
+            refreshHelper.broadcastDataIfNecessary(context, sourceId = "gadgetbridge")
+        }
+    }
+
     private fun setCurrentLocation(location: Location?) {
         _currentLocation.value = location?.let {
             DayNightLocation(location = it)
@@ -553,8 +559,13 @@ class MainActivityViewModel @Inject constructor(
         context: Context,
         latitude: Double,
         longitude: Double,
+        customName: String? = null,
     ) {
-        val location = Location(latitude = latitude, longitude = longitude)
+        val location = Location(
+            latitude = latitude,
+            longitude = longitude,
+            customName = customName
+        )
         if (validLocationList.value.firstOrNull { it.isCloseTo(location) } != null) {
             SnackbarHelper.showSnackbar(context.getString(R.string.location_message_already_exists))
         } else {

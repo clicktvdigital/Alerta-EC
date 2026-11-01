@@ -87,6 +87,7 @@ import org.breezyweather.common.utils.helpers.LogHelper
 import org.breezyweather.common.utils.helpers.SnackbarHelper
 import org.breezyweather.databinding.ActivityMainBinding
 import org.breezyweather.ui.main.intro.AlertaEcIntroController
+import org.breezyweather.ui.main.intro.AlertaEcVideoIntro
 import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.sources.SourceManager
 import org.breezyweather.ui.common.composables.AlertDialogConfirmOnly
@@ -225,6 +226,29 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         }
     }
 
+    private var tvIntroPending = false
+
+    private fun playAlertaEcIntro() {
+        AlertaEcIntroController.play(
+            findViewById(R.id.alerta_ec_intro_layer),
+            findViewById(R.id.alerta_ec_intro_terrain),
+            findViewById(R.id.alerta_ec_intro_volcano),
+            findViewById(R.id.alerta_ec_intro_wildfire),
+            findViewById(R.id.alerta_ec_intro_water_hazard),
+            findViewById(R.id.alerta_ec_intro_landslide),
+            findViewById(R.id.alerta_ec_intro_storm),
+            findViewById(R.id.alerta_ec_intro_seismic_ring),
+            findViewById(R.id.alerta_ec_intro_flash),
+            findViewById(R.id.alerta_ec_intro_condor),
+            findViewById(R.id.alerta_ec_intro_logo),
+            findViewById(R.id.alerta_ec_intro_title),
+            findViewById(R.id.alerta_ec_intro_brand),
+            findViewById(R.id.alerta_ec_intro_skip),
+            findViewById(R.id.alerta_ec_intro_motion),
+            findViewById(R.id.alerta_ec_intro_sound)
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
             packageManager.hasSystemFeature("android.software.leanback") ||
@@ -235,6 +259,12 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         installSplashScreen()
 
         val isLaunch = savedInstanceState == null
+        tvIntroPending = isLaunch && (
+            (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                packageManager.hasSystemFeature("android.software.leanback") ||
+                packageManager.hasSystemFeature("android.hardware.type.television")
+            )
 
         super.onCreate(savedInstanceState)
 
@@ -246,26 +276,9 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentsLifecycleCallback, false)
         setContentView(binding.root)
 
-        if (isLaunch) {
-            AlertaEcIntroController.play(
-                findViewById(R.id.alerta_ec_intro_layer),
-                findViewById(R.id.alerta_ec_intro_terrain),
-                findViewById(R.id.alerta_ec_intro_volcano),
-                findViewById(R.id.alerta_ec_intro_wildfire),
-                findViewById(R.id.alerta_ec_intro_water_hazard),
-                findViewById(R.id.alerta_ec_intro_landslide),
-                findViewById(R.id.alerta_ec_intro_storm),
-                findViewById(R.id.alerta_ec_intro_seismic_ring),
-                findViewById(R.id.alerta_ec_intro_flash),
-                findViewById(R.id.alerta_ec_intro_condor),
-                findViewById(R.id.alerta_ec_intro_logo),
-                findViewById(R.id.alerta_ec_intro_title),
-                findViewById(R.id.alerta_ec_intro_brand),
-                findViewById(R.id.alerta_ec_intro_skip),
-                findViewById(R.id.alerta_ec_intro_motion),
-                findViewById(R.id.alerta_ec_intro_sound)
-            )
-        } else {
+        if (isLaunch && !tvIntroPending) {
+            playAlertaEcIntro()
+        } else if (!isLaunch) {
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE
         }
 
@@ -341,6 +354,10 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
 
     override fun onResume() {
         super.onResume()
+        if (tvIntroPending && hasWindowFocus()) {
+            tvIntroPending = false
+            playAlertaEcIntro()
+        }
         // Resume enabled forecasts after the notification permission is granted.
         if (hasNotificationPermission) {
             TodayForecastNotificationJob.setupTask(this, false, keepExisting = true)
@@ -349,8 +366,29 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     override fun onPause() {
+        val isTvDevice =
+            (resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                packageManager.hasSystemFeature("android.software.leanback") ||
+                packageManager.hasSystemFeature("android.hardware.type.television")
+
+        // Evitar reiniciar el video al regresar a la aplicacion.
+        if (isTvDevice && AlertaEcVideoIntro.isActive()) {
+            tvIntroPending = false
+        }
         AlertaEcIntroController.stop()
         super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && tvIntroPending &&
+            lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+        ) {
+            tvIntroPending = false
+            playAlertaEcIntro()
+        }
     }
 
     override fun onDestroy() {

@@ -26,6 +26,7 @@ import com.google.android.material.card.MaterialCardView
 import org.breezyweather.R
 import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.common.extensions.dpToPx
+import org.breezyweather.common.extensions.getThemeColor
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 
 @SuppressLint("ObjectAnimatorBinding")
@@ -57,6 +58,26 @@ abstract class AbstractMainCardViewHolder(
             context.resources.getDimensionPixelSize(R.dimen.small_margin)
         )
         itemView.layoutParams = params
+        // En Android TV, permitir navegar entre tarjetas con accion de clic.
+        if ((activity.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) {
+            itemView.post {
+                val card = itemView as? MaterialCardView ?: return@post
+                card.isFocusable = card.hasOnClickListeners()
+                if (card.isFocusable) {
+                    val regularWidth = card.strokeWidth
+                    val regularColor = card.strokeColor
+                    card.setOnFocusChangeListener { _, focused ->
+                        card.strokeWidth = if (focused) activity.dpToPx(3f).toInt().coerceAtLeast(1) else regularWidth
+                        card.strokeColor = if (focused) {
+                            activity.getThemeColor(com.google.android.material.R.attr.colorPrimary)
+                        } else {
+                            regularColor
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @CallSuper

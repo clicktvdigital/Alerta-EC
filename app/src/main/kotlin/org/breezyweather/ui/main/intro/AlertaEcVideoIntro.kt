@@ -34,6 +34,8 @@ internal object AlertaEcVideoIntro {
     private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
     private var activeVideo: VideoView? = null
+
+    fun isActive(): Boolean = activeVideo != null
     private var activeRoot: FrameLayout? = null
     private var pendingTimeout: Runnable? = null
     private var pendingAudioFallback: Runnable? = null
@@ -58,6 +60,15 @@ internal object AlertaEcVideoIntro {
         // Solo insertar VideoView en un contenedor compatible.
         val frame = root as? FrameLayout ?: return false
         val context = frame.context
+        val isTelevision =
+            (context.resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                context.packageManager.hasSystemFeature("android.software.leanback") ||
+                context.packageManager.hasSystemFeature("android.hardware.type.television")
+        val useTvVisuals = isTelevision ||
+            context.resources.configuration.smallestScreenWidthDp >= 600
+
         val preferences = context.getSharedPreferences("alerta_ec_intro", Context.MODE_PRIVATE)
         val animatorScale = Settings.Global.getFloat(
             context.contentResolver,
@@ -91,7 +102,7 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
-            if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION || context.resources.configuration.smallestScreenWidthDp >= 600) {
+            if (useTvVisuals) {
                 frame.setBackgroundResource(R.drawable.alertaec_tv_splash)
             } else {
                 frame.setBackgroundColor(BLACK)
@@ -203,9 +214,13 @@ internal object AlertaEcVideoIntro {
                 true
             }
             view.setVideoURI(
-                Uri.parse("android.resource://${context.packageName}/${if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION || context.resources.configuration.smallestScreenWidthDp >= 600) R.raw.alertaec_cinematic_intro_tv else R.raw.alertaec_cinematic_intro}")
+                Uri.parse("android.resource://${context.packageName}/${if (useTvVisuals) R.raw.alertaec_cinematic_intro_tv else R.raw.alertaec_cinematic_intro}")
             )
-            view.requestFocus()
+            if (isTelevision) {
+                skip.requestFocus()
+            } else {
+                view.requestFocus()
+            }
         } catch (_: RuntimeException) {
             stop()
         }
@@ -244,7 +259,44 @@ internal object AlertaEcVideoIntro {
             it.animate().cancel()
             it.alpha = 1f
             it.visibility = View.GONE
+            restoreTelevisionFocus(it)
         }
+    }
+
+    private fun restoreTelevisionFocus(frame: View) {
+        val activity = frame.context as? Activity ?: return
+        val television = (activity.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            activity.packageManager.hasSystemFeature("android.software.leanback") ||
+            activity.packageManager.hasSystemFeature("android.hardware.type.television")
+        if (!television) return
+
+        // Las tarjetas pueden terminar de cargarse despues del video.
+        // Reintentar brevemente sin bloquear la pantalla principal.
+        fun attemptFocus(remaining: Int) {
+            frame.post {
+                if (activity.isFinishing || activity.isDestroyed) return@post
+
+                if (activity.hasWindowFocus()) {
+                    for (areaId in listOf(R.id.fragment_drawer, R.id.fragment_home)) {
+                        val area = activity.findViewById<View>(areaId) ?: continue
+                        if (!area.isShown) continue
+                        val target = area.getFocusables(View.FOCUS_FORWARD).firstOrNull {
+                            it.isShown && it.isEnabled &&
+                                it.isFocusable && it.hasOnClickListeners()
+                        }
+                        if (target?.requestFocus() == true) return@post
+                    }
+                }
+
+                if (remaining > 1) {
+                    frame.postDelayed({ attemptFocus(remaining - 1) }, 250L)
+                }
+            }
+        }
+
+        attemptFocus(10)
     }
 
     private fun scheduleTimeout(timeout: Runnable, delayMs: Long) {
