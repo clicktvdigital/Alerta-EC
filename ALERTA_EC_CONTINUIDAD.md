@@ -7,19 +7,41 @@
 - Base técnica: fork de Breezy Weather
 - Licencia heredada: LGPL-3.0; conservar atribución correspondiente.
 - Repositorio: clicktvdigital/Alerta-EC
-- Rama de desarrollo: alerta-ec
+- Rama estable de desarrollo: alerta-ec
 - Ruta Termux: ~/breezy-weather
 - Application ID estable: com.clicktvdigital.alertaec
 - Application ID debug: com.clicktvdigital.alertaec.debug
 - Namespace heredado: org.breezyweather
 
-## Forma de trabajo
-El desarrollo se realiza principalmente desde Termux en Android.
-Dar UN SOLO COMANDO por turno y esperar el resultado antes de continuar.
-El shell es Fish: evitar sintaxis exclusiva de Bash y heredocs.
-No realizar clean builds salvo que sea estrictamente necesario.
-No cambiar configuraciones de memoria innecesariamente.
-No afirmar que una función está terminada hasta compilarla/probarla.
+## Ramas
+- alerta-ec: rama estable. Solo recibe cambios por Pull Request.
+- feature/<tarea>: una rama por cambio (por ejemplo feature/motor-consejos).
+- docs/<tema>: cambios de documentación.
+- test/alerta-ec-tv-panoramico: variante para Android TV. Pendiente decidir si se integra a alerta-ec.
+- limpieza-publica: pendiente de revisión.
+
+## Flujo de trabajo
+Participan dos entornos:
+- GitHub (con Claude conectado): lectura del código, ramas, cambios en archivos, Pull Requests y mantenimiento de este documento.
+- Termux en Android con Fish: sincronización, compilación, instalación, pruebas, uniones de Pull Requests, versiones y Releases.
+
+Ciclo por tarea:
+1. Definir la tarea y crear la rama feature/<tarea> desde alerta-ec.
+2. Hacer los cambios y abrir un Pull Request hacia alerta-ec.
+3. En Termux sincronizar la rama:
+   git fetch origin; and git switch feature/<tarea>; and git pull
+4. Compilar (ver sección Compilación).
+5. Probar en emulador o dispositivo (ver sección ADB).
+6. Unir el Pull Request cuando la prueba sea correcta.
+7. Para una versión: subir versionCode y versionName, compilar el APK firmado y publicar el Release.
+
+Reglas de trabajo:
+- Dar UN SOLO COMANDO por turno en Termux y esperar el resultado antes de continuar.
+- El shell es Fish: evitar sintaxis exclusiva de Bash y heredocs. Usar "; and" para encadenar.
+- No realizar clean builds salvo que sea estrictamente necesario.
+- No cambiar configuraciones de memoria innecesariamente.
+- No afirmar que una función está terminada hasta compilarla y probarla.
+- No ejecutar commit, push, merge, tags, publicaciones ni Releases sin autorización expresa.
 
 ## Entorno
 - Java 21
@@ -33,12 +55,12 @@ No afirmar que una función está terminada hasta compilarla/probarla.
 - La compatibilidad no debe decidirse únicamente por número de núcleos o año del teléfono.
 
 ## Versión propia
-Se inició migración desde la numeración heredada de Breezy:
-- versionCode: 100
-- versionName: 0.1.0
-Debug añade sufijo -r<commitCount>.
-Antes de distribución estable debe existir una clave Release permanente y protegida.
-No usar firma debug como canal definitivo de actualizaciones.
+- versionCode: 100 en el documento original (verificar en build.gradle.kts y gradle.properties).
+- versionName: 0.1.0 en el documento original (desactualizado).
+- Último Release publicado: v0.1.11 (6 de noviembre de 2026). Verificar qué versión corresponde al código actual antes de publicar.
+- Debug añade sufijo -r<commitCount>.
+- Antes de distribución estable debe existir una clave Release permanente y protegida.
+- No usar firma debug como canal definitivo de actualizaciones.
 
 ## Compilación
 Compilación Kotlin:
@@ -79,6 +101,12 @@ Obtainium debe poder detectar nuevas versiones publicadas.
 Android normalmente requiere confirmación del usuario para instalar APK externos; no prometer actualización silenciosa.
 Mantener versionCode siempre creciente.
 Mantener applicationId y firma Release permanentes.
+
+## Android TV
+Estado: instalada en Android TV, pero el control remoto no responde correctamente a las teclas.
+Pendiente: diagnosticar la causa (foco de la interfaz, eventos de teclado D-pad, actividad de inicio, o diferencias entre la versión TV y la versión móvil).
+Referencia: rama test/alerta-ec-tv-panoramico.
+No afirmar que está solucionado hasta probarlo con el control remoto real.
 
 ## Ubicación
 Implementado:
@@ -222,12 +250,19 @@ Nunca afirmar que un reporte ciudadano es una alerta oficial.
 No crear seguimiento secreto.
 
 ## Trabajo actual
-Se creó:
+Se creó localmente en Termux:
 app/src/main/kotlin/org/breezyweather/domain/weather/advice/
+
+Verificar: esta carpeta no aparece en la rama alerta-ec de GitHub. Puede existir solo en el teléfono y debe subirse en una rama feature/ antes de depender de ella.
 
 SIGUIENTE OBJETIVO:
 Crear el motor propio de recomendaciones de Alerta EC y conectarlo posteriormente a datos Hourly/Daily.
 Debe producir consejos para hoy, mañana y viajes sin sustituir los datos técnicos.
+
+Pendientes prioritarios:
+1. Diagnosticar el control remoto en Android TV.
+2. Verificar versión actual del código y alinear versionName/versionCode con el Release v0.1.11.
+3. Subir o descartar el trabajo local de la carpeta advice.
 
 ## Git — commits relevantes
 ca4b87c90 Add MapLibre map foundation
@@ -254,3 +289,4 @@ Antes de modificar el proyecto:
 8. Mantener atribución/licencia de Breezy.
 9. No inventar fuentes, APIs, alertas ni capacidades.
 10. Actualizar este documento cuando cambie significativamente el estado del proyecto.
+11. Trabajar en ramas feature/ o docs/ y abrir Pull Request hacia alerta-ec; no escribir directamente en alerta-ec.
