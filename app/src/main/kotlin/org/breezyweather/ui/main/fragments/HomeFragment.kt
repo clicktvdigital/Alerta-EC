@@ -284,7 +284,7 @@ class HomeFragment : MainModuleFragment() {
         }
         // Con mando: mantener más bloques en memoria y precargar los de abajo para que
         // no se traben al bajar con DPAD_DOWN.
-        binding.recyclerView.setItemViewCacheSize(12)
+        binding.recyclerView.setItemViewCacheSize(20)
         (binding.recyclerView.layoutManager as? GridLayoutManager)?.isItemPrefetchEnabled = true
         binding.recyclerView.doOnApplyWindowInsets { view, insets ->
             view.updatePadding(bottom = insets.bottom)
