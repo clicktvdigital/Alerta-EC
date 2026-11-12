@@ -7,8 +7,8 @@ Este archivo es el punto de entrada para cualquier sesión nueva, con Claude u o
 - Repositorio: `clicktvdigital/Alerta-EC`.
 - Rama de trabajo: `claude/clima-launcher-por-defecto`.
 - Versión: `0.1.12` (`versionCode` 112).
-- Último commit en la rama: `e491274` (intro: «Omitir» recibe el foco y la pantalla principal lo recupera).
-- Último build verde de compilación: run 28 (`43283198688`, commit `57df209`). Run 30 (`43286895270`, commit `e491274`) estaba en curso al escribir esto; comprobar su estado antes de instalar.
+- Último commit en la rama: `b7f4357` (botones de Compose navegables y la flecha arriba llega a la barra superior).
+- Último build instalado: run 37 (`43319124501`, commit `48da2e3`). Los commits posteriores (`41c11a0`, `b7f4357`) no tienen build verde todavía.
 
 ## Un solo APK para teléfono y TV box
 
@@ -51,3 +51,11 @@ Léase `AGENTS.md`: responder en español; no hacer commit, push, merge, tag ni 
 ## Repositorio del launcher
 
 El launcher de CLICK TV (`clicktvdigital/click-tv-launcher`, en otro directorio) tiene su propia documentación en `docs/ESTADO_PROYECTO.md`. Cada app se instala y se versiona por separado.
+
+## Pendiente antes del siguiente build
+
+- Intro: que «Omitir introducción» reciba el foco y OK lo active.
+- Acerca de y Configuración: que la flecha abajo recorra las opciones.
+- Mapa meteorológico: capas distinguibles y modo noche.
+- Satélite y rayos: confirmar con `logcat -d -s AlertaEC-Map:V` tras pulsar Reproducir.
+- Versión de Alerta EC: pendiente de subir a 0.1.12 en el build de prueba.
