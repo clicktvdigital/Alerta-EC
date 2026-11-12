@@ -4,5 +4,7 @@
     android:id="@+id/item_trend_daily"
     android:layout_width="wrap_content"
     android:layout_height="@dimen/daily_trend_item_height"
-    android:foreground="@drawable/selectable_item_background"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:foreground="@drawable/trend_item_foreground"
     tools:ignore="UnusedAttribute" />
