@@ -32,6 +32,9 @@ class FitTabletRecyclerView @JvmOverloads constructor(
     init {
         // Con mando de TV, cada fila del pronóstico debe poder recibir el foco para
         // que arriba y abajo se muevan entre filas. Al tener el foco se aclara un poco.
+        // Que el halo y las filas no se recorten en los bordes.
+        clipChildren = false
+        clipToPadding = false
         addOnChildAttachStateChangeListener(object : OnChildAttachStateChangeListener {
             override fun onChildViewAttachedToWindow(view: View) {
                 // Las filas con Compose (botones de mapa, reporte y evidencia) manejan su
@@ -40,15 +43,17 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 view.isFocusable = true
                 view.isFocusableInTouchMode = false
                 view.setOnFocusChangeListener { v, hasFocus ->
-                    // Al tener el foco: sombra, un poco más grande y totalmente visible.
-                    v.elevation = if (hasFocus) 40f else 0f
-                    // Borde claro visible sobre fondo oscuro, para ver la selección a distancia.
+                    // Halo neón cian alrededor de la tarjeta seleccionada, sin cambiar su tamaño.
                     v.foreground = if (hasFocus) {
+                        val density = v.resources.displayMetrics.density
                         android.graphics.drawable.GradientDrawable().apply {
                             shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                            cornerRadius = 16f * v.resources.displayMetrics.density
-                            setStroke((4 * v.resources.displayMetrics.density).toInt(), android.graphics.Color.WHITE)
+                            cornerRadius = 16f * density
+                            setStroke((5 * density).toInt(), android.graphics.Color.parseColor("#00E5FF"))
                         }
+                    } else null
+                    v.alpha = if (hasFocus) 1f else 0.9f
+                }
                     } else null
                     v.scaleX = if (hasFocus) 1.03f else 1f
                     v.scaleY = if (hasFocus) 1.03f else 1f
