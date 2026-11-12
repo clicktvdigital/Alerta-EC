@@ -23,6 +23,7 @@ import android.util.AttributeSet
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener
 import org.breezyweather.R
+import kotlin.math.abs
 
 class FitTabletRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -80,6 +81,12 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 else -> null
             }
             val focused = findFocus()
+            // Arriba/abajo: siempre la fila que queda justo debajo o encima en pantalla (no el bloque
+            // de al lado en la cuadrícula), desplazando la lista para cargar los bloques siguientes.
+            if ((direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) && focused != null && focused !== this) {
+                focusVertically(direction == View.FOCUS_DOWN)
+                return true
+            }
             if (direction != null && focused === this) {
                 // La lista tiene el foco sin una fila seleccionada: entra a la primera o última fila visible.
                 (if (direction == View.FOCUS_UP) visibleRows().lastOrNull() else visibleRows().firstOrNull())
@@ -103,6 +110,45 @@ class FitTabletRecyclerView @JvmOverloads constructor(
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    /** Fila (hijo directo de esta lista) que contiene la vista enfocada. */
+    private fun rowOf(view: View): View? {
+        var current: View = view
+        while (true) {
+            val parent = current.parent
+            if (parent === this) return current
+            if (parent !is View) return null
+            current = parent
+        }
+    }
+
+    /**
+     * Mueve el foco a la fila visible inmediatamente debajo (down) o encima (!down) de la fila actual.
+     * Si no hay ninguna visible en esa dirección, desplaza la lista un tramo y vuelve a intentar.
+     */
+    private fun focusVertically(down: Boolean, attempt: Int = 0) {
+        val focused = findFocus() ?: return
+        val row = rowOf(focused) ?: return
+        val target = (0 until childCount)
+            .map { getChildAt(it) }
+            .filter { it !== row && it.isFocusable && it.isShown }
+            .filter { if (down) it.top >= row.bottom - 2 else it.bottom <= row.top + 2 }
+            .minWithOrNull(
+                compareBy<View>(
+                    { if (down) it.top else -it.bottom },
+                    { abs(it.left - row.left) },
+                )
+            )
+        if (target != null) {
+            target.requestFocus()
+            return
+        }
+        val direction = if (down) 1 else -1
+        if (attempt < 20 && canScrollVertically(direction)) {
+            smoothScrollBy(0, direction * height * 2 / 3)
+            postDelayed({ focusVertically(down, attempt + 1) }, 250L)
+        }
     }
 
     /** Filas enfocables que se ven ahora mismo, en orden de arriba a abajo. */
