@@ -75,14 +75,6 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
                     }
                 } else {
                     retryAfterFailure = true
-                    val now = java.time.Instant.now()
-                    val validFrames = frames.filter { frame ->
-                        val age = java.time.Duration.between(frame.observedAt, now)
-                        !age.isNegative && age.toMinutes() < 360
-                    }
-                    if (validFrames.size != frames.size) {
-                        setFrames(validFrames)
-                    }
                     timeLabel.text = if (frames.isNotEmpty()) {
                         "No se pudo actualizar NOAA. Se conservan las imágenes anteriores."
                     } else if (result.isFailure) {

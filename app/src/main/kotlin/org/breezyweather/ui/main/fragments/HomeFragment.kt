@@ -125,6 +125,13 @@ class HomeFragment : MainModuleFragment() {
     override fun onResume() {
         super.onResume()
         weatherView.setDrawable(!isHidden)
+        // Al volver de otra pantalla (p. ej. satélite) el foco puede haberse perdido: se devuelve
+        // a la primera fila visible para que la flecha abajo siga en la lista.
+        view?.post {
+            if (::binding.isInitialized && binding.recyclerView.findFocus() == null) {
+                binding.recyclerView.focusFirstVisibleRow()
+            }
+        }
     }
 
     override fun onPause() {

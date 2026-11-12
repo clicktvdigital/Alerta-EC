@@ -80,6 +80,12 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 else -> null
             }
             val focused = findFocus()
+            if (direction != null && focused === this) {
+                // La lista tiene el foco sin una fila seleccionada: entra a la primera o última fila visible.
+                (if (direction == View.FOCUS_UP) visibleRows().lastOrNull() else visibleRows().firstOrNull())
+                    ?.requestFocus(direction)
+                return true
+            }
             if (direction != null && focused != null) {
                 val next = focused.focusSearch(direction)
                 if (next != null && next !== focused && isAncestorOf(next)) {
@@ -98,6 +104,14 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         }
         return super.dispatchKeyEvent(event)
     }
+
+    /** Filas enfocables que se ven ahora mismo, en orden de arriba a abajo. */
+    private fun visibleRows(): List<View> = (0 until childCount)
+        .map { getChildAt(it) }
+        .filter { it.isFocusable && it.isShown && it.bottom > 0 && it.top < height }
+
+    /** Lleva el foco a la primera fila visible; útil al volver a la pantalla principal. */
+    fun focusFirstVisibleRow(): Boolean = visibleRows().firstOrNull()?.requestFocus() == true
 
     private fun isAncestorOf(view: View): Boolean {
         var parent = view.parent

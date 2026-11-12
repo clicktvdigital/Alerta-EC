@@ -44,8 +44,9 @@ internal object NoaaImageLoader {
                     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                     if (options.outWidth <= 0 || options.outHeight <= 0) return@withLock null
+                    // Máximo 1280x720: suficiente para el TV y mucho más liviano en memoria.
                     val sample = generateSequence(1) { it * 2 }
-                        .first { options.outWidth / it <= 2048 && options.outHeight / it <= 2048 }
+                        .first { options.outWidth / it <= 1280 && options.outHeight / it <= 720 }
                     options.inJustDecodeBounds = false
                     options.inSampleSize = sample
                     options.inPreferredConfig = Bitmap.Config.RGB_565

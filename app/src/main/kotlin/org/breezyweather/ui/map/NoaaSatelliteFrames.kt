@@ -51,9 +51,10 @@ internal object NoaaSatelliteFrames {
                     NoaaSatelliteFrame(observedAt, base + match.value)
                 }.getOrNull()
             }.distinctBy { it.observedAt }
-                .filter { frame ->
-                    val age = java.time.Duration.between(frame.observedAt, now)
-                    !age.isNegative && age.toMinutes() < 360
+                .toList()
+                // Sin filtro de antigüedad: se muestran las más recientes que publique NOAA.
+                .also { list ->
+                    android.util.Log.i("AlertaEC-Map", "NOAA frames=${list.size} newest=${list.maxOfOrNull { it.observedAt }} now=$now")
                 }
                 .sortedBy { it.observedAt }
                 .toList()
