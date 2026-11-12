@@ -41,6 +41,8 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 // Las filas con Compose también deben poder recibir el foco; si no, el mando
                 // se queda atascado en la fila anterior. Su holder pasa el foco al primer botón
                 // con su propio listener, así que no se le reemplaza aquí.
+                // El encabezado de temperatura es solo informativo: no debe recibir el foco.
+                if (view.id == R.id.container_main_header) return
                 if (view is androidx.compose.ui.platform.AbstractComposeView) {
                     view.isFocusable = true
                     view.isFocusableInTouchMode = true
@@ -66,10 +68,10 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         })
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         // Con mando de TV: arriba/abajo mueven el foco entre filas y, si no hay más filas
         // en esa dirección, desplazan la lista. Izquierda/derecha mueven el foco de lado.
-        if (event.action == KeyEvent.ACTION_DOWN) {
+        if (event != null && event.action == KeyEvent.ACTION_DOWN) {
             val direction = when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> View.FOCUS_UP
                 KeyEvent.KEYCODE_DPAD_DOWN -> View.FOCUS_DOWN
