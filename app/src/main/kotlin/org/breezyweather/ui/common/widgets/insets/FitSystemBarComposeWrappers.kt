@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
@@ -98,7 +99,7 @@ fun FitStatusBarTopAppBar(
     title = { Text(text = title) },
     modifier = modifier,
     navigationIcon = {
-        IconButton(onClick = onBackPressed) {
+        IconButton(onClick = onBackPressed, modifier = Modifier.focusProperties { canFocus = false }) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.action_back),
@@ -122,7 +123,7 @@ fun BWCenterAlignedTopAppBar(
     modifier = modifier,
     navigationIcon = onBackPressed?.let {
         {
-            IconButton(onClick = onBackPressed) {
+            IconButton(onClick = onBackPressed, modifier = Modifier.focusProperties { canFocus = false }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.action_back),
