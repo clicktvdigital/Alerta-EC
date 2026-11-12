@@ -90,8 +90,10 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                     val step = resources.displayMetrics.density * 160 *
                         (if (direction == View.FOCUS_DOWN) 1 else -1)
                     smoothScrollBy(0, step.toInt())
-                    return true
                 }
+                // La tecla siempre se consume aquí: el foco no debe salir de la lista
+                // hacia otro panel (por ejemplo "Lugares" a la izquierda).
+                return true
             }
         }
         return super.dispatchKeyEvent(event)
