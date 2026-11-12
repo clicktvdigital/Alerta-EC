@@ -34,6 +34,7 @@ internal object NoaaSatelliteFrames {
         connection.setRequestProperty("User-Agent", "AlertaEC/0.1 (GOES NOAA satellite viewer)")
         try {
             val html = connection.inputStream.bufferedReader().use { it.readText() }
+            android.util.Log.i("AlertaEC-Map", "NOAA $base bytes=${html.length} code=${connection.responseCode}")
             val now = Instant.now()
             imageName.findAll(html).mapNotNull { match ->
                 runCatching {
@@ -57,6 +58,9 @@ internal object NoaaSatelliteFrames {
                 .sortedBy { it.observedAt }
                 .toList()
                 .takeLast(limit)
+        } catch (e: Exception) {
+            android.util.Log.e("AlertaEC-Map", "NOAA fallo $base", e)
+            emptyList()
         } finally {
             connection.disconnect()
         }
