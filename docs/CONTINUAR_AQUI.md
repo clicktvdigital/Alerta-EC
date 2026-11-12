@@ -1,3 +1,5 @@
+> **Para retomar esta sesión, lee primero [docs/RETOMAR_SESION.md](docs/RETOMAR_SESION.md).**
+
 ## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
 
 Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
