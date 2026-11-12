@@ -54,11 +54,6 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                     } else null
                     v.alpha = if (hasFocus) 1f else 0.9f
                 }
-                    } else null
-                    v.scaleX = if (hasFocus) 1.03f else 1f
-                    v.scaleY = if (hasFocus) 1.03f else 1f
-                    v.alpha = if (hasFocus) 1f else 0.9f
-                }
             }
 
             override fun onChildViewDetachedFromWindow(view: View) {}
