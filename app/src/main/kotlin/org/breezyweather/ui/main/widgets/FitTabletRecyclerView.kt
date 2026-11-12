@@ -37,9 +37,13 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         clipToPadding = false
         addOnChildAttachStateChangeListener(object : OnChildAttachStateChangeListener {
             override fun onChildViewAttachedToWindow(view: View) {
-                // Las filas con Compose (botones de mapa, reporte y evidencia) manejan su
-                // propio foco; marcarlas como enfocables les quitaba el OK.
-                if (containsCompose(view)) return
+                // Las filas con Compose también deben poder recibir el foco; si no, el mando
+                // se queda atascado en la fila anterior. Su holder pasa el foco al primer botón
+                // con su propio listener, así que no se le reemplaza aquí.
+                if (view is androidx.compose.ui.platform.AbstractComposeView) {
+                    view.isFocusable = true
+                    return
+                }
                 view.isFocusable = true
                 view.isFocusableInTouchMode = false
                 view.setOnFocusChangeListener { v, hasFocus ->
@@ -68,6 +72,3 @@ class FitTabletRecyclerView @JvmOverloads constructor(
     }
 }
 
-private fun containsCompose(view: View): Boolean =
-    view is androidx.compose.ui.platform.AbstractComposeView ||
-        (view is android.view.ViewGroup && (0 until view.childCount).any { containsCompose(view.getChildAt(it)) })
