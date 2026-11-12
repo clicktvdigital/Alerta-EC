@@ -81,6 +81,14 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 else -> null
             }
             val focused = findFocus()
+            // Filas con Compose (botones de reseña, reporte, colaborar): primero Compose gestiona la tecla
+            // para moverse entre sus botones; solo si no puede, decide la lista.
+            val current = findFocus()
+            if (current != null && rowOf(current) is androidx.compose.ui.platform.AbstractComposeView &&
+                super.dispatchKeyEvent(event)
+            ) {
+                return true
+            }
             // Arriba/abajo: siempre la fila que queda justo debajo o encima en pantalla (no el bloque
             // de al lado en la cuadrícula), desplazando la lista para cargar los bloques siguientes.
             if ((direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) && focused != null && focused !== this) {
@@ -148,6 +156,9 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         if (attempt < 20 && canScrollVertically(direction)) {
             smoothScrollBy(0, direction * height * 2 / 3)
             postDelayed({ focusVertically(down, attempt + 1) }, 250L)
+        } else if (!down) {
+            // Arriba del todo: la flecha arriba pasa a la barra superior (lista de ubicaciones, editar, etc.).
+            row.focusSearch(View.FOCUS_UP)?.requestFocus()
         }
     }
 
