@@ -17,6 +17,7 @@
 package org.breezyweather.ui.main.widgets
 
 import android.content.Context
+import android.view.KeyEvent
 import android.view.View
 import android.util.AttributeSet
 import androidx.recyclerview.widget.RecyclerView
@@ -42,10 +43,11 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 // con su propio listener, así que no se le reemplaza aquí.
                 if (view is androidx.compose.ui.platform.AbstractComposeView) {
                     view.isFocusable = true
+                    view.isFocusableInTouchMode = true
                     return
                 }
                 view.isFocusable = true
-                view.isFocusableInTouchMode = false
+                view.isFocusableInTouchMode = true
                 view.setOnFocusChangeListener { v, hasFocus ->
                     // Halo neón cian alrededor de la tarjeta seleccionada, sin cambiar su tamaño.
                     v.foreground = if (hasFocus) {
@@ -62,6 +64,44 @@ class FitTabletRecyclerView @JvmOverloads constructor(
 
             override fun onChildViewDetachedFromWindow(view: View) {}
         })
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Con mando de TV: arriba/abajo mueven el foco entre filas y, si no hay más filas
+        // en esa dirección, desplazan la lista. Izquierda/derecha mueven el foco de lado.
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val direction = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> View.FOCUS_UP
+                KeyEvent.KEYCODE_DPAD_DOWN -> View.FOCUS_DOWN
+                KeyEvent.KEYCODE_DPAD_LEFT -> View.FOCUS_LEFT
+                KeyEvent.KEYCODE_DPAD_RIGHT -> View.FOCUS_RIGHT
+                else -> null
+            }
+            val focused = findFocus()
+            if (direction != null && focused != null) {
+                val next = focused.focusSearch(direction)
+                if (next != null && next !== focused && isAncestorOf(next)) {
+                    next.requestFocus(direction)
+                    return true
+                }
+                if (direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) {
+                    val step = resources.displayMetrics.density * 160 *
+                        (if (direction == View.FOCUS_DOWN) 1 else -1)
+                    smoothScrollBy(0, step.toInt())
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun isAncestorOf(view: View): Boolean {
+        var parent = view.parent
+        while (parent != null) {
+            if (parent === this) return true
+            parent = parent.parent
+        }
+        return false
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

@@ -240,6 +240,26 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentsLifecycleCallback, false)
         setContentView(binding.root)
 
+        // Atrás (control remoto o gesto) cierra primero lo que esté abierto y solo después sale.
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val introLayer = findViewById<android.view.View>(R.id.alerta_ec_intro_layer)
+                when {
+                    introLayer.visibility == android.view.View.VISIBLE -> AlertaEcIntroController.stop()
+                    _dialogPerLocationSettingsOpen.value -> _dialogPerLocationSettingsOpen.value = false
+                    viewModel.dialogRefreshErrorDetails.value ->
+                        viewModel.setRefreshErrorDetailsDialogVisible(false)
+                    else -> {
+                        // Sin nada abierto: pasar el evento al resto de callbacks (p. ej. la pila de fragmentos)
+                        // y, si no hay ninguno, al comportamiento normal de salir.
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
+
         if (isLaunch) {
             AlertaEcIntroController.play(
                 findViewById(R.id.alerta_ec_intro_layer),
