@@ -41,7 +41,15 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 view.isFocusableInTouchMode = false
                 view.setOnFocusChangeListener { v, hasFocus ->
                     // Al tener el foco: sombra, un poco más grande y totalmente visible.
-                    v.elevation = if (hasFocus) 24f else 0f
+                    v.elevation = if (hasFocus) 40f else 0f
+                    // Borde claro visible sobre fondo oscuro, para ver la selección a distancia.
+                    v.foreground = if (hasFocus) {
+                        android.graphics.drawable.GradientDrawable().apply {
+                            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                            cornerRadius = 16f * v.resources.displayMetrics.density
+                            setStroke((4 * v.resources.displayMetrics.density).toInt(), android.graphics.Color.WHITE)
+                        }
+                    } else null
                     v.scaleX = if (hasFocus) 1.03f else 1f
                     v.scaleY = if (hasFocus) 1.03f else 1f
                     v.alpha = if (hasFocus) 1f else 0.9f
