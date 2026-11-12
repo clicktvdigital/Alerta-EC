@@ -201,7 +201,8 @@ internal object AlertaEcVideoIntro {
             view.setVideoURI(
                 Uri.parse("android.resource://${context.packageName}/${R.raw.alertaec_cinematic_intro}")
             )
-            view.requestFocus()
+            // El foco va a "Omitir", no al video: así OK funciona con el primer pulso.
+            skip.requestFocus()
         } catch (_: RuntimeException) {
             stop()
         }
@@ -240,6 +241,12 @@ internal object AlertaEcVideoIntro {
             it.animate().cancel()
             it.alpha = 1f
             it.visibility = View.GONE
+        }
+        // Devolver el foco a la pantalla principal; si la capa oculta lo conserva, el mando no responde.
+        root?.let { hidden ->
+            (hidden.parent as? View)?.post {
+                (hidden.parent as? View)?.requestFocus(View.FOCUS_DOWN)
+            }
         }
     }
 
