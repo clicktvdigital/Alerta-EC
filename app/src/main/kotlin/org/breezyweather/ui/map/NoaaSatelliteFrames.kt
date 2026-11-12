@@ -29,7 +29,7 @@ internal object NoaaSatelliteFrames {
     ): List<NoaaSatelliteFrame> = withContext(Dispatchers.IO) {
         val base = NOAA_CDN + directory.trim('/') + "/"
         val connection = URL(base).openConnection() as HttpURLConnection
-        connection.connectTimeout = 10000
+        connection.connectTimeout = 20000
         connection.readTimeout = 20000
         connection.setRequestProperty("User-Agent", "AlertaEC/0.1 (GOES NOAA satellite viewer)")
         try {
