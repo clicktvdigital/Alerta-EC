@@ -39,7 +39,13 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 if (containsCompose(view)) return
                 view.isFocusable = true
                 view.isFocusableInTouchMode = false
-                view.setOnFocusChangeListener { v, hasFocus -> v.alpha = if (hasFocus) 1f else 0.85f }
+                view.setOnFocusChangeListener { v, hasFocus ->
+                    // Al tener el foco: sombra, un poco más grande y totalmente visible.
+                    v.elevation = if (hasFocus) 24f else 0f
+                    v.scaleX = if (hasFocus) 1.03f else 1f
+                    v.scaleY = if (hasFocus) 1.03f else 1f
+                    v.alpha = if (hasFocus) 1f else 0.9f
+                }
             }
 
             override fun onChildViewDetachedFromWindow(view: View) {}
