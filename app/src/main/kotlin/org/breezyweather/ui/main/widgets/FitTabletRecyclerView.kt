@@ -17,8 +17,10 @@
 package org.breezyweather.ui.main.widgets
 
 import android.content.Context
+import android.view.View
 import android.util.AttributeSet
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener
 import org.breezyweather.R
 
 class FitTabletRecyclerView @JvmOverloads constructor(
@@ -26,6 +28,20 @@ class FitTabletRecyclerView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : RecyclerView(context, attrs, defStyleAttr) {
+
+    init {
+        // Con mando de TV, cada fila del pronóstico debe poder recibir el foco para
+        // que arriba y abajo se muevan entre filas. Al tener el foco se aclara un poco.
+        addOnChildAttachStateChangeListener(object : OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                view.isFocusable = true
+                view.isFocusableInTouchMode = false
+                view.setOnFocusChangeListener { v, hasFocus -> v.alpha = if (hasFocus) 1f else 0.85f }
+            }
+
+            override fun onChildViewDetachedFromWindow(view: View) {}
+        })
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
