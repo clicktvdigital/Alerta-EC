@@ -242,12 +242,6 @@ internal object AlertaEcVideoIntro {
             it.alpha = 1f
             it.visibility = View.GONE
         }
-        // Devolver el foco a la pantalla principal; si la capa oculta lo conserva, el mando no responde.
-        root?.let { hidden ->
-            (hidden.parent as? View)?.post {
-                (hidden.parent as? View)?.requestFocus(View.FOCUS_DOWN)
-            }
-        }
     }
 
     private fun scheduleTimeout(timeout: Runnable, delayMs: Long) {
