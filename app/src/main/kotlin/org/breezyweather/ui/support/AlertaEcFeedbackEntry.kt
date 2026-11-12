@@ -15,13 +15,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import org.breezyweather.ui.map.MapActivity
 
 /** Entradas de Home sin campos editables dentro del RecyclerView. */
 @Composable
-fun AlertaEcFeedbackEntry(context: Context) {
+fun AlertaEcFeedbackEntry(context: Context, firstFocus: FocusRequester? = null) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -34,7 +36,7 @@ fun AlertaEcFeedbackEntry(context: Context) {
                 Text("Las capas se consultan por separado; activadas no significa que haya datos recientes.",
                     style = MaterialTheme.typography.bodySmall)
                 Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
-                    modifier = Modifier.fillMaxWidth()) { Text("Abrir mapa meteorológico") }
+                    modifier = Modifier.fillMaxWidth().then(if (firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier)) { Text("Abrir mapa meteorológico") }
             }
         }
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {

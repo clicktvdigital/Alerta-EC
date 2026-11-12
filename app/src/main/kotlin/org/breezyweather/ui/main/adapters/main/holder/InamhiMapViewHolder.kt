@@ -98,6 +98,16 @@ private fun shareReport(context: Context, kind: String, message: String, gps: Bo
 }
 
 class InamhiMapViewHolder(private val composeView: ComposeView) : AbstractMainViewHolder(composeView) {
+    private val firstFocus = androidx.compose.ui.focus.FocusRequester()
+
+    init {
+        // Con mando de TV: al llegar el foco a este bloque, pasa al primer botón de Compose,
+        // para que OK lo abra y las flechas recorran los demás.
+        composeView.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) composeView.post { runCatching { firstFocus.requestFocus() } }
+        }
+    }
+
     override fun onBindView(
         context: Context,
         location: Location,
@@ -108,7 +118,7 @@ class InamhiMapViewHolder(private val composeView: ComposeView) : AbstractMainVi
         super.onBindView(context, location, provider, listAnimationEnabled, itemAnimationEnabled)
         composeView.setContent {
             BreezyWeatherTheme(!ThemeManager.isLightTheme(context, location)) {
-                org.breezyweather.ui.support.AlertaEcFeedbackEntry(context)
+                org.breezyweather.ui.support.AlertaEcFeedbackEntry(context, firstFocus)
             }
         }
     }
