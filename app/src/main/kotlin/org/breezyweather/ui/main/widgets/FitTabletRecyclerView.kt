@@ -34,6 +34,9 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         // que arriba y abajo se muevan entre filas. Al tener el foco se aclara un poco.
         addOnChildAttachStateChangeListener(object : OnChildAttachStateChangeListener {
             override fun onChildViewAttachedToWindow(view: View) {
+                // Las filas con Compose (botones de mapa, reporte y evidencia) manejan su
+                // propio foco; marcarlas como enfocables les quitaba el OK.
+                if (containsCompose(view)) return
                 view.isFocusable = true
                 view.isFocusableInTouchMode = false
                 view.setOnFocusChangeListener { v, hasFocus -> v.alpha = if (hasFocus) 1f else 0.85f }
@@ -50,3 +53,7 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         setPadding(paddingHorizontal, paddingTop, paddingHorizontal, paddingBottom)
     }
 }
+
+private fun containsCompose(view: View): Boolean =
+    view is androidx.compose.ui.platform.AbstractComposeView ||
+        (view is android.view.ViewGroup && (0 until view.childCount).any { containsCompose(view.getChildAt(it)) })
