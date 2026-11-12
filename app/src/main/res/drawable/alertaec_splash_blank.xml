@@ -2,5 +2,5 @@
 <!-- Icono de la pantalla de inicio: del mismo color que el fondo, para que no se vea nada
      antes del video de la intro. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/ic_launcher_background" />
+    <solid android:color="@color/colorSplashScreen" />
 </shape>
