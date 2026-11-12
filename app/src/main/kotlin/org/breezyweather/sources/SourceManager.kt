@@ -394,7 +394,7 @@ class SourceManager @Inject constructor(
 
     fun isBroadcastSourcesEnabled(context: Context): Boolean {
         return getBroadcastSources().any {
-            (SourceConfigStore(context, it.id).getString("packages", null) ?: "").isNotEmpty()
+            (SourceConfigStore(context, it.id).getString("packages", null) ?: SourceConfigStore.defaultPackages(it.id)).isNotEmpty()
         }
     }
 
