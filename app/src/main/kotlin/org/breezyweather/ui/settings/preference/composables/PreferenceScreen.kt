@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusGroup
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -30,8 +32,13 @@ fun PreferenceScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     content: LazyListScope.() -> Unit,
 ) {
+    // Con mando de TV: el foco se queda dentro de la lista y, al salir de la
+    // pantalla visible, vuelve al último elemento enfocado en lugar de perderse.
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .focusRestorer()
+            .focusGroup(),
         contentPadding = paddingValues,
         content = content
     )
