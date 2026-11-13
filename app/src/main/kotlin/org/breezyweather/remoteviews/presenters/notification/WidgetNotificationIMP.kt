@@ -244,7 +244,9 @@ object WidgetNotificationIMP : AbstractRemoteViewsPresenter() {
         }
 
         val windUvParts = mutableListOf<String>()
-        NotificationWeatherText.nonBlank(weather.current?.wind?.getShortDescription(context))?.let {
+        NotificationWeatherText.nonBlank(
+            weather.current?.wind?.getShortDescription(context)?.let { NotificationWeatherText.wholeNumbers(it) }
+        )?.let {
             windUvParts.add(context.getString(R.string.wind) + ": " + it)
         }
         weather.current?.uV?.takeIf { NotificationWeatherText.validUv(it.index) }

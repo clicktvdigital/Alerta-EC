@@ -178,7 +178,7 @@ object AlertaEcNotifier {
                 add("Sensación térmica: ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}")
             }
             event.windSpeedKmh?.let { add(String.format("viento %.0f km/h", it)) }
-            event.windSpeedKmh?.let { add(String.format("%.1f m/s", it / 3.6)) }
+            event.windSpeedKmh?.let { add(String.format("%.0f m/s", it / 3.6)) }
             event.windGustKmh?.let { add(String.format("ráfagas %.0f km/h", it)) }
             event.windDirectionDegrees?.let { add("viento desde ${windDirection(it)} ($it°)") }
             event.humidityPercent?.let { add("humedad $it%") }
