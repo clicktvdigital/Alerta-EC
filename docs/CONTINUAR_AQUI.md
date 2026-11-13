@@ -414,7 +414,7 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Existen archivos de intro y pantallas de alertas; falta probar su funcionamiento completo.
 
 ### Firma, respaldo y distribucion
-- Paquete Debug: com.clicktvdigital.alertaec.debug.
+- Paquete Debug: com.clicktvdigital.alertaec (igual que release; ya no existe app debug separada).
 - Paquete Release: com.clicktvdigital.alertaec.
 - GitHub Actions tiene secretos de JKS Base64, contrasena de almacen y contrasena de clave.
 - Existe workflow local .github/workflows/alerta-ec-release.yml aun sin validacion final.

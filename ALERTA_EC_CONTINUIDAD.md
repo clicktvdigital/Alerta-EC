@@ -10,7 +10,7 @@
 - Rama de desarrollo: alerta-ec
 - Ruta Termux: ~/breezy-weather
 - Application ID estable: com.clicktvdigital.alertaec
-- Application ID debug: com.clicktvdigital.alertaec.debug
+- Application ID debug: com.clicktvdigital.alertaec (mismo que release; una sola app firmada con la misma clave)
 - Namespace heredado: org.breezyweather
 
 ## Forma de trabajo

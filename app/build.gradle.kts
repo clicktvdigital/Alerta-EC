@@ -76,7 +76,9 @@ configure<ApplicationExtension> {
 
     buildTypes {
         named("debug") {
-            applicationIdSuffix = ".debug"
+            // Sin sufijo de applicationId: no se instala como app separada.
+            // Este tipo solo se usa para compilación y pruebas en CI; la app
+            // que se entrega al usuario es release.
             versionNameSuffix = "-r${getCommitCount()}"
         }
         named("release") {
