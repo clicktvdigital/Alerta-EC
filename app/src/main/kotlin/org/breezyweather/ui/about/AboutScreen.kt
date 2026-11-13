@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +62,7 @@ import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
 import org.breezyweather.background.updater.interactor.GetApplicationRelease
+import org.breezyweather.background.updater.model.Release
 import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.plus
 import org.breezyweather.common.extensions.withIOContext
@@ -103,6 +105,11 @@ internal fun AboutScreen(
     val uriHandler = LocalUriHandler.current
     val linkToOpen = rememberSaveable { mutableStateOf("") }
     val dialogLinkOpenState = rememberSaveable { mutableStateOf(false) }
+
+    // Actualización encontrada en GitHub, pendiente de confirmar por el usuario.
+    val pendingUpdate = remember { mutableStateOf<Release?>(null) }
+    val isInstallingUpdate = remember { mutableStateOf(false) }
+    val updateProgress = remember { mutableStateOf(0) }
 
     val showCredits = rememberSaveable { mutableStateOf(false) }
     val locale = context.currentLocale
@@ -235,14 +242,7 @@ internal fun AboutScreen(
                                                     }
                                                 ) {
                                                     is GetApplicationRelease.Result.NewUpdate -> {
-                                                        SnackbarHelper.showSnackbar(
-                                                            context.getString(
-                                                                R.string.notification_app_update_available
-                                                            ),
-                                                            context.getString(R.string.action_download)
-                                                        ) {
-                                                            uriHandler.openUri(result.release.releaseLink)
-                                                        }
+                                                        pendingUpdate.value = result.release
                                                     }
 
                                                     is GetApplicationRelease.Result.NoNewUpdate -> {
@@ -418,6 +418,75 @@ internal fun AboutScreen(
             AlertDialogLink(
                 onClose = { dialogLinkOpenState.value = false },
                 linkToOpen = linkToOpen.value
+            )
+        }
+
+        pendingUpdate.value?.let { release ->
+            AlertDialog(
+                onDismissRequest = {
+                    if (!isInstallingUpdate.value) pendingUpdate.value = null
+                },
+                title = {
+                    Text(stringResource(R.string.notification_app_update_available))
+                },
+                text = {
+                    Text(
+                        if (isInstallingUpdate.value) {
+                            stringResource(R.string.about_update_downloading, updateProgress.value)
+                        } else {
+                            release.version
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isInstallingUpdate.value,
+                        onClick = {
+                            val url = aboutViewModel.getApkUrl(release)
+                            if (url == null) {
+                                SnackbarHelper.showSnackbar(context.getString(R.string.about_update_error))
+                                pendingUpdate.value = null
+                                return@TextButton
+                            }
+                            scope.launch {
+                                isInstallingUpdate.value = true
+                                updateProgress.value = 0
+                                try {
+                                    val apk = withIOContext {
+                                        aboutViewModel.downloadUpdate(context, url) { updateProgress.value = it }
+                                    }
+                                    withUIContext {
+                                        if (aboutViewModel.canInstallUpdates(context)) {
+                                            context.startActivity(aboutViewModel.installIntent(context, apk))
+                                        } else {
+                                            SnackbarHelper.showSnackbar(
+                                                context.getString(R.string.about_update_allow_install)
+                                            )
+                                            context.startActivity(aboutViewModel.unknownSourcesSettingsIntent(context))
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    SnackbarHelper.showSnackbar(
+                                        e.message ?: context.getString(R.string.about_update_error)
+                                    )
+                                } finally {
+                                    isInstallingUpdate.value = false
+                                    pendingUpdate.value = null
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.about_update_install))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        enabled = !isInstallingUpdate.value,
+                        onClick = { pendingUpdate.value = null }
+                    ) {
+                        Text(stringResource(R.string.action_close))
+                    }
+                }
             )
         }
     }

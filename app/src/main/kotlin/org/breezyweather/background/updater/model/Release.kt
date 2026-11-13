@@ -40,18 +40,15 @@ data class Release(
      * Get download link of latest release from the assets.
      * @return download link of latest release.
      */
-    fun getDownloadLink(): String {
-        val apkVariant = when (Build.SUPPORTED_ABIS[0]) {
-            "arm64-v8a" -> "-arm64-v8a"
-            "armeabi-v7a" -> "-armeabi-v7a"
-            "x86" -> "-x86"
-            "x86_64" -> "-x86_64"
-            else -> ""
+    fun getDownloadLink(): String? {
+        // Solo APK: el release también incluye un .sha256 que no debe instalarse.
+        val apks = assets.filter {
+            it.endsWith(".apk", ignoreCase = true) &&
+                it.startsWith(BuildConfig.GITHUB_RELEASE_PREFIX) &&
+                !it.contains("freenet", ignoreCase = true)
         }
-
-        return assets.find {
-            it.startsWith("${BuildConfig.GITHUB_RELEASE_PREFIX}$apkVariant-") && !it.contains("freenet")
-        } ?: assets[0] // FIXME
+        val abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty()
+        return apks.firstOrNull { abi.isNotEmpty() && it.contains(abi) } ?: apks.firstOrNull()
     }
 
     /**

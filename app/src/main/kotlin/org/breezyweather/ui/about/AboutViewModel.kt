@@ -18,18 +18,42 @@ package org.breezyweather.ui.about
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.breezyweather.R
 import org.breezyweather.background.updater.AppUpdateChecker
+import org.breezyweather.background.updater.AppUpdateInstaller
 import org.breezyweather.background.updater.interactor.GetApplicationRelease
+import org.breezyweather.background.updater.model.Release
 import org.breezyweather.common.utils.helpers.IntentHelper
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class AboutViewModel @Inject constructor(
     private val updateChecker: AppUpdateChecker,
+    private val updateInstaller: AppUpdateInstaller,
 ) : ViewModel() {
+
+    internal fun getApkUrl(release: Release): String? = updateInstaller.getApkUrl(release)
+
+    internal fun downloadUpdate(context: Context, url: String, onProgress: (Int) -> Unit): File {
+        return updateInstaller.download(context, url, onProgress)
+    }
+
+    internal fun canInstallUpdates(context: Context): Boolean {
+        return updateInstaller.canInstallPackages(context)
+    }
+
+    internal fun unknownSourcesSettingsIntent(context: Context): Intent {
+        return updateInstaller.unknownSourcesSettingsIntent(context)
+    }
+
+    internal fun installIntent(context: Context, apk: File): Intent {
+        return updateInstaller.installIntent(context, apk)
+    }
+
     internal fun getAboutAppLinks(activity: Activity): Array<AboutAppLinkItem> {
         return arrayOf(
             AboutAppLinkItem(

@@ -3,4 +3,7 @@
     <external-cache-path
         name="ext_cache_files"
         path="." />
+    <cache-path
+        name="app_updates"
+        path="updates/" />
 </paths>
