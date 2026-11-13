@@ -60,3 +60,7 @@ Generar el APK de release requiere la clave de firma. Sin ella, el build de rele
 Alerta EC es una versión modificada de [Breezy Weather](https://github.com/breezy-weather/breezy-weather), desarrollada por su equipo y colaboradores. Se distribuye bajo la [GNU Lesser General Public License v3.0](LICENSE).
 
 Según la [licencia adicional](LICENSE_ADDITIONAL), esta licencia no concede derechos sobre marcas, nombres ni logotipos de los colaboradores. Esta versión modificada no es la aplicación oficial de Breezy Weather. Las aplicaciones de terceros que usan datos de Breezy Weather están listadas en [3RD_PARTY.md](3RD_PARTY.md).
+
+<!-- ALERTA_EC_AUTO_START -->
+**Estado:** versión en desarrollo. El seguimiento interno del proyecto está en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md).
+<!-- ALERTA_EC_AUTO_END -->
