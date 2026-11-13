@@ -17,15 +17,167 @@
 package org.breezyweather.ui.main.widgets
 
 import android.content.Context
+import android.view.KeyEvent
+import android.view.View
 import android.util.AttributeSet
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener
 import org.breezyweather.R
+import kotlin.math.abs
 
 class FitTabletRecyclerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : RecyclerView(context, attrs, defStyleAttr) {
+
+    init {
+        // Con mando de TV, cada fila del pronóstico debe poder recibir el foco para
+        // que arriba y abajo se muevan entre filas. Al tener el foco se aclara un poco.
+        // Que el halo y las filas no se recorten en los bordes.
+        clipChildren = false
+        clipToPadding = false
+        addOnChildAttachStateChangeListener(object : OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                // Las filas con Compose también deben poder recibir el foco; si no, el mando
+                // se queda atascado en la fila anterior. Su holder pasa el foco al primer botón
+                // con su propio listener, así que no se le reemplaza aquí.
+                // El encabezado de temperatura es solo informativo: no debe recibir el foco.
+                if (view.id == R.id.container_main_header) return
+                if (view is androidx.compose.ui.platform.AbstractComposeView) {
+                    view.isFocusable = true
+                    view.isFocusableInTouchMode = true
+                    return
+                }
+                view.isFocusable = true
+                view.isFocusableInTouchMode = true
+                view.setOnFocusChangeListener { v, hasFocus ->
+                    // Halo neón cian alrededor de la tarjeta seleccionada, sin cambiar su tamaño.
+                    v.foreground = if (hasFocus) {
+                        val density = v.resources.displayMetrics.density
+                        android.graphics.drawable.GradientDrawable().apply {
+                            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                            cornerRadius = 16f * density
+                            setStroke((5 * density).toInt(), android.graphics.Color.parseColor("#00E5FF"))
+                        }
+                    } else null
+                    v.alpha = if (hasFocus) 1f else 0.9f
+                }
+            }
+
+            override fun onChildViewDetachedFromWindow(view: View) {}
+        })
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        // Con mando de TV: arriba/abajo mueven el foco entre filas y, si no hay más filas
+        // en esa dirección, desplazan la lista. Izquierda/derecha mueven el foco de lado.
+        if (event != null && event.action == KeyEvent.ACTION_DOWN) {
+            val direction = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> View.FOCUS_UP
+                KeyEvent.KEYCODE_DPAD_DOWN -> View.FOCUS_DOWN
+                KeyEvent.KEYCODE_DPAD_LEFT -> View.FOCUS_LEFT
+                KeyEvent.KEYCODE_DPAD_RIGHT -> View.FOCUS_RIGHT
+                else -> null
+            }
+            val focused = findFocus()
+            // Filas con Compose (botones de reseña, reporte, colaborar): primero Compose gestiona la tecla
+            // para moverse entre sus botones; solo si no puede, decide la lista.
+            val current = findFocus()
+            if (current != null && rowOf(current) is androidx.compose.ui.platform.AbstractComposeView &&
+                super.dispatchKeyEvent(event)
+            ) {
+                return true
+            }
+            // Arriba/abajo: siempre la fila que queda justo debajo o encima en pantalla (no el bloque
+            // de al lado en la cuadrícula), desplazando la lista para cargar los bloques siguientes.
+            if ((direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) && focused != null && focused !== this) {
+                focusVertically(direction == View.FOCUS_DOWN)
+                return true
+            }
+            if (direction != null && focused === this) {
+                // La lista tiene el foco sin una fila seleccionada: entra a la primera o última fila visible.
+                (if (direction == View.FOCUS_UP) visibleRows().lastOrNull() else visibleRows().firstOrNull())
+                    ?.requestFocus(direction)
+                return true
+            }
+            if (direction != null && focused != null) {
+                val next = focused.focusSearch(direction)
+                if (next != null && next !== focused && isAncestorOf(next)) {
+                    next.requestFocus(direction)
+                    return true
+                }
+                if (direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) {
+                    val step = resources.displayMetrics.density * 160 *
+                        (if (direction == View.FOCUS_DOWN) 1 else -1)
+                    smoothScrollBy(0, step.toInt())
+                }
+                // La tecla siempre se consume aquí: el foco no debe salir de la lista
+                // hacia otro panel (por ejemplo "Lugares" a la izquierda).
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    /** Fila (hijo directo de esta lista) que contiene la vista enfocada. */
+    private fun rowOf(view: View): View? {
+        var current: View = view
+        while (true) {
+            val parent = current.parent
+            if (parent === this) return current
+            if (parent !is View) return null
+            current = parent
+        }
+    }
+
+    /**
+     * Mueve el foco a la fila visible inmediatamente debajo (down) o encima (!down) de la fila actual.
+     * Si no hay ninguna visible en esa dirección, desplaza la lista un tramo y vuelve a intentar.
+     */
+    private fun focusVertically(down: Boolean, attempt: Int = 0) {
+        val focused = findFocus() ?: return
+        val row = rowOf(focused) ?: return
+        val target = (0 until childCount)
+            .map { getChildAt(it) }
+            .filter { it !== row && it.isFocusable && it.isShown }
+            .filter { if (down) it.top >= row.bottom - 2 else it.bottom <= row.top + 2 }
+            .minWithOrNull(
+                compareBy<View>(
+                    { if (down) it.top else -it.bottom },
+                    { abs(it.left - row.left) },
+                )
+            )
+        if (target != null) {
+            target.requestFocus()
+            return
+        }
+        val direction = if (down) 1 else -1
+        if (attempt < 20 && canScrollVertically(direction)) {
+            smoothScrollBy(0, direction * height * 2 / 3)
+            postDelayed({ focusVertically(down, attempt + 1) }, 250L)
+        } else if (!down) {
+            // Arriba del todo: la flecha arriba pasa a la barra superior (lista de ubicaciones, editar, etc.).
+            row.focusSearch(View.FOCUS_UP)?.requestFocus()
+        }
+    }
+
+    /** Filas enfocables que se ven ahora mismo, en orden de arriba a abajo. */
+    private fun visibleRows(): List<View> = (0 until childCount)
+        .map { getChildAt(it) }
+        .filter { it.isFocusable && it.isShown && it.bottom > 0 && it.top < height }
+
+    /** Lleva el foco a la primera fila visible; útil al volver a la pantalla principal. */
+    fun focusFirstVisibleRow(): Boolean = visibleRows().firstOrNull()?.requestFocus() == true
+
+    private fun isAncestorOf(view: View): Boolean {
+        var parent = view.parent
+        while (parent != null) {
+            if (parent === this) return true
+            parent = parent.parent
+        }
+        return false
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -34,3 +186,4 @@ class FitTabletRecyclerView @JvmOverloads constructor(
         setPadding(paddingHorizontal, paddingTop, paddingHorizontal, paddingBottom)
     }
 }
+

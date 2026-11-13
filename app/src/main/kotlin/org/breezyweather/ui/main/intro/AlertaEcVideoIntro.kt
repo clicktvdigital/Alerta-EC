@@ -201,7 +201,8 @@ internal object AlertaEcVideoIntro {
             view.setVideoURI(
                 Uri.parse("android.resource://${context.packageName}/${R.raw.alertaec_cinematic_intro}")
             )
-            view.requestFocus()
+            // El foco va a "Omitir", no al video: así OK funciona con el primer pulso.
+            skip.requestFocus()
         } catch (_: RuntimeException) {
             stop()
         }

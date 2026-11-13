@@ -75,14 +75,6 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
                     }
                 } else {
                     retryAfterFailure = true
-                    val now = java.time.Instant.now()
-                    val validFrames = frames.filter { frame ->
-                        val age = java.time.Duration.between(frame.observedAt, now)
-                        !age.isNegative && age.toMinutes() < 360
-                    }
-                    if (validFrames.size != frames.size) {
-                        setFrames(validFrames)
-                    }
                     timeLabel.text = if (frames.isNotEmpty()) {
                         "No se pudo actualizar NOAA. Se conservan las imágenes anteriores."
                     } else if (result.isFailure) {
@@ -223,29 +215,6 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             image.setImageDrawable(null)
             return
         }
-        val age = java.time.Duration.between(frame.observedAt, java.time.Instant.now())
-        if (age.isNegative || age.toMinutes() >= 360) {
-            playing = false
-            handler.removeCallbacks(advance)
-            playButton.text = "▶ Reproducir"
-            val validFrames = frames.filter {
-                val frameAge = java.time.Duration.between(it.observedAt, java.time.Instant.now())
-                !frameAge.isNegative && frameAge.toMinutes() < 360
-            }
-            if (validFrames.size != frames.size) {
-                setFrames(validFrames)
-            }
-            if (validFrames.isEmpty()) {
-                timeLabel.text = "Imágenes NOAA caducadas. Esperando actualización."
-            }
-            val nowElapsed = android.os.SystemClock.elapsedRealtime()
-            if (modeJob?.isActive != true &&
-                (lastModeRefreshAt == 0L || nowElapsed - lastModeRefreshAt >= if (retryAfterFailure) retryIntervalMs else refreshIntervalMs)
-            ) {
-                loadSelectedMode(selectedMode)
-            }
-            return
-        }
         timeline.progress = index
         if (isCurrentFrameVisibleAndValid()) {
             timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime)
@@ -304,11 +273,9 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
 
     private fun isCurrentFrameVisibleAndValid(): Boolean {
         val frame = frames.getOrNull(index) ?: return false
-        val age = java.time.Duration.between(frame.observedAt, java.time.Instant.now())
         return displayedFrameVersion == framesVersion &&
             displayedFrameUrl == frame.imageUrl &&
-            frame.imageUrl !in failedFrameUrls &&
-            !age.isNegative && age.toMinutes() < 360
+            frame.imageUrl !in failedFrameUrls
     }
 
     fun pause() {

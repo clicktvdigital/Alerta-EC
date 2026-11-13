@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Día o franja del pronóstico: ripple táctil y, con foco del mando, borde cian visible. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/selectable_item_background" />
+    <item>
+        <selector>
+            <item android:state_focused="true">
+                <shape android:shape="rectangle">
+                    <corners android:radius="12dp" />
+                    <stroke android:width="3dp" android:color="#00E5FF" />
+                </shape>
+            </item>
+        </selector>
+    </item>
+</layer-list>

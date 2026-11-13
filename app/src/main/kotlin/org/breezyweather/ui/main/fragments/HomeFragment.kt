@@ -125,6 +125,13 @@ class HomeFragment : MainModuleFragment() {
     override fun onResume() {
         super.onResume()
         weatherView.setDrawable(!isHidden)
+        // Al volver de otra pantalla (p. ej. satélite) el foco puede haberse perdido: se devuelve
+        // a la primera fila visible para que la flecha abajo siga en la lista.
+        view?.post {
+            if (::binding.isInitialized && binding.recyclerView.findFocus() == null) {
+                binding.recyclerView.focusFirstVisibleRow()
+            }
+        }
     }
 
     override fun onPause() {
@@ -214,6 +221,18 @@ class HomeFragment : MainModuleFragment() {
         // Needed to get the icon to show the correct color depending on dark mode
         binding.toolbar.overflowIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_more_vert)
 
+        // Con mando de TV: desde los botones de la barra superior, la tecla de abajo
+        // lleva el foco a la lista de tarjetas.
+        binding.recyclerView.isFocusable = true
+        binding.recyclerView.descendantFocusability = android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
+        fun pointDownToList(view: android.view.View) {
+            view.nextFocusDownId = binding.recyclerView.id
+            if (view is android.view.ViewGroup) {
+                for (i in 0 until view.childCount) pointDownToList(view.getChildAt(i))
+            }
+        }
+        binding.toolbar.post { pointDownToList(binding.toolbar) }
+
         binding.switchLayout.setOnSwitchListener(switchListener)
         binding.switchLayout.reset()
         binding.indicator.setSwitchView(binding.switchLayout)
@@ -270,6 +289,10 @@ class HomeFragment : MainModuleFragment() {
                 }
             }
         }
+        // Con mando: mantener más bloques en memoria y precargar los de abajo para que
+        // no se traben al bajar con DPAD_DOWN.
+        binding.recyclerView.setItemViewCacheSize(20)
+        (binding.recyclerView.layoutManager as? GridLayoutManager)?.isItemPrefetchEnabled = true
         binding.recyclerView.doOnApplyWindowInsets { view, insets ->
             view.updatePadding(bottom = insets.bottom)
         }

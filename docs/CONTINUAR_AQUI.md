@@ -45,6 +45,7 @@ No hay repositorio público de Amaru ni información de licencia o API. No se co
 - Medición real de la carga del satélite.
 
 No se han hecho push, merge, tag ni Release en esta sección.
+> **Para retomar esta sesión, lee primero [docs/RETOMAR_SESION.md](docs/RETOMAR_SESION.md).**
 
 ## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
 
