@@ -10,6 +10,7 @@ import org.breezyweather.common.extensions.notify
 import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.common.extensions.formatMeasure
+import kotlin.math.roundToInt
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.Temperature.Companion.celsius
 
@@ -163,7 +164,7 @@ object AlertaEcNotifier {
             }
         } ?: "Hora no disponible"
         val temperatureText = event.temperatureCelsius?.takeIf { it.isFinite() }?.let {
-            "Temp. ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}"
+            "Temp. ${it.roundToInt().toDouble().celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}"
         } ?: "Temp. —"
         val compact = listOf(
             temperatureText,
@@ -175,7 +176,7 @@ object AlertaEcNotifier {
             add("$interval · $compact")
             add("Precipitación: acumulación del intervalo horario; no intensidad instantánea.")
             event.feelsLikeCelsius?.takeIf { it.isFinite() }?.let {
-                add("Sensación térmica: ${it.celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}")
+                add("Sensación térmica: ${it.roundToInt().toDouble().celsius.formatMeasure(context, temperatureUnit, unitWidth = UnitWidth.NARROW)}")
             }
             event.windSpeedKmh?.let { add(String.format("viento %.0f km/h", it)) }
             event.windSpeedKmh?.let { add(String.format("%.1f m/s", it / 3.6)) }
