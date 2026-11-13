@@ -12,9 +12,11 @@ Estado: revisión por lectura de código y del índice Graphify (`graphify-out/`
 - **Decimales en el clima**: `NotificationForecastSummary.kt` usa `%.1f` en viento, ráfagas, visibilidad y acumulación. Falta confirmar qué línea exacta muestra el usuario.
 - **Android TV**: la rama `alerta-ec` no tiene navegación con control remoto. El trabajo de TV está en `claude/clima-launcher-por-defecto` (versión 0.1.12, código 112).
 
-### Repositorio Amaru
+### Amaru (referencia de producto, no de código)
 
-La búsqueda pública de «amaru» devuelve `pragma-org/amaru`, que es un nodo de Cardano y no tiene relación con el clima de Ecuador. Falta el nombre exacto o el dueño del repositorio que se tiene en mente. No se ha adoptado nada de ningún repositorio externo.
+Amaru es una app pública de alertas de lluvia para Ecuador y otros países. Según la prensa, calcula un índice de riesgo de 0 a 100 con cinco variables, muestra niveles verde, amarillo, naranja y rojo, avisa cuando sube el riesgo en ubicaciones seguidas, y ofrece pronóstico a lo largo de una ruta. Se declara no oficial. Fuentes: Primicias (https://www.primicias.ec/ciencia-tecnologia/lluvias-inundaciones-ecuador-guayaquil-amaru-aplicacion-alertas-135827/) y Teleamazonas (https://www.teleamazonas.com/tendencias/entretenimiento/tecnologia/amaru-plataforma-web-app-consultar-clima-131542/). Primicias no se pudo leer desde esta sesión (dominio no permitido en la red), así que lo anterior viene de resúmenes de búsqueda.
+
+No hay repositorio público de Amaru ni información de licencia o API. No se copia código ni contenido. Se toman ideas de producto, con datos y fuentes propias: índice de riesgo con niveles de color explicados, aviso solo cuando sube el riesgo y pronóstico por ruta. Las alertas oficiales siguen siendo del INAMHI y de la Secretaría de Gestión de Riesgos.
 
 ### Plan priorizado
 
