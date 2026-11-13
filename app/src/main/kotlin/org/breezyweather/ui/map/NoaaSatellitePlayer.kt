@@ -106,6 +106,74 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     private var displayedFrameVersion = -1L
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
+    private val speeds = listOf(0.5f, 1f, 2f)
+    private var speedIndex = 1
+    private val speedButton = Button(context).apply {
+        isAllCaps = false
+        contentDescription = "Velocidad de reproducción"
+    }
+
+    private fun frameDelayMs(): Long = (1200f / speeds[speedIndex]).toLong()
+
+    private fun refreshSpeedButton() {
+        val label = "Velocidad ${speeds[speedIndex]}×".replace(".0×", "×")
+        speedButton.text = label
+    }
+
+    private fun setPlaying(value: Boolean) {
+        playing = value
+        playButton.text = if (playing) "⏸ Pausar" else "▶ Reproducir"
+        handler.removeCallbacks(advance)
+        if (playing && frames.isNotEmpty()) handler.postDelayed(advance, frameDelayMs())
+    }
+
+    private fun stepFrame(delta: Int) {
+        if (frames.isEmpty()) return
+        setPlaying(false)
+        index = ((index + delta) % frames.size + frames.size) % frames.size
+        showFrame()
+    }
+
+    /**
+     * Teclas del control remoto de Android TV. Las teclas de medios funcionan
+     * desde cualquier punto del reproductor. Izquierda, derecha, OK e intro
+     * solo actúan cuando la imagen tiene el foco, para no quitar la navegación
+     * entre botones.
+     */
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.action != android.view.KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
+        when (event.keyCode) {
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY,
+            android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                if (frames.isNotEmpty()) setPlaying(!playing)
+                return true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
+            android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                stepFrame(1)
+                return true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+            android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                stepFrame(-1)
+                return true
+            }
+        }
+        if (findFocus() === image) {
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { stepFrame(1); return true }
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { stepFrame(-1); return true }
+                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                android.view.KeyEvent.KEYCODE_ENTER -> {
+                    if (frames.isNotEmpty()) setPlaying(!playing)
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     private val advance = object : Runnable {
         override fun run() {
             if (!playing || frames.isEmpty()) return
@@ -123,7 +191,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             }
             index = next
             showFrame()
-            handler.postDelayed(this, 1200L)
+            handler.postDelayed(this, frameDelayMs())
         }
     }
 
@@ -156,10 +224,22 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             setPadding(12, 6, 12, 9)
         })
         refreshModeButtons()
+        image.isFocusable = true
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
         addView(playButton)
+        refreshSpeedButton()
+        speedButton.setOnClickListener {
+            speedIndex = (speedIndex + 1) % speeds.size
+            refreshSpeedButton()
+            // Si está reproduciendo, aplica la nueva velocidad desde el siguiente cuadro.
+            if (playing) {
+                handler.removeCallbacks(advance)
+                handler.postDelayed(advance, frameDelayMs())
+            }
+        }
+        addView(speedButton)
         retryButton.text = "↻ Reintentar NOAA"
         retryButton.setOnClickListener {
             frames.getOrNull(index)?.imageUrl?.let(failedFrameUrls::remove)
@@ -170,10 +250,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
 
         playButton.setOnClickListener {
             if (frames.isEmpty()) return@setOnClickListener
-            playing = !playing
-            playButton.text = if (playing) "⏸ Pausar" else "▶ Reproducir"
-            handler.removeCallbacks(advance)
-            if (playing) handler.postDelayed(advance, 1200L)
+            setPlaying(!playing)
         }
         // Comenzar en el modo Nubes sin depender de selección de Spinner.
         loadSelectedMode(selectedMode)
