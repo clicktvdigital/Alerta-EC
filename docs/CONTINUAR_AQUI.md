@@ -1,3 +1,13 @@
+## Paso 634 — Mejoras rápidas (13-11-2026)
+
+Cambios locales validados solo por lectura; no compilados ni probados en dispositivo:
+
+- «GPS y seguridad» eliminado del menú (`res/menu/activity_main.xml`). No tenía función; el texto sigue en `strings.xml` por si se reactiva.
+- Satélite NOAA: 8 cuadros por consulta en lugar de 24 (`NoaaSatelliteFrames.kt`). Trade-off: la animación es más corta, pero la carga inicial debe ser más rápida. Medir en el teléfono antes y después.
+- Capas INAMHI: opacidad de precipitación 0,15 → 0,30 y de las demás 0,10 → 0,20 (`InamhiMapOverlay.kt`). Ajuste a ciegas: validar en el teléfono con nubosidad real.
+
+Pendiente: compilación firmada (workflow de prueba en la rama) e instalación en el Samsung S21 FE y en el TV.
+
 ## Paso 633 — Revisión del 13-11-2026 y plan de mejoras
 
 Estado: revisión por lectura de código y del índice Graphify (`graphify-out/`, generado localmente y excluido de Git). No hay compilación Android en este entorno: no hay SDK ni acceso a `dl.google.com`. **Nada de esta sección está compilado ni probado en dispositivo.**

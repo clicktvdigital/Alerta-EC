@@ -25,7 +25,7 @@ internal object NoaaSatelliteFrames {
     private suspend fun fetch(
         directory: String,
         imageName: Regex,
-        limit: Int = 24
+        limit: Int = 8
     ): List<NoaaSatelliteFrame> = withContext(Dispatchers.IO) {
         val base = NOAA_CDN + directory.trim('/') + "/"
         val connection = URL(base).openConnection() as HttpURLConnection
