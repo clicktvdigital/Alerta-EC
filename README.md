@@ -1,3 +1,7 @@
+## Estado actual — 13-11-2026
+
+Próximos pasos de mejora: centro de emergencias dentro de la app, la pantalla «GPS y seguridad» (hoy sin función), rendimiento de las imágenes satelitales NOAA y contraste de las capas INAMHI sobre nubes. Detalle, evidencia y lo que falta verificar en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md) (paso 633).
+
 ## Continuidad ALERTA EC — pasos 1053–1063
 
 La corrección local de compatibilidad JVM y el estado de CI están documentados cronológicamente en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md#alerta-ec--continuidad-de-los-pasos-1053-1063-22-10-2026). Todavía no se ha compilado ni publicado; requiere revisión, commit y push autorizados, y nueva validación remota.
