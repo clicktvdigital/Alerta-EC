@@ -252,7 +252,9 @@ internal object AlertaEcVideoIntro {
             } else {
                 view.requestFocus()
             }
-        } catch (_: RuntimeException) {
+        } catch (e: RuntimeException) {
+            // Silent before: the intro vanished with no trace. Log the cause so the TV log shows it.
+            android.util.Log.e("AlertaEcStartup", "intro setup failed: ${e.javaClass.name}: ${e.message}", e)
             stop()
         }
         // Aunque falle el vídeo, volver a la pantalla principal sin lanzar animaciones antiguas.

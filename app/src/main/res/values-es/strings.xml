@@ -903,4 +903,5 @@
     <string name="active_location_evidence_address_title">Dirección devuelta por el geocoder</string>
     <string name="active_location_evidence_address_loading">Dirección no disponible todavía.</string>
     <string name="active_location_evidence_address_unavailable">Dirección no disponible.</string>
+    <string name="pollen_no_data">No disponible para esta ubicación</string>
 </resources>

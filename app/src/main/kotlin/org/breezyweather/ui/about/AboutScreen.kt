@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -48,6 +49,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import android.content.res.Configuration
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -179,14 +182,17 @@ internal fun AboutScreen(
             )
         }
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxHeight().tvListFocus(),
-            contentPadding = it.plus(
-                PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin))
-            )
-        ) {
-            item {
-                Header()
+        // Same list on phones and TV. On TV the logo/identity stays fixed on the left (Header is not in the list).
+        val isTvLayout = remember {
+            (context.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+                Configuration.UI_MODE_TYPE_TELEVISION ||
+                context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+        val listBody: LazyListScope.() -> Unit = {
+            if (!isTvLayout) {
+                item {
+                    Header()
+                }
             }
             if (isUpdateCheckerEnabled) {
                 item {
@@ -413,6 +419,28 @@ internal fun AboutScreen(
 
             bottomInsetItem(
                 extraHeight = getCardListItemMarginDp(context).dp
+            )
+        }
+        val listPadding = it.plus(PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin)))
+        if (isTvLayout) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.weight(0.36f).fillMaxHeight().padding(it),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Header()
+                }
+                LazyColumn(
+                    modifier = Modifier.weight(0.64f).fillMaxHeight().tvListFocus(),
+                    contentPadding = listPadding,
+                    content = listBody
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxHeight().tvListFocus(),
+                contentPadding = listPadding,
+                content = listBody
             )
         }
 
