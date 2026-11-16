@@ -85,6 +85,30 @@ class HourlyTrendAdapter(
 
     override fun onBindViewHolder(holder: AbsHourlyTrendAdapter.ViewHolder, position: Int) {
         adapters[selectedIndex].onBindViewHolder(holder, position)
+        bindRemoteFocus(holder.itemView)
+    }
+
+    /**
+     * On Android TV every hourly cell takes D-pad focus (same behaviour as the daily forecast),
+     * with a visible white ring so the selected hour is readable from a distance.
+     */
+    private fun bindRemoteFocus(view: android.view.View) {
+        val context = view.context
+        val isTelevision = (context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        if (!isTelevision) return
+        view.isFocusable = true
+        view.isFocusableInTouchMode = false
+        if (view.foreground == null) {
+            val density = context.resources.displayMetrics.density
+            view.foreground = android.graphics.drawable.GradientDrawable().apply {
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke((3 * density).toInt(), android.graphics.Color.WHITE)
+                cornerRadius = 8 * density
+            }
+        }
     }
 
     override fun getItemCount() = adapters.getOrNull(selectedIndex)?.itemCount ?: 0
