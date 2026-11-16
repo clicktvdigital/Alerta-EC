@@ -806,7 +806,7 @@
     <string name="ephemeris_dusk_at">Anochece a las %s</string>
     <string name="nighttime_details">Comienza al anochecer y abarca hasta el amanecer del día siguiente</string>
     <string name="dew_point_from_to_number">%1$s a %2$s</string>
-    <string name="pressure_rising">Amanecer</string>
+    <string name="pressure_rising">En aumento</string>
     <string name="pressure_steady">Estable</string>
     <string name="pressure_falling">Cayendo</string>
     <string name="pressure_about">Sobre la presión</string>
