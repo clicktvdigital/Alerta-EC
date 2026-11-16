@@ -576,12 +576,13 @@ class HomeFragment : MainModuleFragment() {
         val next = nextRemoteCard(candidates, current, dx, dy)
         if (next != null) {
             selectRemote(next)
+            if (dy != 0) revealRemote(next)
             return true
         }
         // Left/Right at the edge of the row are not consumed, so the side menu and other focus targets still work.
         if (dx != 0) return false
         // Top row and the list cannot scroll up: move focus to the top bar (menu, edit, more).
-        if (dy < 0 && !recycler.canScrollVertically(-1)) {
+        if (dy < 0 && !recycler.canRemoteScroll(-1)) {
             val bar = toolbarCandidates()
             if (bar.isNotEmpty()) {
                 remoteOnToolbar = true
@@ -656,11 +657,46 @@ class HomeFragment : MainModuleFragment() {
     /** Scrolls the list by a fraction of its height. False when it cannot move that way. */
     private fun scrollByRemote(direction: Int): Boolean {
         val recycler = binding.recyclerView
-        val canMove = if (direction > 0) recycler.canScrollVertically(1) else recycler.canScrollVertically(-1)
-        if (!canMove) return false
+        if (!recycler.canRemoteScroll(direction)) return false
         val step = (recycler.height * REMOTE_SCROLL_FRACTION).toInt().coerceAtLeast(1)
         recycler.smoothScrollBy(0, if (direction > 0) step else -step)
         return true
+    }
+
+    /**
+     * True while the list still has content beyond its visible area in [direction].
+     * Reads the real layout instead of canScrollVertically(), whose estimated range is unreliable
+     * for this mixed-span grid and reported "end" before the last cards were reachable.
+     */
+    private fun RecyclerView.canRemoteScroll(direction: Int): Boolean {
+        val manager = layoutManager ?: return false
+        val count = adapter?.itemCount ?: 0
+        if (count == 0) return false
+        return if (direction > 0) {
+            val last = manager.findViewByPosition(count - 1) ?: return true
+            manager.getDecoratedBottom(last) > height - paddingBottom
+        } else {
+            val first = manager.findViewByPosition(0) ?: return true
+            manager.getDecoratedTop(first) < paddingTop
+        }
+    }
+
+    /** Smoothly scrolls just enough to show the whole selected card (TV-style focus follow). */
+    private fun revealRemote(card: View) {
+        val recycler = binding.recyclerView
+        val margin = (REMOTE_REVEAL_MARGIN_DP * resources.displayMetrics.density).toInt()
+        val listTop = recycler.screenTop() + recycler.paddingTop
+        val listBottom = recycler.screenTop() + recycler.height - recycler.paddingBottom
+        val top = card.screenTop()
+        val bottom = top + card.height
+        val delta = when {
+            // Taller than the viewport: align its top.
+            card.height > listBottom - listTop -> top - listTop - margin
+            bottom > listBottom -> bottom - listBottom + margin
+            top < listTop -> top - listTop - margin
+            else -> 0
+        }
+        if (delta != 0) recycler.smoothScrollBy(0, delta)
     }
 
     private fun selectRemote(view: View) {
@@ -708,8 +744,11 @@ class HomeFragment : MainModuleFragment() {
         if (direction == 0) return
         remotePendingEdge = 0
         val candidates = binding.recyclerView.remoteCandidates()
-        val edge = if (direction > 0) candidates.firstOrNull() else candidates.lastOrNull()
-        if (edge != null) selectRemote(edge)
+        // Continue from the current card in the scroll direction; never jump back to the opposite edge.
+        val current = remoteSelection?.takeIf { it in candidates }
+        val next = current?.let { nextRemoteCard(candidates, it, 0, direction) }
+        val edge = next ?: current ?: if (direction > 0) candidates.firstOrNull() else candidates.lastOrNull()
+        if (edge != null && edge !== current) selectRemote(edge)
     }
 
     // on scroll changed listener.
@@ -741,6 +780,9 @@ class HomeFragment : MainModuleFragment() {
 
         /** Fraction of the visible list height moved per remote-control press. */
         private const val REMOTE_SCROLL_FRACTION = 0.4f
+
+        /** Space (dp) kept between a revealed card and the list edge. */
+        private const val REMOTE_REVEAL_MARGIN_DP = 16f
 
         /** Vertical slack (dp) to treat two cards as being on the same row. */
         private const val ROW_TOLERANCE_DP = 24f

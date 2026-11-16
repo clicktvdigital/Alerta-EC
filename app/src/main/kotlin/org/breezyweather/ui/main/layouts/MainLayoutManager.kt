@@ -41,6 +41,7 @@ class MainLayoutManager(
     override fun onItemsChanged(recyclerView: RecyclerView) {
         super.onItemsChanged(recyclerView)
         scrollToPosition(0)
+        childHeightMap.clear()
         mDataSetChanged = true
     }
 
@@ -70,10 +71,29 @@ class MainLayoutManager(
         }
 
         return getChildAt(0)?.let { firstVisibleChild ->
-            (0 until getPosition(firstVisibleChild)).sumOf {
-                childHeightMap[it] ?: 0
-            } - firstVisibleChild.y.toInt()
+            heightOfRowsBefore(getPosition(firstVisibleChild)) - firstVisibleChild.y.toInt()
         } ?: 0
+    }
+
+    /**
+     * Height of every full row above [position]. Half-size cards share a row (several per row on wide
+     * TV screens), so summing every item's height overestimated the offset. That made
+     * canScrollVertically(1) report "end of list" too early and the remote could not reach the
+     * bottom cards.
+     */
+    private fun heightOfRowsBefore(position: Int): Int {
+        var total = 0
+        var rowHeight = 0
+        for (p in 0 until position) {
+            if (p > 0 && spanSizeLookup.getSpanIndex(p, spanCount) == 0) {
+                total += rowHeight
+                rowHeight = 0
+            }
+            rowHeight = maxOf(rowHeight, childHeightMap[p] ?: 0)
+        }
+        // The row containing [position] is not above it; only count the last row if it is complete.
+        val positionStartsRow = position == 0 || spanSizeLookup.getSpanIndex(position, spanCount) == 0
+        return if (positionStartsRow) total + rowHeight else total
     }
 }
 /* ) : LinearLayoutManager(context, RecyclerView.VERTICAL, false) {

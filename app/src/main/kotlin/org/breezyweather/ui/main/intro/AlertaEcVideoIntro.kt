@@ -27,14 +27,14 @@ import org.breezyweather.R
  */
 internal object AlertaEcVideoIntro {
     private const val BLACK = Color.BLACK
-    private const val PREPARE_TIMEOUT_MS = 30_000L
+    private const val PREPARE_TIMEOUT_MS = 12_000L
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
     /** The start image stays on screen this long before the video begins. */
     private const val START_IMAGE_MS = 5_000L
     /** The end image stays on screen this long after the video ends. */
-    private const val END_IMAGE_MS = 5_000L
+    private const val END_IMAGE_MS = 1_200L
     private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
     private var activeVideo: VideoView? = null
@@ -96,8 +96,11 @@ internal object AlertaEcVideoIntro {
         val view = VideoView(context)
         // Video por encima de la imagen de inicio y de otras capas en TV (MediaTek / Indurama).
         view.setZOrderMediaOverlay(true)
-        // Hidden until the start image has been shown for START_IMAGE_MS.
-        view.visibility = View.INVISIBLE
+        // Must stay VISIBLE: a SurfaceView only creates its surface while visible, and VideoView
+        // does not open (prepare) the video without a surface. An INVISIBLE VideoView never fired
+        // onPrepared, so the intro always timed out on TV. With media-overlay z-order and no frame
+        // posted yet, the surface is transparent, so the start image still shows until playback.
+        view.visibility = View.VISIBLE
         activeVideo = view
         activeRoot = frame
         try {
@@ -184,6 +187,8 @@ internal object AlertaEcVideoIntro {
                     player.setOnInfoListener { _, what, _ ->
                         if (activeVideo === view && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                             renderingStarted = true
+                            // First real frame on screen: drop the cover image without a black flash.
+                            frame.setBackgroundColor(BLACK)
                             cancelAudioFallback()
                             player.setVolume(volume, volume)
                         }
@@ -193,10 +198,9 @@ internal object AlertaEcVideoIntro {
                     cancelTimeout()
                     handler.postDelayed({
                         if (activeVideo !== view) return@postDelayed
-                        // Quitar la imagen de portada (fondo del contenedor): el video se reproduce sobre negro.
-                        frame.setBackgroundColor(BLACK)
-                        view.visibility = View.VISIBLE
+                        // La portada se quita al recibir el primer cuadro (MEDIA_INFO_VIDEO_RENDERING_START).
                         view.bringToFront()
+                        skip.bringToFront()
                         android.util.Log.i("AlertaEcStartup", "intro video start")
                         runCatching { view.start() }
                             .onSuccess {
@@ -220,6 +224,8 @@ internal object AlertaEcVideoIntro {
                     cancelTimeout()
                     cancelAudioFallback()
                     skip.visibility = View.GONE
+                    // Cierre: logo fijo breve y fundido rápido hacia la pantalla principal (sin negro largo).
+                    if (useTvVisuals) frame.setBackgroundResource(R.drawable.alertaec_tv_splash)
                     view.visibility = View.GONE
                     val finish = Runnable {
                         if (activeVideo === view) {
@@ -233,7 +239,7 @@ internal object AlertaEcVideoIntro {
                                 .start()
                         }
                     }
-                    scheduleTimeout(finish, END_IMAGE_MS)
+                    scheduleTimeout(finish, if (useTvVisuals) END_IMAGE_MS else 0L)
                 }
             }
             view.setOnErrorListener { _, _, _ ->

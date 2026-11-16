@@ -21,21 +21,22 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.compose.setContent
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.platform.LocalFocusManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.compose.setContent
 import androidx.annotation.CallSuper
-import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.AbstractComposeView
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -48,22 +49,24 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import org.breezyweather.alertaec.accessibility.AlertVoice
+import org.breezyweather.background.location.DetailedLocationProvider
 import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.common.bus.EventBus
 import org.breezyweather.common.extensions.hasPermission
-import org.breezyweather.alertaec.accessibility.AlertVoice
 import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.common.utils.helpers.PermissionHelper
 import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.sources.RefreshHelper
 import org.breezyweather.sources.SourceManager
+import org.breezyweather.ui.common.widgets.LocalTvListFocusTarget
+import org.breezyweather.ui.common.widgets.TvListFocusTarget
 import org.breezyweather.ui.settings.compose.AppearanceSettingsScreen
-import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
 import org.breezyweather.ui.settings.compose.AutoSupportSettingsScreen
+import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
 import org.breezyweather.ui.settings.compose.DebugSettingsScreen
 import org.breezyweather.ui.settings.compose.LocationSettingsScreen
-import org.breezyweather.background.location.DetailedLocationProvider
 import org.breezyweather.ui.settings.compose.MainScreenSettingsScreen
 import org.breezyweather.ui.settings.compose.ModulesSettingsScreen
 import org.breezyweather.ui.settings.compose.NotificationsSettingsScreen
@@ -80,6 +83,9 @@ private const val PERMISSION_CODE_POST_NOTIFICATION = 0
 class SettingsActivity : BreezyActivity() {
 
     private var composeFocusManager: FocusManager? = null
+
+    /** Option list of the visible settings screen; DOWN from the top bar enters it. */
+    private val listFocusTarget = TvListFocusTarget()
 
     /** Remote-control D-pad keys move focus inside the Compose settings screens. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -106,6 +112,8 @@ class SettingsActivity : BreezyActivity() {
         val manager = composeFocusManager ?: return false
         if (manager.moveFocus(direction)) return true
         if (direction != FocusDirection.Down) return false
+        // Focus is on the top bar (Back / About): send it to the option list, like nextFocusDown.
+        if (listFocusTarget.enterList()) return true
 
         val composeView = findComposeView(window.decorView) ?: return false
         if (composeView.hasFocus()) {
@@ -188,7 +196,9 @@ class SettingsActivity : BreezyActivity() {
                 // Keep Compose's focus manager so remote D-pad keys can move focus in this screen.
                 val focusManager = LocalFocusManager.current
                 SideEffect { composeFocusManager = focusManager }
-                ContentView()
+                CompositionLocalProvider(LocalTvListFocusTarget provides listFocusTarget) {
+                    ContentView()
+                }
             }
         }
 
