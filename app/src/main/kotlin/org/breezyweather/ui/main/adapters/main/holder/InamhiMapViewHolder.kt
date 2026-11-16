@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import breezyweather.domain.location.model.Location
 import java.io.File
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.map.MapActivity
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
@@ -185,7 +186,7 @@ private fun HomeMapAndFeedback(context: Context) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(
                     onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()
                 ) { Text("Explorar mapa meteorológico") }
             }
         }
@@ -195,13 +196,13 @@ private fun HomeMapAndFeedback(context: Context) {
                 Text("⭐ Reseñas y opiniones", style = MaterialTheme.typography.titleLarge)
                 Text("Cuéntanos qué mejorar, sin salir de Inicio.",
                     style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = { reviewExpanded = !reviewExpanded }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { reviewExpanded = !reviewExpanded }, modifier = Modifier.fillMaxWidth().tvFocusIndicator()) {
                     Text(if (reviewExpanded) "Ocultar reseña" else "Escribir reseña")
                 }
                 if (reviewExpanded) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         (1..5).forEach { index ->
-                            TextButton(onClick = { rating = index }, modifier = Modifier.weight(1f)) {
+                            TextButton(onClick = { rating = index }, modifier = Modifier.weight(1f).tvFocusIndicator()) {
                                 Text(if (index <= rating) "★" else "☆",
                                     color = MaterialTheme.colorScheme.primary)
                             }
@@ -215,7 +216,7 @@ private fun HomeMapAndFeedback(context: Context) {
                         minLines = 2, maxLines = 5
                     )
                     Button(onClick = { startReviewEmail(context, rating, opinion) },
-                        enabled = rating > 0, modifier = Modifier.fillMaxWidth()) {
+                        enabled = rating > 0, modifier = Modifier.fillMaxWidth().tvFocusIndicator()) {
                         Text("Preparar reseña por correo")
                     }
                     Text("Se abrirá el correo. No se publica ni se envía hasta que lo confirmes.",
@@ -229,7 +230,7 @@ private fun HomeMapAndFeedback(context: Context) {
                 Text("📣 Reportar clima o fallos", style = MaterialTheme.typography.titleLarge)
                 Text("Comunica condiciones del tiempo o fallos de la aplicación. " +
                     "No reemplaza una llamada al ECU 911.", style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = { reportExpanded = !reportExpanded }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { reportExpanded = !reportExpanded }, modifier = Modifier.fillMaxWidth().tvFocusIndicator()) {
                     Text(if (reportExpanded) "Ocultar reporte" else "Preparar reporte")
                 }
                 if (reportExpanded) {
@@ -237,11 +238,11 @@ private fun HomeMapAndFeedback(context: Context) {
                         color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(
-                            onClick = { reportKind = "Fenómeno meteorológico" }, modifier = Modifier.weight(1f)
+                            onClick = { reportKind = "Fenómeno meteorológico" }, modifier = Modifier.weight(1f).tvFocusIndicator()
                         ) { Text(if (reportKind == "Fenómeno meteorológico") "✓ Clima" else "Clima") }
                         OutlinedButton(
                             onClick = { reportKind = "Error o sugerencia de la aplicación" },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).tvFocusIndicator()
                         ) { Text(if (reportKind != "Fenómeno meteorológico") "✓ Aplicación" else "Aplicación") }
                     }
                     OutlinedTextField(
@@ -255,13 +256,13 @@ private fun HomeMapAndFeedback(context: Context) {
                         color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(onClick = { photoPicker.launch("image/*") },
-                            modifier = Modifier.weight(1f)) { Text("🖼️ Foto") }
+                            modifier = Modifier.weight(1f).tvFocusIndicator()) { Text("🖼️ Foto") }
                         OutlinedButton(onClick = { videoPicker.launch("video/*") },
-                            modifier = Modifier.weight(1f)) { Text("🎞️ Video") }
+                            modifier = Modifier.weight(1f).tvFocusIndicator()) { Text("🎞️ Video") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(onClick = { audioPicker.launch("audio/*") },
-                            modifier = Modifier.weight(1f)) { Text("🎵 Audio") }
+                            modifier = Modifier.weight(1f).tvFocusIndicator()) { Text("🎵 Audio") }
                         OutlinedButton(onClick = {
                             val uri = createReportMediaUri(context, "jpg")
                             if (uri == null) {
@@ -287,7 +288,7 @@ private fun HomeMapAndFeedback(context: Context) {
                     }
                     Button(onClick = {
                         shareReport(context, reportKind, reportText, includeGps, attachment)
-                    }, enabled = reportText.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+                    }, enabled = reportText.isNotBlank(), modifier = Modifier.fillMaxWidth().tvFocusIndicator()) {
                         Text("Elegir aplicación para enviar")
                     }
                     Text("ALERTA EC prepara el contenido localmente. No hay recepción automática " +

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import breezyweather.domain.location.model.Location
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
@@ -72,7 +73,7 @@ class DonationsViewHolder(
                 )
                 Button(
                     onClick = { expanded.value = !expanded.value },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator(),
                 ) {
                     Text(if (expanded.value) "Ocultar opciones de apoyo ▲" else "Ver formas de colaborar ▼")
                 }

@@ -367,10 +367,9 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     private var holdRefreshFired = false
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN &&
-            !isManagementFragmentVisible &&
+        if (!isManagementFragmentVisible &&
             currentFocus !is android.widget.EditText &&
-            findHomeFragment()?.handleRemoteKey(event.keyCode) == true
+            findHomeFragment()?.handleRemoteKey(event) == true
         ) {
             return true
         }

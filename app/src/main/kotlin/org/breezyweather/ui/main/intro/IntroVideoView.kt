@@ -5,6 +5,7 @@ import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import kotlin.math.min
@@ -19,6 +20,10 @@ import kotlin.math.min
  * texture exists, and is released with the texture.
  */
 internal class IntroVideoView(context: Context) : TextureView(context), TextureView.SurfaceTextureListener {
+
+    private companion object {
+        const val TAG = "AlertaEcStartup"
+    }
 
     private var uri: Uri? = null
     private var player: MediaPlayer? = null
@@ -54,6 +59,7 @@ internal class IntroVideoView(context: Context) : TextureView(context), TextureV
 
     /** Starts playback of the prepared player. Does nothing when there is no prepared player. */
     fun start() {
+        Log.i(TAG, "intro start player=${player != null}")
         player?.start()
     }
 
@@ -77,14 +83,18 @@ internal class IntroVideoView(context: Context) : TextureView(context), TextureV
                     applyFit()
                 }
             }
-            mp.setOnPreparedListener { p -> if (player === p) onPrepared?.invoke(p) }
+            mp.setOnPreparedListener { p ->
+                Log.i(TAG, "intro prepared w=${p.videoWidth} h=${p.videoHeight} dur=${p.duration}")
+                if (player === p) onPrepared?.invoke(p)
+            }
             mp.setOnCompletionListener { p -> if (player === p) onCompletion?.invoke(p) }
             mp.setOnErrorListener { p, what, extra ->
+                Log.w(TAG, "intro error what=$what extra=$extra")
                 if (player === p) onError?.invoke(p, what, extra) ?: true else true
             }
             mp.prepareAsync()
         } catch (e: Exception) {
-            android.util.Log.w("AlertaEcStartup", "intro player failed: ${e.javaClass.simpleName}")
+            Log.w(TAG, "intro player failed: ${e.javaClass.simpleName} ${e.message}")
             onError?.invoke(mp, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0)
         }
     }
@@ -110,6 +120,7 @@ internal class IntroVideoView(context: Context) : TextureView(context), TextureV
     }
 
     override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
+        Log.i(TAG, "intro surface available ${width}x$height")
         surface?.release()
         surface = Surface(texture)
         openIfReady()

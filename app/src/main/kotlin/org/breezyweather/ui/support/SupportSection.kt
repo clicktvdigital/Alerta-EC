@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.R
 
 // ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2
@@ -174,7 +175,7 @@ internal fun SupportSection() {
                     val seleccionado = montoSeleccionado == monto
                     Button(
                         onClick = { montoSeleccionado = monto },
-                        modifier = Modifier.weight(1f).heightIn(min = 96.dp),
+                        modifier = Modifier.weight(1f).tvFocusIndicator().heightIn(min = 96.dp),
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = if (seleccionado) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.secondaryContainer,
@@ -225,11 +226,11 @@ internal fun SupportSection() {
                     Text(apoyo.explicacion, style = MaterialTheme.typography.bodyLarge)
                     Button(
                         onClick = { abrirPago(apoyo.url) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 54.dp)
                     ) { Text("💚 Continuar con ${apoyo.nombre}", style = MaterialTheme.typography.labelLarge) }
                     OutlinedButton(
                         onClick = { qrSeleccionado = indice },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 52.dp)
                     ) { Text("📷 Ver QR y copiar enlace", style = MaterialTheme.typography.labelLarge) }
                 }
             }
@@ -239,7 +240,7 @@ internal fun SupportSection() {
         otrosApoyos.forEach { (nombre, url, marca) ->
             OutlinedButton(
                 onClick = { abrirPago(url) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 64.dp)
             ) {
                 Image(
                     painter = painterResource(marca),
@@ -257,7 +258,7 @@ internal fun SupportSection() {
         }
         Button(
             onClick = { compartirAplicacion(context) },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
+            modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 54.dp)
         ) { Text("Compartir ALERTA EC con familiares y amigos", style = MaterialTheme.typography.labelLarge) }
     }
 
@@ -279,7 +280,7 @@ internal fun SupportSection() {
                         onClick = {
                             copiarEnlace(context, seleccionado.url)
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 48.dp)
                     ) { Text("Copiar enlace de cobro") }
                 }
             },

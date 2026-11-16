@@ -35,6 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.platform.AbstractComposeView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import breezyweather.domain.location.model.Location
@@ -75,6 +76,9 @@ class HomeFragment : MainModuleFragment() {
     private var remoteSelection: View? = null
     private var remotePendingEdge = 0
     private var remoteOnToolbar = false
+
+    /** Card whose own Compose controls (buttons inside a ComposeView) currently receive the D-pad. */
+    private var remoteComposeMode: AbstractComposeView? = null
     private var remoteFocusRingCache: GradientDrawable? = null
     private lateinit var viewModel: MainActivityViewModel
     private lateinit var weatherView: WeatherView
@@ -542,9 +546,17 @@ class HomeFragment : MainModuleFragment() {
         return true
     }
 
-    fun handleRemoteKey(keyCode: Int): Boolean {
-        android.util.Log.i("AlertaEcKeys", "key=$keyCode onToolbar=$remoteOnToolbar selected=${remoteSelection != null}")
+    fun handleRemoteKey(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        android.util.Log.i("AlertaEcKeys", "key=$keyCode action=${event.action} onToolbar=$remoteOnToolbar selected=${remoteSelection != null}")
         if (!isAdded || !::binding.isInitialized) return false
+        // A card with Compose controls: keys go to Compose first, so its buttons move and click.
+        remoteComposeMode?.let { compose ->
+            if (compose.isAttachedToWindow && compose.dispatchKeyEvent(event)) return true
+            // Compose could not use the key (edge of the card): hand navigation back to the list.
+            exitComposeMode()
+        }
+        if (event.action != KeyEvent.ACTION_DOWN) return false
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> moveRemoteSelection(0, 1)
             KeyEvent.KEYCODE_DPAD_UP -> moveRemoteSelection(0, -1)
@@ -554,10 +566,25 @@ class HomeFragment : MainModuleFragment() {
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                 val target = remoteSelection ?: return false
+                if (target is AbstractComposeView) return enterComposeMode(target)
                 target.isAttachedToWindow && target.performClick()
             }
             else -> false
         }
+    }
+
+    /** OK on a card with Compose controls: give its Compose tree the focus so D-pad moves between buttons. */
+    private fun enterComposeMode(card: AbstractComposeView): Boolean {
+        if (!card.isAttachedToWindow) return false
+        remoteComposeMode = card
+        card.requestFocus()
+        return true
+    }
+
+    private fun exitComposeMode() {
+        val compose = remoteComposeMode ?: return
+        remoteComposeMode = null
+        compose.clearFocus()
     }
 
     private fun moveRemoteSelection(dx: Int, dy: Int): Boolean {
@@ -700,6 +727,7 @@ class HomeFragment : MainModuleFragment() {
     }
 
     private fun selectRemote(view: View) {
+        if (remoteComposeMode != null && remoteComposeMode !== view) exitComposeMode()
         remoteSelection?.foreground = null
         remoteSelection = view
         view.foreground = remoteFocusRing()
@@ -723,7 +751,8 @@ class HomeFragment : MainModuleFragment() {
         val out = ArrayList<View>()
         fun walk(v: View) {
             if (!v.isShown) return
-            if (v.hasOnClickListeners() || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
+            // A ComposeView is one selectable card: its own buttons are reached through the Compose mode.
+            if (v is AbstractComposeView || v.hasOnClickListeners() || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
                 val top = v.screenTop()
                 if (top + v.height > listTop && top < listTop + height) out.add(v)
                 return // do not descend into clickable children of a card

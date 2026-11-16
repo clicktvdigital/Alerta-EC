@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.map.MapActivity
 
 /** Entradas de Home sin campos editables dentro del RecyclerView. */
@@ -34,14 +35,14 @@ fun AlertaEcFeedbackEntry(context: Context) {
                 Text("Las capas se consultan por separado; activadas no significa que haya datos recientes.",
                     style = MaterialTheme.typography.bodySmall)
                 Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
-                    modifier = Modifier.fillMaxWidth()) { Text("Abrir mapa meteorológico") }
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Abrir mapa meteorológico") }
             }
         }
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("⭐ Reseñas de ALERTA EC", style = MaterialTheme.typography.titleLarge)
                 OutlinedButton(onClick = { showFeedback(context, false) },
-                    modifier = Modifier.fillMaxWidth()) { Text("Escribir reseña") }
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Escribir reseña") }
             }
         }
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -50,7 +51,7 @@ fun AlertaEcFeedbackEntry(context: Context) {
                 Text("Incluye texto, foto, video o audio y GPS voluntario.",
                     style = MaterialTheme.typography.bodyMedium)
                 Button(onClick = { showFeedback(context, true) },
-                    modifier = Modifier.fillMaxWidth()) { Text("Redactar reporte y adjuntar evidencia") }
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Redactar reporte y adjuntar evidencia") }
                 Text("El envío requiere elegir una aplicación externa. No equivale a un reporte recibido por ECU 911.",
                     style = MaterialTheme.typography.bodySmall)
             }
