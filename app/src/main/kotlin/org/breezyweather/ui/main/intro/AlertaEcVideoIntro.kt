@@ -94,6 +94,8 @@ internal object AlertaEcVideoIntro {
         }
 
         val view = VideoView(context)
+        // Video por encima de la imagen de inicio y de otras capas en TV (MediaTek / Indurama).
+        view.setZOrderMediaOverlay(true)
         // Hidden until the start image has been shown for START_IMAGE_MS.
         view.visibility = View.INVISIBLE
         activeVideo = view
