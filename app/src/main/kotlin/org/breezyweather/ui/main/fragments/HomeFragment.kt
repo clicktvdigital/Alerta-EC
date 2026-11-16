@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.platform.AbstractComposeView
+import org.breezyweather.ui.support.TvCardActions
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import breezyweather.domain.location.model.Location
@@ -77,8 +78,6 @@ class HomeFragment : MainModuleFragment() {
     private var remotePendingEdge = 0
     private var remoteOnToolbar = false
 
-    /** Card whose own Compose controls (buttons inside a ComposeView) currently receive the D-pad. */
-    private var remoteComposeMode: AbstractComposeView? = null
     private var remoteFocusRingCache: GradientDrawable? = null
     private lateinit var viewModel: MainActivityViewModel
     private lateinit var weatherView: WeatherView
@@ -548,50 +547,66 @@ class HomeFragment : MainModuleFragment() {
 
     fun handleRemoteKey(event: KeyEvent): Boolean {
         val keyCode = event.keyCode
-        android.util.Log.i("AlertaEcKeys", "key=$keyCode action=${event.action} onToolbar=$remoteOnToolbar selected=${remoteSelection != null}")
         if (!isAdded || !::binding.isInitialized) return false
-        // A card with Compose controls: keys go to Compose first, so its buttons move and click.
-        remoteComposeMode?.let { compose ->
-            // Send to the Compose root itself: a ComposeView only forwards keys to a focused child.
-            val inner = compose.getChildAt(0) ?: compose
-            if (compose.isAttachedToWindow && inner.dispatchKeyEvent(event)) return true
-            // Compose could not use the key (edge of the card): hand navigation back to the list.
-            exitComposeMode()
-        }
         if (event.action != KeyEvent.ACTION_DOWN) return false
-        return when (keyCode) {
+        val name = remoteKeyName(keyCode)
+        if (name == null) return false
+        val before = describeRemoteSelection()
+        val handled = when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> moveRemoteSelection(0, 1)
             KeyEvent.KEYCODE_DPAD_UP -> moveRemoteSelection(0, -1)
             KeyEvent.KEYCODE_DPAD_RIGHT -> moveRemoteSelection(1, 0)
             KeyEvent.KEYCODE_DPAD_LEFT -> moveRemoteSelection(-1, 0)
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                val target = remoteSelection ?: return false
-                if (target is AbstractComposeView) return enterComposeMode(target)
-                target.isAttachedToWindow && target.performClick()
-            }
+            KeyEvent.KEYCODE_NUMPAD_ENTER -> activateRemoteSelection()
             else -> false
         }
+        android.util.Log.i(
+            "AlertaEcFocus",
+            "key=$name handled=$handled from=$before to=${describeRemoteSelection()}"
+        )
+        return handled
     }
 
-    /** OK on a card with Compose controls: give its Compose tree the focus so D-pad moves between buttons. */
-    private fun enterComposeMode(card: AbstractComposeView): Boolean {
-        if (!card.isAttachedToWindow) return false
-        remoteComposeMode = card
-        card.requestFocus()
-        val inner = card.getChildAt(0) ?: card
-        // Compose has no focused control yet: a DOWN moves it to the first control of the card.
-        val moved = inner.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN)) &&
-            inner.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN))
-        if (!moved) exitComposeMode()
-        return moved
+    /** OK on the focused card: cards with their own actions open a native action list, others are clicked. */
+    private fun activateRemoteSelection(): Boolean {
+        val target = remoteSelection ?: run {
+            android.util.Log.i("AlertaEcFocus", "ok: no selection")
+            return false
+        }
+        if (target is AbstractComposeView) {
+            val tag = target.tag as? String
+            val shown = tag != null && TvCardActions.show(target.context, tag)
+            android.util.Log.i("AlertaEcFocus", "ok: card actions tag=$tag shown=$shown")
+            return shown
+        }
+        val clicked = target.isAttachedToWindow && target.performClick()
+        android.util.Log.i("AlertaEcFocus", "ok: click ${target.javaClass.simpleName} performed=$clicked")
+        return clicked
     }
 
-    private fun exitComposeMode() {
-        val compose = remoteComposeMode ?: return
-        remoteComposeMode = null
-        compose.clearFocus()
+    private fun remoteKeyName(keyCode: Int): String? = when (keyCode) {
+        KeyEvent.KEYCODE_DPAD_UP -> "UP"
+        KeyEvent.KEYCODE_DPAD_DOWN -> "DOWN"
+        KeyEvent.KEYCODE_DPAD_LEFT -> "LEFT"
+        KeyEvent.KEYCODE_DPAD_RIGHT -> "RIGHT"
+        KeyEvent.KEYCODE_DPAD_CENTER -> "CENTER"
+        KeyEvent.KEYCODE_ENTER -> "ENTER"
+        KeyEvent.KEYCODE_NUMPAD_ENTER -> "NUMPAD_ENTER"
+        else -> null
+    }
+
+    /** Readable position of the focused card for AlertaEcFocus logs: index among candidates and its kind. */
+    private fun describeRemoteSelection(): String {
+        if (remoteOnToolbar) return "toolbar:${remoteSelection?.javaClass?.simpleName}"
+        val view = remoteSelection ?: return "none"
+        val index = if (::binding.isInitialized) binding.recyclerView.remoteCandidates().indexOf(view) else -1
+        val kind = when (view) {
+            is AbstractComposeView -> "compose:${view.tag ?: "untagged"}"
+            else -> view.javaClass.simpleName
+        }
+        return "#$index($kind)"
     }
 
     private fun moveRemoteSelection(dx: Int, dy: Int): Boolean {
@@ -734,7 +749,6 @@ class HomeFragment : MainModuleFragment() {
     }
 
     private fun selectRemote(view: View) {
-        if (remoteComposeMode != null && remoteComposeMode !== view) exitComposeMode()
         remoteSelection?.foreground = null
         remoteSelection = view
         view.foreground = remoteFocusRing()
@@ -766,7 +780,9 @@ class HomeFragment : MainModuleFragment() {
             // A ComposeView is one selectable card: its own buttons are reached through the Compose mode.
             // Cells of a nested horizontal list (hourly / daily trend) have no id but are focusable on TV.
             val nestedCell = v.isFocusable && v.isEnabled && v.parent.let { it is RecyclerView && it !== this@remoteCandidates }
-            if (v is AbstractComposeView || v.hasOnClickListeners() || nestedCell || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
+            // Only the Compose cards that have actions (tagged) are selectable; other ComposeViews are not.
+            val actionCard = v is AbstractComposeView && v.tag != null
+            if (actionCard || v.hasOnClickListeners() || nestedCell || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
                 val top = v.screenTop()
                 if (top + v.height > listTop && top < listTop + height) out.add(v)
                 return // do not descend into clickable children of a card

@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import org.breezyweather.ui.support.TvCardActions
 import androidx.compose.ui.unit.dp
 import breezyweather.domain.location.model.Location
 import org.breezyweather.ui.common.widgets.tvFocusIndicator
@@ -30,6 +31,10 @@ import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 class DonationsViewHolder(
     private val composeView: ComposeView,
 ) : AbstractMainViewHolder(composeView) {
+
+    init {
+        composeView.tag = TvCardActions.TAG_DONATIONS
+    }
 
     override fun onBindView(
         context: Context,

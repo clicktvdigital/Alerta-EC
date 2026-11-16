@@ -69,7 +69,7 @@ private fun findHost(context: Context): FragmentActivity? {
     return null
 }
 
-private fun showFeedback(context: Context, isReport: Boolean) {
+internal fun showFeedback(context: Context, isReport: Boolean) {
     val host = findHost(context)
     if (host == null || host.supportFragmentManager.isStateSaved) {
         Toast.makeText(context, "No se puede abrir el formulario ahora.", Toast.LENGTH_LONG).show()

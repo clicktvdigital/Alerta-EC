@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.ComposeView
+import org.breezyweather.ui.support.TvCardActions
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import breezyweather.domain.location.model.Location
@@ -99,6 +100,10 @@ private fun shareReport(context: Context, kind: String, message: String, gps: Bo
 }
 
 class InamhiMapViewHolder(private val composeView: ComposeView) : AbstractMainViewHolder(composeView) {
+    init {
+        composeView.tag = TvCardActions.TAG_MAP
+    }
+
     override fun onBindView(
         context: Context,
         location: Location,
