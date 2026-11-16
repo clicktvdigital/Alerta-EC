@@ -27,7 +27,7 @@ import org.breezyweather.R
  */
 internal object AlertaEcVideoIntro {
     private const val BLACK = Color.BLACK
-    private const val PREPARE_TIMEOUT_MS = 5_000L
+    private const val PREPARE_TIMEOUT_MS = 30_000L
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
