@@ -73,6 +73,17 @@ configure<ApplicationExtension> {
         }
     }
 
+    // Keystore de depuración fijo y versionado: cada build (local o CI) queda firmado con la misma clave,
+    // así puede actualizarse con 'adb install -r' sin reinstalar ni perder ajustes. No es la clave de producción.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/alerta-ec-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         named("debug") {
             applicationIdSuffix = ".debug"
