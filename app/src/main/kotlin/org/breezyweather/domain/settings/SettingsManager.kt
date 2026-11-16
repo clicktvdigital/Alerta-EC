@@ -311,9 +311,24 @@ class SettingsManager private constructor(
                 .putString("card_display", CardDisplay.toValue(value))
                 .apply()
         }
-        get() = CardDisplay
-            .resolveStoredList(config.getString("card_display", null), DEFAULT_CARD_DISPLAY)
-            .toMutableList()
+        get() {
+            val stored = config.getString("card_display", null)
+            val list = CardDisplay
+                .resolveStoredList(stored, DEFAULT_CARD_DISPLAY)
+                .toMutableList()
+            // One-time migration: lists saved before Sun and Moon existed never received them.
+            // Add them once; after that the user's own choices are respected.
+            if (stored != null && !config.getBoolean("card_display_sun_moon_added", false)) {
+                listOf(CardDisplay.CARD_SUN, CardDisplay.CARD_MOON).forEach { card ->
+                    if (card !in list) list.add(card)
+                }
+                config.edit()
+                    .putString("card_display", CardDisplay.toValue(list))
+                    .putBoolean("card_display_sun_moon_added", true)
+                    .apply()
+            }
+            return list
+        }
 
     var dailyTrendDisplayList: List<DailyTrendDisplay>
         set(value) {
