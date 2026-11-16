@@ -233,7 +233,9 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                             }
                             Spacer(modifier = Modifier.height(dimensionResource(R.dimen.normal_margin)))
                         }
-                        if (validLocationListState.value.firstOrNull { it.isCurrentPosition } == null) {
+                        if (validLocationListState.value.firstOrNull { it.isCurrentPosition } == null &&
+                            !isTelevisionWithoutGps(LocalContext.current)
+                        ) {
                             FloatingActionButton(
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 onClick = {
@@ -749,4 +751,17 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
             }
         )
     }
+}
+
+/**
+ * Android TV boxes usually have no GPS. Offering "current location" there only
+ * leads to a long search that never resolves, so the option is hidden.
+ */
+private fun isTelevisionWithoutGps(context: android.content.Context): Boolean {
+    val pm = context.packageManager
+    val isTelevision = (context.resources.configuration.uiMode and
+        android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+        android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+        pm.hasSystemFeature("android.software.leanback")
+    return isTelevision && !pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)
 }

@@ -528,6 +528,11 @@ class MainActivityViewModel @Inject constructor(
             return false
         }
 
+        // A new current-position place must fetch its weather right away, not only after a manual refresh.
+        if (location.isCurrentPosition) {
+            updateWithUpdatingChecking(triggeredByUser = true, checkPermissions = true)
+        }
+
         _locationListLoading.value = true
 
         val locationWithValidTimeZone = if (context != null && location.isTimeZoneInvalid) {

@@ -70,7 +70,7 @@ abstract class AbstractMainCardViewHolder(
                     card.setOnFocusChangeListener { _, focused ->
                         card.strokeWidth = if (focused) activity.dpToPx(3f).toInt().coerceAtLeast(1) else regularWidth
                         card.strokeColor = if (focused) {
-                            activity.getThemeColor(com.google.android.material.R.attr.colorPrimary)
+                            activity.getThemeColor(androidx.appcompat.R.attr.colorPrimary)
                         } else {
                             regularColor
                         }

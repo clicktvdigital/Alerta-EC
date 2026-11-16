@@ -23,6 +23,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -123,6 +124,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isLocationBasedLightTheme = _isLocationBasedLightTheme.asStateFlow()
 
     companion object {
+        private const val HOLD_REFRESH_MS = 2000L
         const val SEARCH_ACTIVITY = 4
 
         const val ACTION_MAIN = "${BuildConfig.APPLICATION_ID}.Main"
@@ -250,6 +252,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val startupT0 = System.nanoTime()
         if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
             packageManager.hasSystemFeature("android.software.leanback") ||
             packageManager.hasSystemFeature("android.hardware.type.television") ||
@@ -267,10 +270,14 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             )
 
         super.onCreate(savedInstanceState)
+        android.util.Log.i("AlertaEcStartup", "super.onCreate: ${(System.nanoTime() - startupT0) / 1_000_000} ms")
 
         if (isLaunch) {
+            val tMigrations = System.nanoTime()
             Migrations.upgrade(applicationContext, sourceManager, locationRepository, weatherRepository)
+            android.util.Log.i("AlertaEcStartup", "migrations: ${(System.nanoTime() - tMigrations) / 1_000_000} ms")
         }
+        android.util.Log.i("AlertaEcStartup", "onCreate before layout: ${(System.nanoTime() - startupT0) / 1_000_000} ms")
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentsLifecycleCallback, false)
@@ -352,9 +359,57 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         }
     }
 
+    /**
+     * Remote-control support on the home screen: arrows move the focus ring
+     * between cards and OK activates the focused card. Input fields and the
+     * settings overlay keep their own key handling.
+     */
+    private var holdRefreshFired = false
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            !isManagementFragmentVisible &&
+            currentFocus !is android.widget.EditText &&
+            findHomeFragment()?.handleRemoteKey(event.keyCode) == true
+        ) {
+            return true
+        }
+        // Holding DOWN for about 2 seconds refreshes the home screen (same as pull-to-refresh).
+        if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isManagementFragmentVisible) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                holdRefreshFired = false
+            } else if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount > 0 &&
+                event.eventTime - event.downTime >= HOLD_REFRESH_MS
+            ) {
+                if (!holdRefreshFired) {
+                    holdRefreshFired = true
+                    findHomeFragment()?.refreshFromRemote()
+                }
+                return true
+            }
+        }
+        // Yellow remote key refreshes the home screen.
+        if (event.action == KeyEvent.ACTION_DOWN && !isManagementFragmentVisible &&
+            (event.keyCode == KeyEvent.KEYCODE_PROG_YELLOW || event.keyCode == KeyEvent.KEYCODE_BUTTON_Y) &&
+            findHomeFragment()?.refreshFromRemote() == true
+        ) {
+            return true
+        }
+        // Remote Menu key opens Settings from the home screen.
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            event.keyCode == KeyEvent.KEYCODE_MENU &&
+            !isManagementFragmentVisible
+        ) {
+            IntentHelper.startSettingsActivity(this)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onResume() {
         super.onResume()
-        if (tvIntroPending && hasWindowFocus()) {
+        // Start the intro as soon as the activity resumes; waiting for window focus could skip it on cold start.
+        if (tvIntroPending) {
             tvIntroPending = false
             playAlertaEcIntro()
         }

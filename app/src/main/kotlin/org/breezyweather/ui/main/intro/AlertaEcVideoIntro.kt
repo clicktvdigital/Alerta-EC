@@ -31,6 +31,10 @@ internal object AlertaEcVideoIntro {
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
+    /** The start image stays on screen this long before the video begins. */
+    private const val START_IMAGE_MS = 5_000L
+    /** The end image stays on screen this long after the video ends. */
+    private const val END_IMAGE_MS = 5_000L
     private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
     private var activeVideo: VideoView? = null
@@ -82,6 +86,7 @@ internal object AlertaEcVideoIntro {
             animatorScale,
             animationsEnabled,
         )
+        android.util.Log.i("AlertaEcStartup", "intro play: tv=$useTvVisuals reduceMotion=$reduceMotion")
         stop()
         if (reduceMotion) {
             frame.visibility = View.GONE
@@ -89,6 +94,8 @@ internal object AlertaEcVideoIntro {
         }
 
         val view = VideoView(context)
+        // Hidden until the start image has been shown for START_IMAGE_MS.
+        view.visibility = View.INVISIBLE
         activeVideo = view
         activeRoot = frame
         try {
@@ -142,6 +149,14 @@ internal object AlertaEcVideoIntro {
             skip.visibility = View.VISIBLE
             skip.alpha = 1f
             skip.bringToFront()
+            // Visible focus ring so the remote shows where OK will press "Omitir".
+            skip.isFocusable = true
+            skip.foreground = android.graphics.drawable.GradientDrawable().apply {
+                val density = context.resources.displayMetrics.density
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke((3 * density).toInt(), android.graphics.Color.WHITE)
+                cornerRadius = 12 * density
+            }
             skip.setOnClickListener { stop() }
 
             // No dejar una pantalla negra si el dispositivo no puede decodificar el MP4.
@@ -172,20 +187,26 @@ internal object AlertaEcVideoIntro {
                         }
                         false
                     }
-                    runCatching { view.start() }
-                        .onSuccess {
-                            // Sustituir el límite de preparación por uno único de reproducción.
-                            val duration = player.duration.takeIf { it > 0 }?.toLong()
-                            scheduleTimeout(
-                                timeout,
-                                (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
-                            )
-                            if (soundEnabled) {
-                                pendingAudioFallback = audioFallback
-                                handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
+                    // Hold the start image, then reveal and start the video.
+                    cancelTimeout()
+                    handler.postDelayed({
+                        if (activeVideo !== view) return@postDelayed
+                        view.visibility = View.VISIBLE
+                        runCatching { view.start() }
+                            .onSuccess {
+                                // Sustituir el límite de preparación por uno único de reproducción.
+                                val duration = player.duration.takeIf { it > 0 }?.toLong()
+                                scheduleTimeout(
+                                    timeout,
+                                    (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
+                                )
+                                if (soundEnabled) {
+                                    pendingAudioFallback = audioFallback
+                                    handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
+                                }
                             }
-                        }
-                        .onFailure { stop() }
+                            .onFailure { stop() }
+                    }, START_IMAGE_MS)
                 }
             }
             view.setOnCompletionListener {
@@ -206,7 +227,7 @@ internal object AlertaEcVideoIntro {
                                 .start()
                         }
                     }
-                    scheduleTimeout(finish, 0L)
+                    scheduleTimeout(finish, END_IMAGE_MS)
                 }
             }
             view.setOnErrorListener { _, _, _ ->
@@ -229,6 +250,7 @@ internal object AlertaEcVideoIntro {
     }
 
     fun stop() {
+        android.util.Log.i("AlertaEcStartup", "intro stop: active=${activeVideo != null}")
         cancelTimeout()
         cancelAudioFallback()
         val view = activeVideo

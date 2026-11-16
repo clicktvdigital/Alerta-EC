@@ -22,6 +22,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
+import android.view.KeyEvent
 import androidx.annotation.CallSuper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +75,26 @@ private const val PERMISSION_CODE_POST_NOTIFICATION = 0
 
 @AndroidEntryPoint
 class SettingsActivity : BreezyActivity() {
+
+    private var composeFocusManager: FocusManager? = null
+
+    /** Remote-control D-pad keys move focus inside the Compose settings screens. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val direction = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> FocusDirection.Up
+                KeyEvent.KEYCODE_DPAD_DOWN -> FocusDirection.Down
+                KeyEvent.KEYCODE_DPAD_LEFT -> FocusDirection.Left
+                KeyEvent.KEYCODE_DPAD_RIGHT -> FocusDirection.Right
+                else -> null
+            }
+            val manager = composeFocusManager
+            if (direction != null && manager != null && manager.moveFocus(direction)) {
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
 
     @Inject lateinit var sourceManager: SourceManager
 
@@ -130,6 +155,9 @@ class SettingsActivity : BreezyActivity() {
 
         setContent {
             BreezyWeatherTheme {
+                // Keep Compose's focus manager so remote D-pad keys can move focus in this screen.
+                val focusManager = LocalFocusManager.current
+                SideEffect { composeFocusManager = focusManager }
                 ContentView()
             }
         }

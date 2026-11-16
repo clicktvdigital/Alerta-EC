@@ -77,11 +77,13 @@ class BreezyWeather : Application(), Configuration.Provider {
     lateinit var workerFactory: HiltWorkerFactory
 
     override fun onCreate() {
+        val appT0 = System.nanoTime()
         super.onCreate()
 
         instance = this
 
         setupNotificationChannels()
+        android.util.Log.i("AlertaEcStartup", "application onCreate: ${(System.nanoTime() - appT0) / 1_000_000} ms")
 
         if (getProcessName().equals(packageName)) {
             // Sets and persists the night mode setting for this app. This allows the system to know

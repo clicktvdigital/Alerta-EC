@@ -138,7 +138,7 @@ class LocationHolder(
             mBinding.sortButton.isFocusable = false
             val normalStroke = mBinding.root.strokeWidth
             val focusStroke = (3f * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-            mBinding.root.strokeColor = context.getThemeColor(com.google.android.material.R.attr.colorPrimary)
+            mBinding.root.strokeColor = context.getThemeColor(androidx.appcompat.R.attr.colorPrimary)
             mBinding.container.setOnFocusChangeListener { _, focused ->
                 mBinding.root.strokeWidth = if (focused) focusStroke else normalStroke
             }
