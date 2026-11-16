@@ -49,6 +49,7 @@ import org.breezyweather.ui.main.adapters.main.holder.SunViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.UvViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.VisibilityViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.WindViewHolder
+import org.breezyweather.ui.support.isTelevisionDevice
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.ui.theme.weatherView.WeatherView
 import java.util.Calendar
@@ -108,6 +109,7 @@ class MainAdapter(
                 mViewTypeList.add(ViewType.ALERT)
             }
             mViewTypeList.add(ViewType.HEADER)
+            val isTv = activity.isTelevisionDevice()
             val enabledCardDisplayList = mutableListOf<CardDisplay>()
             // Todas las tarjetas configuradas se muestran. Solo se omiten las que no pueden existir:
             // Nowcast sin datos por minuto y pronósticos sin días. Las tarjetas métricas, Sol y Luna
@@ -119,6 +121,11 @@ class MainAdapter(
                     continue
                 }
                 if (c === CardDisplay.CARD_DAILY_FORECAST && weather.dailyForecast.isEmpty()) {
+                    continue
+                }
+                // TV: la tarjeta de Polen se retira del Home (no se crea su vista ni consume memoria).
+                // Teléfono y tableta conservan la tarjeta según la configuración del usuario.
+                if (isTv && c === CardDisplay.CARD_POLLEN) {
                     continue
                 }
                 enabledCardDisplayList.add(c)

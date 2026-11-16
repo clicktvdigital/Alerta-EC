@@ -14,7 +14,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 internal object NoaaImageLoader {
-    private val cache = object : android.util.LruCache<String, Bitmap>(24 * 1024) {
+    // 12 MB (antes 24 MB): en TV de 1 GB la caché no debe competir con el mapa de MapLibre.
+    private val cache = object : android.util.LruCache<String, Bitmap>(12 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int =
             (value.byteCount / 1024).coerceAtLeast(1)
     }

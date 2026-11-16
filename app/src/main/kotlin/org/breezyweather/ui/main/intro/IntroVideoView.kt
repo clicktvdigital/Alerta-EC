@@ -63,8 +63,19 @@ internal class IntroVideoView(context: Context) : TextureView(context), TextureV
         player?.start()
     }
 
+    /**
+     * Libera por completo el intro: MediaPlayer, Surface y listeners. Sin esto, los lambdas
+     * retienen la vista y el contexto de la Activity mientras la pantalla principal sigue en memoria.
+     */
     fun stopPlayback() {
         release()
+        surface?.release()
+        surface = null
+        uri = null
+        onPrepared = null
+        onCompletion = null
+        onError = null
+        surfaceTextureListener = null
     }
 
     private fun openIfReady() {

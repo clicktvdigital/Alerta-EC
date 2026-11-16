@@ -13,7 +13,11 @@ import org.breezyweather.background.location.ActiveLocationController
 import org.breezyweather.background.location.LocationHumanFormatter
 import org.breezyweather.common.extensions.setSystemBarStyle
 import org.breezyweather.ui.main.fragments.MainModuleFragment
+import org.breezyweather.ui.support.applyTvFocusRing
+import org.breezyweather.ui.support.isTelevisionDevice
+import androidx.activity.OnBackPressedCallback
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import androidx.lifecycle.lifecycleScope
@@ -273,6 +277,11 @@ class MapFragment : MainModuleFragment() {
 
     private var mapView: MapView? = null
     private var satellitePlayer: NoaaSatellitePlayer? = null
+    // Estado del panel NOAA: controles del mapa ocultos mientras está abierto, y foco de regreso.
+    private var satellitePanel: View? = null
+    private var satelliteOpenButton: View? = null
+    private var satelliteHiddenViews: List<View> = emptyList()
+    private var satelliteBackCallback: OnBackPressedCallback? = null
     private var addressLabel: android.widget.TextView? = null
     private var gpsInfoLabel: android.widget.TextView? = null
     private var inamhiStatusLabel: android.widget.TextView? = null
@@ -590,6 +599,9 @@ class MapFragment : MainModuleFragment() {
             mapView = view
             styleReady = false
             lastPosition = null
+            // El mapa no debe robar el foco del D-pad: el mando solo se mueve por los controles.
+            view.isFocusable = false
+            view.isFocusableInTouchMode = false
             view.onCreate(savedInstanceState)
         }
         return android.widget.FrameLayout(requireContext()).apply {
@@ -725,17 +737,7 @@ class MapFragment : MainModuleFragment() {
                     }
                     contentDescription = "Capa meteorológica ${InamhiLayers.title(layer)}"
                     // Foco visible al navegar con un mando Android TV.
-                    val isTelevision = (
-                        resources.configuration.uiMode and
-                            android.content.res.Configuration.UI_MODE_TYPE_MASK
-                        ) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
-                        context.packageManager.hasSystemFeature(
-                            android.content.pm.PackageManager.FEATURE_LEANBACK
-                        ) ||
-                        context.packageManager.hasSystemFeature(
-                            android.content.pm.PackageManager.FEATURE_TELEVISION
-                        )
-                    if (isTelevision) {
+                    if (context.isTelevisionDevice()) {
                         isFocusable = true
                         isFocusableInTouchMode = false
                         setOnFocusChangeListener { view, focused ->
@@ -758,30 +760,8 @@ class MapFragment : MainModuleFragment() {
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             mapButtons.addView(android.widget.Button(context).apply {
                 text = "🛰️ Satélite y rayos"
-                setOnClickListener {
-                    if (satellitePlayer != null) return@setOnClickListener
-                    val panel = android.widget.LinearLayout(context).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
-                    }
-                    val gpsPosition = latestMapLocation()
-                    val galapagosTime = gpsPosition != null &&
-                        EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
-                    val player = NoaaSatellitePlayer(context, galapagosTime)
-                    satellitePlayer = player
-                    panel.addView(android.widget.Button(context).apply {
-                        text = "← Volver al mapa"
-                        setOnClickListener {
-                            player.release()
-                            satellitePlayer = null
-                            root.removeView(panel)
-                        }
-                    })
-                    panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
-                    root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
-                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
-                    player.resume()
-                }
+                applyTvFocusRing()
+                setOnClickListener { openSatellitePanel(it, root, gpsMap) }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             // Limitar todos los controles juntos para conservar mapa visible con paneles abiertos.
             val controlsScroll = object : android.widget.ScrollView(context) {
@@ -818,6 +798,19 @@ class MapFragment : MainModuleFragment() {
                     text = "✏️ Zona"
                     setOnClickListener { editarMiSector() }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                // Zoom con mando: el mapa no tiene otra forma de acercarse sin pantalla táctil.
+                if (context.isTelevisionDevice()) {
+                    listOf("＋ Zoom" to 1.0, "－ Zoom" to -1.0).forEach { (label, delta) ->
+                        addView(android.widget.Button(context).apply {
+                            text = label
+                            setOnClickListener {
+                                currentMap?.animateCamera(CameraUpdateFactory.zoomBy(delta))
+                            }
+                        }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                    }
+                }
+                // Borde de foco visible en cada control del mando (solo TV).
+                for (i in 0 until childCount) getChildAt(i).applyTvFocusRing()
             }
             val panel = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -832,6 +825,12 @@ class MapFragment : MainModuleFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Atrás (botón del mando) cierra primero el panel NOAA; sin panel, se comporta como siempre.
+        val backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() = closeSatellitePanel()
+        }
+        satelliteBackCallback = backCallback
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
         inamhiSelection = InamhiMapPreferences.read(requireContext())
         renderInamhiStatus()
         val requestedMapView = mapView ?: return
@@ -952,6 +951,52 @@ class MapFragment : MainModuleFragment() {
         mapView?.onStart()
     }
 
+    /** Abre el panel NOAA a pantalla completa y oculta los controles del mapa que quedan debajo. */
+    private fun openSatellitePanel(openButton: View, root: android.widget.FrameLayout, gpsMap: MapView) {
+        if (satellitePlayer != null) return
+        val context = requireContext()
+        val panel = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
+        }
+        val gpsPosition = latestMapLocation()
+        val galapagosTime = gpsPosition != null &&
+            EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
+        val player = NoaaSatellitePlayer(context, galapagosTime)
+        satellitePlayer = player
+        satellitePanel = panel
+        satelliteOpenButton = openButton
+        panel.addView(android.widget.Button(context).apply {
+            text = "← Volver al mapa"
+            applyTvFocusRing()
+            setOnClickListener { closeSatellitePanel() }
+        })
+        panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+        // Solo se ocultan los hermanos que estaban visibles; el MapView queda fuera del foco.
+        satelliteHiddenViews = (0 until root.childCount)
+            .map { root.getChildAt(it) }
+            .filter { it !== gpsMap && it !== panel && it.visibility == View.VISIBLE }
+        satelliteHiddenViews.forEach { it.visibility = View.GONE }
+        satelliteBackCallback?.isEnabled = true
+        panel.getChildAt(0)?.requestFocus()
+        // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
+        player.resume()
+    }
+
+    /** Cierra el panel NOAA, libera sus imágenes y devuelve el foco al botón que lo abrió. */
+    private fun closeSatellitePanel() {
+        satellitePlayer?.release()
+        satellitePlayer = null
+        satellitePanel?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        satellitePanel = null
+        satelliteHiddenViews.forEach { it.visibility = View.VISIBLE }
+        satelliteHiddenViews = emptyList()
+        satelliteBackCallback?.isEnabled = false
+        satelliteOpenButton?.requestFocus()
+        satelliteOpenButton = null
+    }
+
     override fun onResume() {
         super.onResume()
         context?.let { permissionContext ->
@@ -1040,6 +1085,10 @@ class MapFragment : MainModuleFragment() {
         inamhiStatusLabel = null
         satellitePlayer?.release()
         satellitePlayer = null
+        satellitePanel = null
+        satelliteOpenButton = null
+        satelliteHiddenViews = emptyList()
+        satelliteBackCallback = null
         val destroyedMapView = mapView
         mapView = null
         destroyedMapView?.onDestroy()

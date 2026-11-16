@@ -6,6 +6,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Button
 import android.widget.SeekBar
+import org.breezyweather.ui.support.applyTvFocusRing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -150,6 +151,8 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             choices.addView(button, android.widget.LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         }
         addView(choices)
+        // Foco visible para el mando D-pad en TV (no hace nada en teléfono).
+        modeButtons.forEach { it.applyTvFocusRing() }
         addView(TextView(context).apply {
             text = "NOAA GOES-19 · Norte de Sudamérica (incluye Ecuador). Imágenes regionales, no de calles."
             textSize = 12f
@@ -159,8 +162,10 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
+        playButton.applyTvFocusRing()
         addView(playButton)
         retryButton.text = "↻ Reintentar NOAA"
+        retryButton.applyTvFocusRing()
         retryButton.setOnClickListener {
             frames.getOrNull(index)?.imageUrl?.let(failedFrameUrls::remove)
             loadSelectedMode(selectedMode, force = true)
@@ -331,6 +336,8 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         loadingFrameUrl = null
         scope.coroutineContext[Job]?.cancel()
         playing = false
-        handler.removeCallbacks(advance)
+        handler.removeCallbacksAndMessages(null)
+        // Soltar el bitmap del fotograma visible: a pantalla completa pesa varios MB.
+        image.setImageDrawable(null)
     }
 }

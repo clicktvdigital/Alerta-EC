@@ -19,6 +19,7 @@ import android.widget.FrameLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.breezyweather.R
+import org.breezyweather.ui.support.isTelevisionDevice
 
 /**
  * Reproduce un vídeo local con sonido de forma predeterminada.
@@ -31,8 +32,19 @@ internal object AlertaEcVideoIntro {
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
-    /** The start image stays on screen this long before the video begins. */
-    private const val START_IMAGE_MS = 5_000L
+    /**
+     * The start image stays on screen this long before the video begins.
+     * Was 5 s: that fixed hold was most of the 11 s between "intro play" and "intro video start".
+     */
+    private const val START_IMAGE_MS = 1_500L
+    /**
+     * Logos horizontales Full HD del intro de TV, reemplazables sin tocar código:
+     *  - Inicio: app/src/main/res/drawable-nodpi/alertaec_tv_intro_start.jpg
+     *  - Cierre: app/src/main/res/drawable-nodpi/alertaec_tv_intro_end.jpg
+     * Conservar el mismo nombre base. Si cambia la extensión (p. ej. .png), borrar el archivo anterior.
+     */
+    private val TV_START_LOGO = R.drawable.alertaec_tv_intro_start
+    private val TV_END_LOGO = R.drawable.alertaec_tv_intro_end
     /** The end image stays on screen this long after the video ends. */
     private const val END_IMAGE_MS = 1_200L
     private const val AUDIO_FALLBACK_MS = 1_500L
@@ -45,6 +57,8 @@ internal object AlertaEcVideoIntro {
     private var pendingAudioFallback: Runnable? = null
     private var previousWindowState: WindowState? = null
     private var previousRootPadding: IntArray? = null
+    /** Fondo original del contenedor; se restaura al terminar para soltar el logo de TV de memoria. */
+    private var previousRootBackground: android.graphics.drawable.Drawable? = null
 
     private data class WindowState(
         val window: android.view.Window,
@@ -64,12 +78,7 @@ internal object AlertaEcVideoIntro {
         // Solo insertar VideoView en un contenedor compatible.
         val frame = root as? FrameLayout ?: return false
         val context = frame.context
-        val isTelevision =
-            (context.resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
-                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
-                context.packageManager.hasSystemFeature("android.software.leanback") ||
-                context.packageManager.hasSystemFeature("android.hardware.type.television")
+        val isTelevision = context.isTelevisionDevice()
         val useTvVisuals = isTelevision ||
             context.resources.configuration.smallestScreenWidthDp >= 600
 
@@ -112,8 +121,9 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
+            previousRootBackground = frame.background
             if (useTvVisuals) {
-                frame.setBackgroundResource(R.drawable.alertaec_tv_splash)
+                frame.setBackgroundResource(TV_START_LOGO)
             } else {
                 frame.setBackgroundColor(BLACK)
             }
@@ -223,7 +233,7 @@ internal object AlertaEcVideoIntro {
                     cancelAudioFallback()
                     skip.visibility = View.GONE
                     // Cierre: logo fijo breve y fundido rápido hacia la pantalla principal (sin negro largo).
-                    if (useTvVisuals) frame.setBackgroundResource(R.drawable.alertaec_tv_splash)
+                    if (useTvVisuals) frame.setBackgroundResource(TV_END_LOGO)
                     view.visibility = View.GONE
                     val finish = Runnable {
                         if (activeVideo === view) {
@@ -279,6 +289,9 @@ internal object AlertaEcVideoIntro {
                 frame.setPadding(padding[0], padding[1], padding[2], padding[3])
             }
             previousRootPadding = null
+            // Soltar el logo de TV (bitmap a pantalla completa) en cuanto termina el intro.
+            frame.background = previousRootBackground
+            previousRootBackground = null
         }
         previousWindowState?.let { state ->
             state.window.statusBarColor = state.statusBarColor
@@ -299,12 +312,7 @@ internal object AlertaEcVideoIntro {
 
     private fun restoreTelevisionFocus(frame: View) {
         val activity = frame.context as? Activity ?: return
-        val television = (activity.resources.configuration.uiMode and
-            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
-            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
-            activity.packageManager.hasSystemFeature("android.software.leanback") ||
-            activity.packageManager.hasSystemFeature("android.hardware.type.television")
-        if (!television) return
+        if (!activity.isTelevisionDevice()) return
 
         // Las tarjetas pueden terminar de cargarse despues del video.
         // Reintentar brevemente sin bloquear la pantalla principal.
