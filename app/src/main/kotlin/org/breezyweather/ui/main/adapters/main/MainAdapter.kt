@@ -121,6 +121,10 @@ class MainAdapter(
                 if (c === CardDisplay.CARD_DAILY_FORECAST && weather.dailyForecast.isEmpty()) {
                     continue
                 }
+                // Polen sin datos para esta ubicacion (fuentes actuales solo cubren Europa): no ocupa espacio.
+                if (c === CardDisplay.CARD_POLLEN && weather.today?.pollen == null) {
+                    continue
+                }
                 enabledCardDisplayList.add(c)
             }
             // Los pronósticos ocupan primero sus posiciones fijas; las demás tarjetas

@@ -552,7 +552,9 @@ class HomeFragment : MainModuleFragment() {
         if (!isAdded || !::binding.isInitialized) return false
         // A card with Compose controls: keys go to Compose first, so its buttons move and click.
         remoteComposeMode?.let { compose ->
-            if (compose.isAttachedToWindow && compose.dispatchKeyEvent(event)) return true
+            // Send to the Compose root itself: a ComposeView only forwards keys to a focused child.
+            val inner = compose.getChildAt(0) ?: compose
+            if (compose.isAttachedToWindow && inner.dispatchKeyEvent(event)) return true
             // Compose could not use the key (edge of the card): hand navigation back to the list.
             exitComposeMode()
         }
@@ -578,7 +580,12 @@ class HomeFragment : MainModuleFragment() {
         if (!card.isAttachedToWindow) return false
         remoteComposeMode = card
         card.requestFocus()
-        return true
+        val inner = card.getChildAt(0) ?: card
+        // Compose has no focused control yet: a DOWN moves it to the first control of the card.
+        val moved = inner.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN)) &&
+            inner.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN))
+        if (!moved) exitComposeMode()
+        return moved
     }
 
     private fun exitComposeMode() {

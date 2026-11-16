@@ -139,8 +139,8 @@ internal object AlertaEcVideoIntro {
                 window.navigationBarColor = BLACK
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
             }
-            // SurfaceView necesita un fondo transparente para mostrar el fondo negro del contenedor.
-            view.setBackgroundColor(Color.TRANSPARENT)
+            // TextureView is transparent by itself (isOpaque = false). It must NOT get a background:
+            // TextureView throws UnsupportedOperationException on setBackgroundColor, which aborted the intro.
             // Insertar sobre las capas antiguas, manteniendo Omitir delante.
             frame.addView(
                 view,

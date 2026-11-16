@@ -54,7 +54,10 @@ class HourlyTrendAdapter(
         }
     private var selectedIndexCache = -1
 
+    private var boundLocation: Location? = null
+
     fun bindData(location: Location) {
+        boundLocation = location
         val provider = ResourcesProviderFactory.newInstance
         val tempUnit = SettingsManager.getInstance(activity).getTemperatureUnit(activity)
 
@@ -86,6 +89,26 @@ class HourlyTrendAdapter(
     override fun onBindViewHolder(holder: AbsHourlyTrendAdapter.ViewHolder, position: Int) {
         adapters[selectedIndex].onBindViewHolder(holder, position)
         bindRemoteFocus(holder.itemView)
+        bindTelevisionDetail(holder)
+    }
+
+    /**
+     * On Android TV, OK on an hour opens that hour's full detail (replaces the day shortcut).
+     */
+    private fun bindTelevisionDetail(holder: AbsHourlyTrendAdapter.ViewHolder) {
+        val context = holder.itemView.context
+        val isTelevision = (context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        if (!isTelevision) return
+        holder.itemView.setOnClickListener {
+            val position = holder.bindingAdapterPosition
+            val location = boundLocation
+            if (position != RecyclerView.NO_POSITION && location != null) {
+                HourlyDetailDialog.show(activity, location, position)
+            }
+        }
     }
 
     /**
