@@ -27,7 +27,6 @@ import org.breezyweather.common.options.appearance.CardDisplay
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.hasMinutelyPrecipitation
 import org.breezyweather.domain.weather.model.isIndexValid
-import org.breezyweather.domain.weather.model.validAirQuality
 import org.breezyweather.ui.main.MainActivity
 import org.breezyweather.ui.main.adapters.main.holder.AbstractMainCardViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.AbstractMainViewHolder
@@ -110,6 +109,9 @@ class MainAdapter(
             }
             mViewTypeList.add(ViewType.HEADER)
             val enabledCardDisplayList = mutableListOf<CardDisplay>()
+            // Todas las tarjetas configuradas se muestran. Solo se omiten las que no pueden existir:
+            // Nowcast sin datos por minuto y pronósticos sin días. Las tarjetas métricas, Sol y Luna
+            // siempre aparecen; cuando el proveedor no envía un dato, la tarjeta indica "--".
             for (c in cardDisplayList) {
                 if (c === CardDisplay.CARD_NOWCAST &&
                     (!weather.hasMinutelyPrecipitation || weather.minutelyForecast.size < 3)
@@ -117,57 +119,6 @@ class MainAdapter(
                     continue
                 }
                 if (c === CardDisplay.CARD_DAILY_FORECAST && weather.dailyForecast.isEmpty()) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_PRECIPITATION) {
-                    val cal = Date().toCalendarWithTimeZone(location.timeZone)
-                    val currentHour = cal[Calendar.HOUR_OF_DAY]
-                    val precipitation = if (currentHour < 5) {
-                        weather.todayIndex?.let { todayIndex ->
-                            weather.dailyForecast.getOrElse(todayIndex.minus(1)) { null }?.night?.precipitation
-                        }
-                    } else if (currentHour < 17) {
-                        weather.today?.day?.precipitation
-                    } else {
-                        weather.today?.night?.precipitation
-                    }
-                    if (precipitation?.total == null) {
-                        continue
-                    }
-                }
-                if (c === CardDisplay.CARD_WIND && weather.current?.wind?.isValid != true) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_AIR_QUALITY && weather.validAirQuality == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_POLLEN &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.pollen?.isIndexValid != true)
-                ) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_HUMIDITY && weather.current?.relativeHumidity == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_UV && weather.current?.uV?.index == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_VISIBILITY && weather.current?.visibility == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_PRESSURE && weather.current?.pressure == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_SUN &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.sun == null)
-                ) {
-                    continue
-                }
-                // La luna se calcula localmente en cada actualización; la tarjeta se muestra siempre
-                // y MoonViewHolder indica "--" en los días sin salida ni puesta.
-                if (c === CardDisplay.CARD_MOON &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.moon == null)
-                ) {
                     continue
                 }
                 enabledCardDisplayList.add(c)

@@ -193,7 +193,11 @@ internal object AlertaEcVideoIntro {
                     cancelTimeout()
                     handler.postDelayed({
                         if (activeVideo !== view) return@postDelayed
+                        // Quitar la imagen de portada (fondo del contenedor): el video se reproduce sobre negro.
+                        frame.setBackgroundColor(BLACK)
                         view.visibility = View.VISIBLE
+                        view.bringToFront()
+                        android.util.Log.i("AlertaEcStartup", "intro video start")
                         runCatching { view.start() }
                             .onSuccess {
                                 // Sustituir el límite de preparación por uno único de reproducción.

@@ -73,6 +73,7 @@ import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.common.composables.AlertDialogLink
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
+import org.breezyweather.ui.common.widgets.tvListFocus
 import org.breezyweather.ui.common.widgets.generateCollapsedScrollBehavior
 import org.breezyweather.ui.common.widgets.getCardListItemMarginDp
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
@@ -178,7 +179,7 @@ internal fun AboutScreen(
         }
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier.fillMaxHeight().tvListFocus(),
             contentPadding = it.plus(
                 PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin))
             )
