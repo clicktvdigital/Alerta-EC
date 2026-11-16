@@ -731,6 +731,11 @@ class HomeFragment : MainModuleFragment() {
         remoteSelection?.foreground = null
         remoteSelection = view
         view.foreground = remoteFocusRing()
+        // Keep the selected hour/day visible in its horizontal list (automatic horizontal scroll).
+        val parentList = view.parent as? RecyclerView
+        if (parentList != null && parentList !== binding.recyclerView) {
+            parentList.getChildAdapterPosition(view).takeIf { it >= 0 }?.let { parentList.smoothScrollToPosition(it) }
+        }
     }
 
     private fun remoteFocusRing(): GradientDrawable {
@@ -752,7 +757,9 @@ class HomeFragment : MainModuleFragment() {
         fun walk(v: View) {
             if (!v.isShown) return
             // A ComposeView is one selectable card: its own buttons are reached through the Compose mode.
-            if (v is AbstractComposeView || v.hasOnClickListeners() || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
+            // Cells of a nested horizontal list (hourly / daily trend) have no id but are focusable on TV.
+            val nestedCell = v.isFocusable && v.isEnabled && v.parent.let { it is RecyclerView && it !== this@remoteCandidates }
+            if (v is AbstractComposeView || v.hasOnClickListeners() || nestedCell || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
                 val top = v.screenTop()
                 if (top + v.height > listTop && top < listTop + height) out.add(v)
                 return // do not descend into clickable children of a card
