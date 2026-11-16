@@ -1,7 +1,8 @@
 package org.breezyweather.ui.main.adapters.trend
 
+import org.breezyweather.domain.weather.model.getContentDescription
+import org.breezyweather.domain.weather.model.getName
 import breezyweather.domain.location.model.Location
-import breezyweather.domain.weather.model.getContentDescription
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.breezyweather.R
 import org.breezyweather.common.activities.BreezyActivity
