@@ -50,3 +50,6 @@ __pycache__/
 
 # Respaldos locales: conservar en disco, excluir de Git
 *.pre_*
+
+# Salida generada por Graphify (cache y grafo locales)
+graphify-out/
