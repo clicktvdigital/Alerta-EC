@@ -1,3 +1,41 @@
+# Alerta EC
+
+**Alerta EC**, de Click TV Digital, es una aplicación de alertas tempranas y monitoreo meteorológico en tiempo real para Ecuador. Muestra el clima, los avisos vigentes y capas de radar y pronóstico sobre el mapa, con prioridad a la lectura rápida en situaciones de emergencia.
+
+## Funciones principales
+
+- **Alertas tempranas:** avisos vigentes por ubicación, con jerarquía visual y notificaciones.
+- **Monitoreo en tiempo real:** condiciones actuales, pronóstico por horas y por días.
+- **Mapas de INAMHI:** capas de radar y pronóstico (WMS), con consulta por refresco y uso sin GPS.
+- **Ubicaciones:** lugares guardados; la ubicación actual se pide al agregarla cuando el dispositivo tiene GPS.
+- **Android TV y TV Box:** soporte de Leanback y lanzador de TV; navegación con control remoto (flechas, OK, Menú y mantener ABAJO para actualizar).
+
+## Arquitectura y rendimiento
+
+- Diseñada para dispositivos con **1 GB de RAM**: decodificación de imágenes a su tamaño de pantalla, sombras ligeras y foco sin efectos de desenfoque.
+- Actualización de datos y caché local heredadas de la base Breezy Weather.
+- Código Kotlin con Views y Compose; módulos `app`, `data`, `domain` y utilidades de clima.
+
+## Control remoto (Android TV)
+
+| Tecla | Acción |
+|---|---|
+| Flechas | Mover el foco entre tarjetas, filas y la barra superior |
+| OK | Activar la tarjeta o botón enfocado |
+| Atrás | Volver o salir |
+| Menú | Abrir Ajustes desde la pantalla principal |
+| Mantener ABAJO (≈2 s) | Actualizar la pantalla principal |
+
+## Compilación y descarga
+
+- **Compilación en GitHub Actions:** el workflow `alerta-ec.yml` compila el APK de depuración y lo publica como artefacto `Alerta-EC-Debug`. Se lanza a mano desde la pestaña Actions.
+- **Releases:** el workflow `alerta-ec-release.yml` publica el release cuando se sube un tag con formato `vMAJOR.MINOR.PATCH` (por ejemplo `v0.1.14`). Los APK se descargan desde la pestaña **Releases** del repositorio.
+- **Compilación local (opcional):** `./gradlew :app:testBasicDebugUnitTest` ejecuta las pruebas unitarias.
+
+> El historial de continuidad del proyecto, con los pasos cronológicos, se conserva más abajo. Para el estado actual, ver `CONTINUAR_AQUI.md` en la raíz.
+
+---
+
 ## Continuidad ALERTA EC — pasos 1053–1063
 
 La corrección local de compatibilidad JVM y el estado de CI están documentados cronológicamente en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md#alerta-ec--continuidad-de-los-pasos-1053-1063-22-10-2026). Todavía no se ha compilado ni publicado; requiere revisión, commit y push autorizados, y nueva validación remota.

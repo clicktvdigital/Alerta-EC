@@ -2,7 +2,9 @@
 
 ## 1. Estado actual
 
-- **Repositorio:** `clicktvdigital/alerta-ec`, rama de trabajo `tv-control-remoto`.
+- **Repositorio:** `clicktvdigital/alerta-ec`.
+- **Rama de integración:** `test/alerta-ec-tv-panoramico` (contiene la rama de TV y la auditoría INAMHI; ver sección 2b).
+- **Rama de trabajo previa:** `tv-control-remoto` (cambios de TV ya integrados en la rama de integración).
 - **Plataforma:** Android nativo (Kotlin, Views + Compose). No es Flutter.
 - **Último commit publicado:** ver `git log -1` en la rama `tv-control-remoto`.
 - **Verificación:** compilación con Gradle y 276 pruebas unitarias sin fallos.
@@ -17,6 +19,12 @@
 - **Ubicación actual:** al agregarla se pide el clima de inmediato, sin esperar a refrescar.
 - **Botón Omitir:** anillo de foco visible.
 - **Diagnóstico:** registros `AlertaEcStartup` (arranque) y `AlertaEcKeys` (teclas) temporales, para investigar el arranque.
+
+## 2b. Integración de ramas
+
+- La rama `test/alerta-ec-tv-panoramico` tenía trabajo que la rama de TV no tenía (auditoría INAMHI, con pasos pendientes de validación en dispositivo).
+- Se integraron ambas ramas sin conflictos y se verificó: 276 pruebas unitarias sin fallos.
+- Pendiente: validar en el TV la parte INAMHI (rotación, salida/retorno durante consulta, alternancia rápida de capas).
 
 ## 3. Herramientas, workflows y skills (para Claude Code)
 
