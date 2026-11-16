@@ -17,7 +17,8 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 
-val supportedAbi = setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+// Solo arquitecturas de TV Box y Android TV. Sin x86 ni APK universal (artefactos de cientos de MB).
+val supportedAbi = setOf("armeabi-v7a", "arm64-v8a")
 
 configure<ApplicationExtension> {
     namespace = "org.breezyweather"
@@ -32,9 +33,7 @@ configure<ApplicationExtension> {
         buildConfigField("boolean", "IS_BREEZY", "${Config.isBreezy}")
 
         multiDexEnabled = true
-        ndk {
-            abiFilters += supportedAbi
-        }
+        // ABIs se filtran con splits.abi (no mezclar con ndk.abiFilters: Gradle lo rechaza).
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -46,7 +45,7 @@ configure<ApplicationExtension> {
             isEnable = true
             reset()
             include(*supportedAbi.toTypedArray())
-            isUniversalApk = true
+            isUniversalApk = false
         }
     }
 

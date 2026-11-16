@@ -34,6 +34,14 @@
 
 > El historial de continuidad del proyecto, con los pasos cronológicos, se conserva más abajo. Para el estado actual, ver `CONTINUAR_AQUI.md` en la raíz.
 
+## Mejoras visuales y arquitectura (versión TV)
+
+- **Arquitecturas:** APK separados para `armeabi-v7a` (TV Box de 32 bits) y `arm64-v8a` (Android TV de 64 bits). Ya no se genera APK universal, que superaba los 100 MB.
+- **Memoria:** las imágenes se decodifican al tamaño con el que se muestran (`ResizeImage` para fondo, banners e iconos), pensado para dispositivos de 1 GB de RAM.
+- **Foco con D-pad:** cada tarjeta y botón enfocable muestra un anillo blanco de 3 dp. Las flechas se mueven entre filas y columnas; la barra superior se alcanza desde la primera fila.
+- **Intro de TV:** imagen de inicio de 5 s, video de 12 s y la misma imagen 5 s al cierre. Botón Omitir con foco visible.
+- **Pendiente:** flechas en Ajustes, scroll hasta los bloques inferiores de Home y espera de arranque en frío. Ver `CONTINUAR_AQUI.md`.
+
 ---
 
 ## Continuidad ALERTA EC — pasos 1053–1063
