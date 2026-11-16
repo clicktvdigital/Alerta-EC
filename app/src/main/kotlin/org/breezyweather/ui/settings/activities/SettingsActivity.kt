@@ -27,7 +27,10 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
 import android.view.KeyEvent
+import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.CallSuper
+import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -88,12 +91,39 @@ class SettingsActivity : BreezyActivity() {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> FocusDirection.Right
                 else -> null
             }
-            val manager = composeFocusManager
-            if (direction != null && manager != null && manager.moveFocus(direction)) {
+            if (direction != null && moveComposeFocus(direction)) {
                 return true
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    /**
+     * Focus starts on the toolbar back button, which is a View outside Compose. Compose cannot move
+     * from there, so DOWN hands focus to the Compose content and enters its first option.
+     */
+    private fun moveComposeFocus(direction: FocusDirection): Boolean {
+        val manager = composeFocusManager ?: return false
+        if (manager.moveFocus(direction)) return true
+        if (direction != FocusDirection.Down) return false
+
+        val composeView = findComposeView(window.decorView) ?: return false
+        if (composeView.hasFocus()) {
+            // Compose already has focus but found nothing below; let the framework handle it.
+            return false
+        }
+        if (!composeView.requestFocus()) return false
+        return manager.moveFocus(FocusDirection.Next)
+    }
+
+    private fun findComposeView(root: View): AbstractComposeView? {
+        if (root is AbstractComposeView) return root
+        if (root is ViewGroup) {
+            for (index in 0 until root.childCount) {
+                findComposeView(root.getChildAt(index))?.let { return it }
+            }
+        }
+        return null
     }
 
     @Inject lateinit var sourceManager: SourceManager

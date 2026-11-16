@@ -163,8 +163,10 @@ class MainAdapter(
                 ) {
                     continue
                 }
+                // La luna se calcula localmente en cada actualización; la tarjeta se muestra siempre
+                // y MoonViewHolder indica "--" en los días sin salida ni puesta.
                 if (c === CardDisplay.CARD_MOON &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.moon?.isValid != true)
+                    (weather.dailyForecast.isEmpty() || weather.today?.moon == null)
                 ) {
                     continue
                 }
