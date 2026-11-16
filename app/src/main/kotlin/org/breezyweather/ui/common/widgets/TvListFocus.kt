@@ -1,6 +1,9 @@
 package org.breezyweather.ui.common.widgets
 
 import android.view.KeyEvent
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.runtime.Composable
@@ -8,14 +11,21 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 
@@ -110,4 +120,19 @@ fun Modifier.tvListFocus(): Modifier {
         runCatching { listFocus.requestFocus() }
     }
     return this.focusRequester(listFocus).focusRestorer()
+}
+
+/**
+ * Visible focus ring for a clickable card on TV: a 3 dp primary border while the D-pad focus is on it.
+ * It only animates the border width at focus change, so it stays cheap on 1 GB devices.
+ */
+fun Modifier.tvFocusIndicator(shape: Shape = RoundedCornerShape(12.dp)): Modifier = composed {
+    var focused by remember { mutableStateOf(false) }
+    this
+        .onFocusChanged { focused = it.isFocused }
+        .border(
+            width = if (focused) 3.dp else 0.dp,
+            color = MaterialTheme.colorScheme.primary,
+            shape = shape,
+        )
 }

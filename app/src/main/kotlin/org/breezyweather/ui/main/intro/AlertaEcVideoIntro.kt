@@ -15,7 +15,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.VideoView
+
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.breezyweather.R
@@ -37,7 +37,7 @@ internal object AlertaEcVideoIntro {
     private const val END_IMAGE_MS = 1_200L
     private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
-    private var activeVideo: VideoView? = null
+    private var activeVideo: IntroVideoView? = null
 
     fun isActive(): Boolean = activeVideo != null
     private var activeRoot: FrameLayout? = null
@@ -93,9 +93,7 @@ internal object AlertaEcVideoIntro {
             return true
         }
 
-        val view = VideoView(context)
-        // Video por encima de la imagen de inicio y de otras capas en TV (MediaTek / Indurama).
-        view.setZOrderMediaOverlay(true)
+        val view = IntroVideoView(context)
         // Must stay VISIBLE: a SurfaceView only creates its surface while visible, and VideoView
         // does not open (prepare) the video without a surface. An INVISIBLE VideoView never fired
         // onPrepared, so the intro always timed out on TV. With media-overlay z-order and no frame

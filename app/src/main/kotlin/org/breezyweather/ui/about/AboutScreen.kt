@@ -73,6 +73,7 @@ import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.common.composables.AlertDialogLink
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.common.widgets.tvListFocus
 import org.breezyweather.ui.common.widgets.generateCollapsedScrollBehavior
 import org.breezyweather.ui.common.widgets.getCardListItemMarginDp
@@ -496,6 +497,7 @@ private fun AboutAppLink(
                     indication = themeRipple(),
                     onClick = onClick
                 )
+                .tvFocusIndicator()
                 .padding(dimensionResource(R.dimen.normal_margin)),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -552,6 +554,7 @@ private fun ContributorView(
                         onClick()
                     }
                 )
+                .tvFocusIndicator()
                 .padding(dimensionResource(R.dimen.normal_margin))
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
