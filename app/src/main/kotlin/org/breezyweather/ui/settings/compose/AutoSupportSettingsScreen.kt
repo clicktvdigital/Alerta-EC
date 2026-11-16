@@ -36,6 +36,7 @@ import org.breezyweather.alertaec.support.AutoSupportReport
 import org.breezyweather.alertaec.support.AutoSupportPhase
 import org.breezyweather.alertaec.support.AutoSupportResult
 import org.breezyweather.ui.common.widgets.Material3Scaffold
+import org.breezyweather.ui.common.widgets.tvListFocus
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
 
 @Composable
@@ -65,6 +66,7 @@ fun AutoSupportSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .tvListFocus()
                 .padding(paddings)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),

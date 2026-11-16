@@ -17,6 +17,7 @@
 package org.breezyweather.ui.settings.activities
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,6 +39,8 @@ import org.breezyweather.common.extensions.plus
 import org.breezyweather.common.source.RemovedSource
 import org.breezyweather.sources.SourceManager
 import org.breezyweather.ui.common.widgets.Material3Scaffold
+import org.breezyweather.ui.common.widgets.TvScreenFocus
+import org.breezyweather.ui.common.widgets.TvScreenFocusHost
 import org.breezyweather.ui.common.widgets.generateCollapsedScrollBehavior
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
 import org.breezyweather.ui.settings.preference.SmallSeparatorItem
@@ -52,6 +55,14 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class PrivacyPolicyActivity : BreezyActivity() {
 
+    /** D-pad routing: DOWN from the top bar enters the policy list, and the list stays re-enterable. */
+    private val tvFocus = TvScreenFocus()
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (tvFocus.handleKey(window.decorView, event)) return true
+        return super.dispatchKeyEvent(event)
+    }
+
     @Inject
     lateinit var sourceManager: SourceManager
 
@@ -60,7 +71,9 @@ class PrivacyPolicyActivity : BreezyActivity() {
 
         setContent {
             BreezyWeatherTheme {
-                ContentView()
+                TvScreenFocusHost(tvFocus) {
+                    ContentView()
+                }
             }
         }
     }

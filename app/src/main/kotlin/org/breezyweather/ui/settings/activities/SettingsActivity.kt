@@ -22,21 +22,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.compose.setContent
 import androidx.annotation.CallSuper
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.platform.AbstractComposeView
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -60,8 +52,8 @@ import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.sources.RefreshHelper
 import org.breezyweather.sources.SourceManager
-import org.breezyweather.ui.common.widgets.LocalTvListFocusTarget
-import org.breezyweather.ui.common.widgets.TvListFocusTarget
+import org.breezyweather.ui.common.widgets.TvScreenFocus
+import org.breezyweather.ui.common.widgets.TvScreenFocusHost
 import org.breezyweather.ui.settings.compose.AppearanceSettingsScreen
 import org.breezyweather.ui.settings.compose.AutoSupportSettingsScreen
 import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
@@ -82,56 +74,13 @@ private const val PERMISSION_CODE_POST_NOTIFICATION = 0
 @AndroidEntryPoint
 class SettingsActivity : BreezyActivity() {
 
-    private var composeFocusManager: FocusManager? = null
-
-    /** Option list of the visible settings screen; DOWN from the top bar enters it. */
-    private val listFocusTarget = TvListFocusTarget()
+    /** D-pad routing and option-list focus for the Compose settings screens. */
+    private val tvFocus = TvScreenFocus()
 
     /** Remote-control D-pad keys move focus inside the Compose settings screens. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            val direction = when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_UP -> FocusDirection.Up
-                KeyEvent.KEYCODE_DPAD_DOWN -> FocusDirection.Down
-                KeyEvent.KEYCODE_DPAD_LEFT -> FocusDirection.Left
-                KeyEvent.KEYCODE_DPAD_RIGHT -> FocusDirection.Right
-                else -> null
-            }
-            if (direction != null && moveComposeFocus(direction)) {
-                return true
-            }
-        }
+        if (tvFocus.handleKey(window.decorView, event)) return true
         return super.dispatchKeyEvent(event)
-    }
-
-    /**
-     * Focus starts on the toolbar back button, which is a View outside Compose. Compose cannot move
-     * from there, so DOWN hands focus to the Compose content and enters its first option.
-     */
-    private fun moveComposeFocus(direction: FocusDirection): Boolean {
-        val manager = composeFocusManager ?: return false
-        if (manager.moveFocus(direction)) return true
-        if (direction != FocusDirection.Down) return false
-        // Focus is on the top bar (Back / About): send it to the option list, like nextFocusDown.
-        if (listFocusTarget.enterList()) return true
-
-        val composeView = findComposeView(window.decorView) ?: return false
-        if (composeView.hasFocus()) {
-            // Compose already has focus but found nothing below; let the framework handle it.
-            return false
-        }
-        if (!composeView.requestFocus()) return false
-        return manager.moveFocus(FocusDirection.Next)
-    }
-
-    private fun findComposeView(root: View): AbstractComposeView? {
-        if (root is AbstractComposeView) return root
-        if (root is ViewGroup) {
-            for (index in 0 until root.childCount) {
-                findComposeView(root.getChildAt(index))?.let { return it }
-            }
-        }
-        return null
     }
 
     @Inject lateinit var sourceManager: SourceManager
@@ -193,10 +142,7 @@ class SettingsActivity : BreezyActivity() {
 
         setContent {
             BreezyWeatherTheme {
-                // Keep Compose's focus manager so remote D-pad keys can move focus in this screen.
-                val focusManager = LocalFocusManager.current
-                SideEffect { composeFocusManager = focusManager }
-                CompositionLocalProvider(LocalTvListFocusTarget provides listFocusTarget) {
+                TvScreenFocusHost(tvFocus) {
                     ContentView()
                 }
             }
