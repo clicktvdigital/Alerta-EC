@@ -402,6 +402,30 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     private var holdRefreshFired = false
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Intro on screen: the arrows only bring focus to "Skip" (they used to scroll Home behind the intro) and
+        // OK/ENTER always skips, even if focus was lost. BACK is handled by the back callback.
+        val introLayer = findViewById<android.view.View>(R.id.alerta_ec_intro_layer)
+        if (introLayer?.visibility == android.view.View.VISIBLE) {
+            val skip = findViewById<android.view.View>(R.id.alerta_ec_intro_skip)
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                -> {
+                    if (event.action == KeyEvent.ACTION_DOWN) skip?.requestFocus()
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                    if (skip != null && skip.isShown && !skip.isFocused) {
+                        if (event.action == KeyEvent.ACTION_UP) {
+                            skip.requestFocus()
+                            skip.performClick()
+                        }
+                        return true
+                    }
+                }
+            }
+            return super.dispatchKeyEvent(event)
+        }
         if (!isManagementFragmentVisible &&
             currentFocus !is android.widget.EditText &&
             findHomeFragment()?.handleRemoteKey(event) == true

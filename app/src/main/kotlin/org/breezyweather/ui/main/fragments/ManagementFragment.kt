@@ -582,10 +582,16 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                 mClickListener = { formattedId ->
                     viewModel.setLocation(formattedId)
                     parentFragmentManager.popBackStack()
-                }
-            ) { holder ->
-                itemTouchHelper.startDrag(holder)
-            }
+                },
+                mDragListener = { holder ->
+                    itemTouchHelper.startDrag(holder)
+                },
+                // Hold OK (TV) or long press (phone): select the place and open its settings, with "Delete".
+                mLongClickListener = { formattedId ->
+                    viewModel.setLocation(formattedId)
+                    (requireActivity() as MainActivity).onEditIconClicked()
+                },
+            )
         recyclerView = RecyclerView(requireContext())
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(
