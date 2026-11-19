@@ -49,11 +49,30 @@ Actualizado: 2026-11-19 · Versión en preparación: **v0.1.15 (versionCode 116)
   - celular → vertical 720×1280. **Falta un master vertical 1080×1920**: no se escala para no inflar el APK sin ganar detalle.
 - **Alertas por defecto en Ecuador:** fuente WMO Severe Weather, donde INAMHI publica sus avisos CAP (verificado: `ec-inamhi-es` con avisos vigentes). Antes el preset usaba AccuWeather sin clave y quedaba «Ninguna». Las notificaciones de alertas ya estaban activas por defecto.
 - **Pantalla encendida:** con eventos Alerta EC de nivel WARNING o superior (oficiales y de pronóstico).
-- **Ubicación Atucucho:**
-  - Nominatim (geocodificación inversa por defecto) resuelve el barrio en -0,12896, -78,51370, zona horaria `America/Guayaquil`.
-  - Nominatim **no** trae parroquia civil/eclesiástica ni distrito de salud, y su código postal (170318) difiere de 170528.
-  - El repo es **público**: la dirección exacta (calles) se configura solo en el dispositivo, como etiqueta del lugar, nunca en el código.
-  - Las 8 direcciones en español (Norte … Noroccidente) ya existen en `AlertaEcMovementDirection`.
+- **Código postal: investigación con la fuente oficial (2026-11-19).**
+  - Fuente: WFS público de la Agencia de Regulación y Control Postal, `https://www.codigopostal.gob.ec/geoserver/arcp_cp/ows`, capa `arcp_cp:zona_postal`, geometría `shape`, EPSG:4326.
+  - **170528** = Pichincha (DPA 17), Quito (DPA 1701), distrito de planificación **17D05**, que agrupa Concepción, Mariscal Sucre, Belisario Quevedo, San Isidro del Inca, Rumipamba, Kennedy, Nayón, Iñaquito, Cochapamba, Jipijapa y Zámbiza. 27,44 km² y 59.852 habitantes; caja lat −0,165…−0,117, lon −78,568…−78,496.
+  - Puntos de Atucucho (centroide del barrio y calle Ángel Araujo) → **170528** según la consulta punto-en-zona.
+  - **170318 no existe** en el catálogo oficial. Es un código que figura solo en OpenStreetMap, y Nominatim lo devuelve para Atucucho por error.
+  - Nominatim ubica el barrio Atucucho en la parroquia **Cochapamba** (−0,1290, −78,5137), zona horaria `America/Guayaquil` (UTC−5).
+  - Los sectores **La Unión** y **La Paz** de Atucucho no están en OSM: solo se pueden registrar como referencia local aportada por el usuario.
+- **Por qué un código postal no basta:** la zona 170528 mide 27 km² y tiene ~60.000 habitantes; en Quito puede llover en una ladera y hacer sol a 2 km.
+  - El pronóstico de la app ya se pide por **coordenadas** (Open-Meteo por punto), nunca por código postal.
+  - La dirección se afina con capas: GPS → Nominatim (calle, barrio, parroquia) → zona postal oficial → corrección local del usuario (sector, calle transversal, referencia; solo a menos de 75 m del punto) → posición polar en español.
+- **Implementado:**
+  - `EcuadorPostalZoneService`: punto → zona oficial, con reintentos y caché.
+  - `EcuadorPolarReference`: distancia y rumbo de 8 puntos en español desde la capital provincial más cercana (Atucucho: ~10 km al Norte de Quito centro).
+  - Nominatim con `es` dentro de Ecuador.
+  - Formulario «Corregir mi zona» con calle transversal y referencia local. El código oficial prevalece si el aportado es de otra provincia.
+- **Privacidad:** el repo es **público**. La dirección exacta del domicilio (calles) se configura solo en el dispositivo, nunca en el código ni en la documentación.
+- **«Ubicación actual» en TV:** el TV no tiene GPS y su ubicación por red no da posición (sin «last known»). Si GPS/red fallan o están apagados, se usa IP (ip.sb), marcada como proveedor «ip» con radio de 5 km (nivel ciudad). El barrio exacto en TV requiere «Introducir coordenadas GPS».
+- **ECUWATER:** no aparece en el código, la documentación ni en fuentes públicas (búsqueda web 2026-11-19). Respaldo vigente:
+  - alertas oficiales INAMHI vía WMO;
+  - capas WRF de INAMHI;
+  - pronóstico Open-Meteo por coordenadas;
+  - eventos Alerta EC derivados del pronóstico.
+- **Capas INAMHI:** opacidad 0,30/0,20 → 0,70/0,65/0,55 y leyenda oficial (GetLegendGraphic JSON) con valores sobre su color. INAMHI no publica capa de granizo; el granizo llega como código de tiempo y alerta.
+- **Recomendaciones:** `AlertaEcRecommendations` ya era dinámico (lluvia/intensidad, probabilidad, sensación térmica y hora, UV, ráfagas, granizo, tormenta). Nuevo `AlertaEcSeismicProtocol`: base de sismos antes/durante/después según magnitud, distancia y profundidad, con paso de tsunami. Pendiente conectar una fuente sísmica (IG-EPN).
 - **Aviso sobre otras apps (YouTube):** factible. El TV tiene «Acceso especial › Mostrar sobre otras apps» (`SystemAlertActivity`). Requiere declarar `SYSTEM_ALERT_WINDOW` y que el usuario lo active.
   - Recomendado solo como opción, solo para WARNING/EMERGENCY, banner breve que no tape el video entero, con cierre por Atrás/OK.
   - No se implementó todavía.
