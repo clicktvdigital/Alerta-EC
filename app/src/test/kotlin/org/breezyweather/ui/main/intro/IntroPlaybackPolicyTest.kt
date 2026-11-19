@@ -56,4 +56,19 @@ class IntroPlaybackPolicyTest {
         IntroPlaybackPolicy.shouldReduceMotion(false, 1f, systemAnimationsEnabled = false) shouldBe true
         IntroPlaybackPolicy.shouldReduceMotion(false, Float.NaN) shouldBe true
     }
+
+    @Test
+    fun `video profile follows device type and RAM`() {
+        val gib = 1024L * 1024 * 1024
+        // Android TV of the test bench: ~1.64 GiB -> Full HD.
+        IntroPlaybackPolicy.videoProfile(true, (1.64 * gib).toLong(), false) shouldBe IntroVideoProfile.TV_FULL_HD
+        // 1 GB TV box -> 720p.
+        IntroPlaybackPolicy.videoProfile(true, 1 * gib, false) shouldBe IntroVideoProfile.TV_BOX_HD
+        // Declared low-RAM device -> 720p even with more memory reported.
+        IntroPlaybackPolicy.videoProfile(true, 4 * gib, true) shouldBe IntroVideoProfile.TV_BOX_HD
+        // Unknown memory never gets the heavier stream.
+        IntroPlaybackPolicy.videoProfile(true, 0, false) shouldBe IntroVideoProfile.TV_BOX_HD
+        // Phones always use the portrait video.
+        IntroPlaybackPolicy.videoProfile(false, 8 * gib, false) shouldBe IntroVideoProfile.PHONE_VERTICAL
+    }
 }

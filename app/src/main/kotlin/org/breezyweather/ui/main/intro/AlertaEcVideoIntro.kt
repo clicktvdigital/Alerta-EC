@@ -255,7 +255,7 @@ internal object AlertaEcVideoIntro {
                 true
             }
             view.setVideoURI(
-                Uri.parse("android.resource://${context.packageName}/${if (useTvVisuals) R.raw.alertaec_cinematic_intro_tv else R.raw.alertaec_cinematic_intro}")
+                Uri.parse("android.resource://${context.packageName}/${introVideoResource(context, useTvVisuals)}")
             )
             // El foco va a "Omitir", no al video: así OK funciona con el primer pulso (TV y móvil).
             skip.requestFocus()
@@ -352,5 +352,22 @@ internal object AlertaEcVideoIntro {
     private fun cancelAudioFallback() {
         pendingAudioFallback?.let(handler::removeCallbacks)
         pendingAudioFallback = null
+    }
+
+    /** Raw video for this device profile (see [IntroPlaybackPolicy.videoProfile]). */
+    private fun introVideoResource(context: Context, useTvVisuals: Boolean): Int {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        val memory = android.app.ActivityManager.MemoryInfo().also { activityManager?.getMemoryInfo(it) }
+        val profile = IntroPlaybackPolicy.videoProfile(
+            tvVisuals = useTvVisuals,
+            totalMemBytes = memory.totalMem,
+            isLowRamDevice = activityManager?.isLowRamDevice ?: true,
+        )
+        android.util.Log.i("AlertaEcStartup", "intro profile=$profile totalMem=${memory.totalMem}")
+        return when (profile) {
+            IntroVideoProfile.TV_FULL_HD -> R.raw.alertaec_cinematic_intro_tv_fhd
+            IntroVideoProfile.TV_BOX_HD -> R.raw.alertaec_cinematic_intro_tv
+            IntroVideoProfile.PHONE_VERTICAL -> R.raw.alertaec_cinematic_intro
+        }
     }
 }
