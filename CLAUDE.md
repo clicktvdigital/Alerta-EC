@@ -1,27 +1,31 @@
 # Reglas del Proyecto: Alerta EC
 
-## 1. Objetivo y Enfoque de la App
-- Aplicación Flutter **Alerta EC** enfocada en alertas tempranas, notificaciones críticas y monitoreo en tiempo real para Ecuador (incluyendo versión panorámica para Android TV y TV Box).
+## 1. Objetivo y enfoque de la app
+- **Alerta EC** es una app **Android nativa en Kotlin** (Views + Jetpack Compose; Gradle con módulos `app`, `data`, `domain`), basada en Breezy Weather. **No es Flutter.** (Flutter solo aplica al Click TV Launcher, en otro repo.)
+- Enfocada en alertas tempranas, notificaciones críticas y monitoreo en tiempo real para Ecuador, en celular (vertical, táctil) y Android TV / TV Box (horizontal, D-pad). Un solo APK que se adapta por calificadores de recursos (`-television`, `-w640dp`) y detección de TV en tiempo de ejecución.
 - **Reglas técnicas obligatorias:**
-  - Priorizar bajo consumo de batería y RAM (compatible con dispositivos de 1 GB de RAM).
-  - Garantizar entrega confiable de alertas y navegación fluida con control remoto (D-pad).
-  - Interfaz clara, de lectura rápida, con jerarquía visual fuerte y sin recargar la UI con animaciones pesadas.
+  - Bajo consumo de batería y RAM (equipos de 1 GB).
+  - Entrega confiable de alertas y navegación fluida con control remoto (D-pad + OK). Cada hora y cada día deben abrir su detalle con OK igual que al tocar en el celular.
+  - Interfaz clara, de lectura rápida, con jerarquía visual fuerte y foco de alto contraste; sin animaciones pesadas.
+  - En TV no depender de la tecla MENÚ: muchos televisores (MStar) la capturan.
 
-## 2. Protocolo Anti-Daños y Flujo Autónomo (Cero Preguntas)
-- **No pidas confirmación ni hagas preguntas** antes de editar código. Toma la mejor decisión técnica basada en este archivo y ejecuta los cambios.
-- **Prohibido parchar a ciegas:** Usa siempre `systematic-debugging` para encontrar la causa raíz completa antes de tocar código.
-- **Verificación obligatoria antes de subir:** Ejecuta `flutter analyze` y las pruebas afectadas (`verification-before-completion`) antes de hacer commit.
-- **Compilación exclusiva en GitHub:** Nunca ejecutes `flutter build apk` localmente. Al terminar cualquier mejora, ejecuta `git add .`, `git commit -m "feat/fix: descripción"` y `git push` para disparar la compilación en la nube.
+## 2. Flujo de trabajo y verificación
+- Toma la mejor decisión técnica y ejecuta; pregunta solo ante acciones destructivas o irreversibles.
+- **Causa raíz antes de parchar:** usa `systematic-debugging`.
+- **Verificación antes de subir** (`verification-before-completion`):
+  - `python3 scripts/validate_alerta_ec.py` (local, sin toolchain Android).
+  - `./gradlew :app:testBasicDebugUnitTest` y `:app:compileBasicReleaseKotlin` donde haya toolchain. En Termux no hay Gradle/aapt2: la compilación se verifica en GitHub Actions (`alerta-ec-ci.yml` en push/PR a `alerta-ec`; `alerta-ec.yml` manual para el APK de prueba).
+- **Commits:** agrega rutas explícitas (`git add <archivos>`), nunca `git add .`: hay logs y skills locales ignorados. Push de la rama de trabajo para que compile CI.
+- **Release:** tag `vX.Y.Z` → `alerta-ec-release.yml` publica un APK firmado por ABI (`armeabi-v7a`, `arm64-v8a`). versionName/versionCode en `app/build.gradle.kts`.
+- No usar SSH ni `setprop persist.sys.*`; no tocar `~/pq_backup_tv11.txt` ni los keystores (`~/ALERTA_EC_RESGUARDO_CRITICO`).
 
-## 3. Estándares de Diseño y Memoria
-- Aplica los criterios de **Emil Kowalski**, **Impeccable** y **Taste Skill** enfocados en claridad, accesibilidad, contraste alto y microinteracciones rápidas.
-- Usa las skills de `claude-mem` (`mem-search`) para mantener contexto de decisiones previas.
+## 3. Diseño y memoria
+- Criterios de **Emil Kowalski** (`emil-design-eng`, `ask-emil`), **Impeccable** (`impeccable`) y **Taste** (`learn-taste`, `design-taste-frontend`): claridad, accesibilidad, contraste alto, microinteracciones rápidas. Adaptar a TV: legible a 3 m.
+- Memoria entre sesiones: plugin `claude-memory` (`structured-memory`) y la memoria de Claude Code. Estado y próximos pasos en `CONTINUAR_AQUI.md`.
+- Las skills viven en `.claude/skills/` **solo en local** (ignoradas por git; se instalan por equipo).
 
-## 4. Reporte Visual Obligatorio al Terminar
-Al terminar cada tarea y subirla a GitHub, entrega SIEMPRE este resumen sin que te lo pida:
-1. **Tabla Visual (Antes vs. Después):** Qué cambió en la interfaz, alertas o rendimiento.
-2. **Release Notes listas para GitHub:** Lista limpia con viñetas de mejoras y correcciones para la próxima versión.
-3. **Estado del Push:** Confirmación de que los cambios ya están en GitHub compilándose.
+## 4. Reporte al terminar
+Al cerrar cada tarea entrega: tabla antes/después (UI, alertas o rendimiento), release notes listas para GitHub y estado real del push/CI (sin afirmar compilación que no se haya verificado).
 
 ## graphify
 
