@@ -56,6 +56,16 @@
 
     </LinearLayout>
 
+    <!-- Cielo de un vistazo: sol de día, sol con nubes, luna de noche, nubes con lluvia/tormenta.
+         Ícono grande (128 dp ≈ 256 px en un TV 1080p) con su animación corta, sin redibujo continuo. -->
+    <org.breezyweather.ui.common.widgets.AnimatableIconView
+        android:id="@+id/container_main_header_sky_icon"
+        android:layout_width="@dimen/current_weather_icon_container_size"
+        android:layout_height="@dimen/current_weather_icon_container_size"
+        android:layout_gravity="center"
+        android:layout_marginTop="@dimen/small_margin"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/container_main_header_weather_condition_description"
         android:textStyle="bold"
