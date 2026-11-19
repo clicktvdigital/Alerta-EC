@@ -58,9 +58,10 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         modeJob = scope.launch {
             val result = runCatching {
                 when (position) {
-                    1 -> NoaaSatelliteFrames.lightningRecent()
-                    2 -> NoaaSatelliteFrames.fullDiskRecent()
-                    else -> NoaaSatelliteFrames.recent()
+                    1 -> NoaaSatelliteFrames.lightningEcuador()
+                    2 -> NoaaSatelliteFrames.rainCloudsEcuador()
+                    3 -> NoaaSatelliteFrames.fullMapRegion()
+                    else -> NoaaSatelliteFrames.cloudsEcuador()
                 }
             }.onFailure { if (it is CancellationException) throw it }
             if (request == modeRequestId) {
@@ -126,7 +127,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val choices = android.widget.LinearLayout(context).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
         }
-        listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia").forEachIndexed { position, label ->
+        listOf("☁ Nubes", "⚡ Rayos", "🌧 Lluvia", "🗺 Mapa completo").forEachIndexed { position, label ->
             val button = Button(context).apply {
                 textSize = 12f
                 isAllCaps = false
@@ -146,7 +147,9 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         // Foco visible para el mando D-pad en TV (no hace nada en teléfono).
         modeButtons.forEach { it.applyTvFocusRing() }
         addView(TextView(context).apply {
-            text = "NOAA GOES-19 · Norte de Sudamérica (incluye Ecuador). Imágenes regionales, no de calles."
+            text = "NOAA GOES-19 · Nubes, rayos y lluvia encuadrados en Ecuador continental; " +
+                "Mapa completo: norte de Sudamérica. Lluvia = nubes de tormenta, no milímetros medidos. " +
+                "Galápagos queda fuera del sector."
             textSize = 12f
             setPadding(12, 6, 12, 9)
         })
@@ -187,7 +190,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     }
 
     private fun refreshModeButtons() {
-        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia")
+        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌧 Lluvia", "🗺 Mapa completo")
         modeButtons.forEachIndexed { index, button ->
             button.text = if (selectedMode == index) "✓ ${labels[index]}" else labels[index]
             button.contentDescription = "${labels[index]}" +
@@ -233,7 +236,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         loadingFrameUrl = frame.imageUrl
         val request = ++requestId
         loadJob = scope.launch {
-            val bitmap = runCatching { NoaaImageLoader.load(frame.imageUrl) }
+            val bitmap = runCatching { NoaaImageLoader.load(frame.imageUrl, frame.crop) }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrNull()
             if (request == requestId) {

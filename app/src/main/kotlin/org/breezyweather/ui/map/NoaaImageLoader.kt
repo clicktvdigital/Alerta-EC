@@ -21,11 +21,13 @@ internal object NoaaImageLoader {
     }
     private val loadMutex = Mutex()
 
-    suspend fun load(url: String): Bitmap? = withContext(Dispatchers.IO) {
+    /** Loads [url]; with [crop], only that region is decoded (Ecuador out of a 3600 px frame). */
+    suspend fun load(url: String, crop: NoaaCrop? = null): Bitmap? = withContext(Dispatchers.IO) {
         if (!url.startsWith("https://cdn.star.nesdis.noaa.gov/GOES19/")) return@withContext null
         loadMutex.withLock {
             currentCoroutineContext().ensureActive()
-            synchronized(cache) { cache.get(url) }?.let { return@withLock it }
+            val key = if (crop == null) url else "$url#$crop"
+            synchronized(cache) { cache.get(key) }?.let { return@withLock it }
             val connection = try {
                 URL(url).openConnection() as HttpURLConnection
             } catch (error: Exception) {
@@ -45,16 +47,40 @@ internal object NoaaImageLoader {
                     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                     if (options.outWidth <= 0 || options.outHeight <= 0) return@withLock null
+                    val region = crop?.let {
+                        android.graphics.Rect(
+                            (it.left * options.outWidth).toInt(),
+                            (it.top * options.outHeight).toInt(),
+                            (it.right * options.outWidth).toInt(),
+                            (it.bottom * options.outHeight).toInt(),
+                        )
+                    }
+                    val width = region?.width() ?: options.outWidth
+                    val height = region?.height() ?: options.outHeight
                     // Máximo 1280x720: suficiente para el TV y mucho más liviano en memoria.
                     val sample = generateSequence(1) { it * 2 }
-                        .first { options.outWidth / it <= 1280 && options.outHeight / it <= 720 }
+                        .first { width / it <= 1280 && height / it <= 720 }
                     options.inJustDecodeBounds = false
                     options.inSampleSize = sample
                     options.inPreferredConfig = Bitmap.Config.RGB_565
                     currentCoroutineContext().ensureActive()
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.also { bitmap ->
-                        synchronized(cache) { cache.put(url, bitmap) }
+                    val bitmap = if (region == null) {
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                    } else {
+                        // Region decode: only the Ecuador window is ever held in memory (≈0,5 MP).
+                        val decoder = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                            android.graphics.BitmapRegionDecoder.newInstance(bytes, 0, bytes.size)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            android.graphics.BitmapRegionDecoder.newInstance(bytes, 0, bytes.size, false)
+                        }
+                        try {
+                            decoder?.decodeRegion(region, options)
+                        } finally {
+                            decoder?.recycle()
+                        }
                     }
+                    bitmap?.also { synchronized(cache) { cache.put(key, it) } }
                 }
             } catch (error: IOException) {
                 null

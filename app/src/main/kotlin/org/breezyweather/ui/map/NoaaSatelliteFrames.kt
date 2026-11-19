@@ -10,8 +10,21 @@ import kotlinx.coroutines.withContext
 
 internal data class NoaaSatelliteFrame(
     val observedAt: Instant,
-    val imageUrl: String
-)
+    val imageUrl: String,
+    /** Region to decode, as fractions of the image (left, top, right, bottom); null = whole image. */
+    val crop: NoaaCrop? = null,
+) {
+    /** Cache/identity key: the same NOAA image can be shown whole or cropped. */
+    val key: String get() = if (crop == null) imageUrl else "$imageUrl#$crop"
+}
+
+/** Fractional crop of a NOAA image; values in 0..1, left < right, top < bottom. */
+internal data class NoaaCrop(val left: Float, val top: Float, val right: Float, val bottom: Float) {
+    init {
+        require(left in 0f..1f && right in 0f..1f && top in 0f..1f && bottom in 0f..1f)
+        require(left < right && top < bottom)
+    }
+}
 
 /**
  * V5: listar los JPEG fechados publicados por NOAA, en vez de asumir el formato
@@ -25,7 +38,8 @@ internal object NoaaSatelliteFrames {
     private suspend fun fetch(
         directory: String,
         imageName: Regex,
-        limit: Int = 8
+        limit: Int = 8,
+        crop: NoaaCrop? = null,
     ): List<NoaaSatelliteFrame> = withContext(Dispatchers.IO) {
         val base = NOAA_CDN + directory.trim('/') + "/"
         val connection = URL(base).openConnection() as HttpURLConnection
@@ -48,7 +62,7 @@ internal object NoaaSatelliteFrames {
                         stamp.substring(7, 9).toInt(),
                         stamp.substring(9, 11).toInt()
                     ).toInstant(ZoneOffset.UTC)
-                    NoaaSatelliteFrame(observedAt, base + match.value)
+                    NoaaSatelliteFrame(observedAt, base + match.value, crop)
                 }.getOrNull()
             }.distinctBy { it.observedAt }
                 .toList()
@@ -67,18 +81,40 @@ internal object NoaaSatelliteFrames {
         }
     }
 
-    suspend fun recent(): List<NoaaSatelliteFrame> = fetch(
+    /**
+     * Continental Ecuador inside the GOES-19 "nsa" sector (calibrated on the 1800x1080 and 3600x2160
+     * frames, which share the projection): includes southern Colombia and northern Peru as context.
+     * Galápagos lies west of this sector and is not covered.
+     */
+    val ECUADOR = NoaaCrop(left = 0.035f, top = 0.40f, right = 0.265f, bottom = 0.67f)
+
+    /** Clouds (GeoColor), framed on Ecuador. 3600 px source so the crop stays sharp on a TV. */
+    suspend fun cloudsEcuador(): List<NoaaSatelliteFrame> = fetch(
+        "ABI/SECTOR/nsa/GEOCOLOR",
+        Regex("([0-9]{11})_GOES19-ABI-nsa-GEOCOLOR-3600x2160[.]jpg"),
+        crop = ECUADOR,
+    )
+
+    /** Lightning (GLM flash extent), framed on Ecuador. */
+    suspend fun lightningEcuador(): List<NoaaSatelliteFrame> = fetch(
+        "GLM/SECTOR/nsa/EXTENT3",
+        Regex("([0-9]{11})_GOES19-GLM-nsa-EXTENT3-3600x2160[.]jpg"),
+        crop = ECUADOR,
+    )
+
+    /**
+     * Rain-producing storm clouds (ABI "Sandwich": deep convection, cold cloud tops), framed on Ecuador.
+     * It shows where storms are, not measured rainfall; INAMHI precipitation layers cover amounts.
+     */
+    suspend fun rainCloudsEcuador(): List<NoaaSatelliteFrame> = fetch(
+        "ABI/SECTOR/nsa/Sandwich",
+        Regex("([0-9]{11})_GOES19-ABI-nsa-Sandwich-3600x2160[.]jpg"),
+        crop = ECUADOR,
+    )
+
+    /** Whole northern South America sector (Ecuador and neighbours), uncropped. */
+    suspend fun fullMapRegion(): List<NoaaSatelliteFrame> = fetch(
         "ABI/SECTOR/nsa/GEOCOLOR",
         Regex("([0-9]{11})_GOES19-ABI-nsa-GEOCOLOR-1800x1080[.]jpg")
-    )
-
-    suspend fun lightningRecent(): List<NoaaSatelliteFrame> = fetch(
-        "GLM/SECTOR/nsa/EXTENT3",
-        Regex("([0-9]{11})_GOES19-GLM-nsa-EXTENT3-1800x1080[.]jpg")
-    )
-
-    suspend fun fullDiskRecent(): List<NoaaSatelliteFrame> = fetch(
-        "ABI/FD/GEOCOLOR",
-        Regex("([0-9]{11})_GOES19-ABI-FD-GEOCOLOR-1808x1808[.]jpg")
     )
 }
