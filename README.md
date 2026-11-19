@@ -6,10 +6,12 @@
 
 ## Funciones principales
 
-- **Alertas tempranas:** avisos vigentes por ubicación, con jerarquía visual, notificaciones y tonos por tipo de evento.
+- **Alertas tempranas:** avisos oficiales del INAMHI (vía el centro de alertas de la WMO, activos por defecto en Ecuador) y eventos derivados del pronóstico, con notificaciones y tonos por tipo de evento.
 - **Pronóstico por horas y por días:** cada hora y cada día tienen su propio detalle (tocar en el celular, OK en TV).
 - **Mapas de INAMHI:** capas de radar y pronóstico (WMS), con consulta por refresco y uso sin GPS.
-- **Satélite NOAA**, reseñas y reportes ciudadanos con evidencia y GPS voluntario.
+- **Satélite NOAA GOES-19:** nubes, rayos y nubes de tormenta encuadrados en Ecuador continental, más el mapa completo del norte de Sudamérica.
+- **Cielo de un vistazo:** ícono grande de sol, nubes, luna o lluvia según la hora y el clima.
+- Reseñas y reportes ciudadanos con evidencia y GPS voluntario.
 - **Ubicaciones:** lugares guardados; la ubicación actual se pide al agregarla si el dispositivo tiene GPS.
 
 ## Una sola app para celular y TV
@@ -20,7 +22,7 @@ Un único APK se adapta al dispositivo, sin módulos separados:
 |---|---|---|
 | Orientación | Vertical (1080p) | Horizontal (720p y 1080p) |
 | Entrada | Táctil y deslizamiento | Control remoto (D-pad + OK) |
-| Intro cinematográfica | Video vertical 720×1280 | Video horizontal 1280×720 |
+| Intro cinematográfica | Video vertical 720×1280 | 1920×1080 en Android TV · 1280×720 en TV Box de 1 GB |
 | Recursos | `res/` por defecto | Calificadores `-television` / `-w640dp` |
 
 Se mantiene un solo módulo porque toda la lógica (alertas, datos, mapas) es común. Lo que cambia es la presentación, y Android ya la separa con calificadores de recursos y con la detección de TV en tiempo de ejecución.
