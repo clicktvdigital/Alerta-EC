@@ -103,8 +103,7 @@
         android:allowCrossUidActivitySwitchFromBelow="false"
         android:memtagMode="async"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning,ManifestResource,RtlEnabled,UnusedAttribute"
-        tools:targetApi="n"
-        android:banner="@drawable/alertaec_tv_banner">
+        tools:targetApi="n">
 
         <meta-data
             android:name="org.breezyweather.PROVIDER_CONFIG"
