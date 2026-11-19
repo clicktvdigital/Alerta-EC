@@ -301,6 +301,12 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                     _dialogPerLocationSettingsOpen.value -> _dialogPerLocationSettingsOpen.value = false
                     viewModel.dialogRefreshErrorDetails.value ->
                         viewModel.setRefreshErrorDetailsDialogVisible(false)
+                    // TV: an open Places panel folds first (when there is a place to show behind it).
+                    isTelevisionDevice() && isLandscape && isDrawerLayoutVisible &&
+                        isManagementFragmentVisible && viewModel.validLocationList.value.isNotEmpty() ->
+                        setManagementFragmentVisibility(false)
+                    // Inside Home with a selection or scrolled down: back to the top, not out of the app.
+                    !isManagementFragmentVisible && findHomeFragment()?.handleRemoteBack() == true -> Unit
                     else -> {
                         // Sin nada abierto: pasar el evento al resto de callbacks (p. ej. la pila de fragmentos)
                         // y, si no hay ninguno, al comportamiento normal de salir.

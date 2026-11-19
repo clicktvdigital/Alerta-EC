@@ -614,6 +614,23 @@ class HomeFragment : MainModuleFragment() {
         return handled
     }
 
+    /**
+     * Remote BACK inside Home: first clear the selection and return to the top; only a BACK at the top with
+     * nothing selected leaves the app. Avoids being thrown out of the app from inside an hour or block.
+     */
+    fun handleRemoteBack(): Boolean {
+        if (!isAdded || !::binding.isInitialized) return false
+        val recycler = binding.recyclerView
+        val scrolled = recycler.canRemoteScroll(-1)
+        if (remoteSelection == null && !remoteOnToolbar && !scrolled) return false
+        remoteSelection?.foreground = null
+        remoteSelection = null
+        remoteOnToolbar = false
+        remotePendingEdge = 0
+        if (scrolled) recycler.smoothScrollToPosition(0)
+        return true
+    }
+
     /** OK on the focused card: cards with their own actions open a native action list, others are clicked. */
     private fun activateRemoteSelection(): Boolean {
         val target = remoteSelection ?: run {
@@ -681,12 +698,20 @@ class HomeFragment : MainModuleFragment() {
         }
         // Left/Right at the visible edge of an hourly/daily list: scroll it one cell and keep going.
         if (dx != 0 && stepNestedList(current, dx)) return true
-        // Left/Right at the edge of the row are not consumed, so the side menu and other focus targets still work.
-        if (dx != 0) return false
-        // Top row and the list cannot scroll up: move focus to the top bar (menu, edit, more).
-        if (dy < 0 && !recycler.canRemoteScroll(-1)) {
+        if (dx != 0) {
+            // Edge of the row. Never hand the key to Android's focus search: it moved the real focus to some other
+            // view and the list scrolled towards it while our selection stayed put (the "up and down" bounce).
+            // LEFT at the left edge opens Places (same as the menu button); RIGHT at the right edge does nothing.
+            if (dx < 0) callback?.onManageIconClicked()
+            return true
+        }
+        // Nothing above the current card: go straight to the top bar (menu, edit, settings, more) in one press,
+        // instead of creeping up 40 % of the screen per press.
+        if (dy < 0) {
             val bar = toolbarCandidates()
             if (bar.isNotEmpty()) {
+                if (recycler.canRemoteScroll(-1)) recycler.smoothScrollToPosition(0)
+                remotePendingEdge = 0
                 remoteOnToolbar = true
                 selectRemote(bar.first())
                 return true
