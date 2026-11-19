@@ -146,6 +146,12 @@ class RefreshHelper @Inject constructor(
                 errors.add(RefreshError(RefreshErrorType.LOCATION_ACCESS_OFF))
             }
         }
+        // Location turned off (GPS/network) is not a dead end: try the coarse IP fallback first.
+        if (errors.size == 1 && errors[0].error == RefreshErrorType.LOCATION_ACCESS_OFF &&
+            tryIpLocationFallback(context, locationService.id)
+        ) {
+            return emptyList()
+        }
         if (errors.isNotEmpty()) {
             return errors
         }
@@ -175,12 +181,39 @@ class RefreshHelper @Inject constructor(
 
             return emptyList()
         } catch (e: Throwable) {
+            // TVs and TV boxes have no GPS and often get no network fix (wired Ethernet): "Current location"
+            // never resolved. Fall back to IP geolocation (city level), stored with a large accuracy radius.
+            if (tryIpLocationFallback(context, locationService.id)) return emptyList()
             listOf(
                 RefreshError(
                     RefreshErrorType.getTypeFromThrowable(context, e, RefreshErrorType.LOCATION_FAILED),
                     locationService.name
                 )
             )
+        }
+    }
+
+    /**
+     * Coarse fallback through the IP geolocation source (ip.sb). Returns true if a position was stored.
+     * Never used when IP is already the primary source or the device is offline.
+     */
+    private suspend fun tryIpLocationFallback(context: Context, primaryId: String): Boolean {
+        if (primaryId == IP_FALLBACK_SOURCE || !context.isOnline()) return false
+        val ipSource = sourceManager.getLocationSource(IP_FALLBACK_SOURCE) ?: return false
+        if (ipSource is RemovedSource || (ipSource is ConfigurableSource && !ipSource.isConfigured)) return false
+        return try {
+            val result = ipSource.requestLocation(context).awaitFirstOrElse { throw LocationException() }
+            currentLocationStore.updateCurrentLocation(
+                longitude = result.longitude,
+                latitude = result.latitude,
+                accuracy = result.accuracy ?: IP_FALLBACK_ACCURACY_METERS,
+                altitude = result.altitude,
+                timestampMillis = result.timestampMillis ?: System.currentTimeMillis(),
+                provider = "ip"
+            )
+            true
+        } catch (_: Throwable) {
+            false
         }
     }
 
@@ -1467,6 +1500,12 @@ class RefreshHelper @Inject constructor(
     }
 
     companion object {
+        /** IP geolocation source used when GPS/network location gives nothing (e.g. TVs without GPS). */
+        private const val IP_FALLBACK_SOURCE = "ipsb"
+
+        /** City-level radius shown for an IP position, so it is never mistaken for a GPS fix. */
+        private const val IP_FALLBACK_ACCURACY_METERS = 5_000f
+
         private const val WAIT_MINIMUM = 1
         private const val WAIT_REGULAR = 5
         private const val WAIT_RESTRICTED = 15
