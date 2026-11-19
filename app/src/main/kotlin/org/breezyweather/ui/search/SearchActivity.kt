@@ -76,7 +76,6 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
 import breezyweather.domain.location.model.Location
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
@@ -98,6 +97,7 @@ import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.settings.preference.LargeSeparatorItem
 import org.breezyweather.ui.settings.preference.composables.RadioButton
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SearchActivity : BreezyActivity() {

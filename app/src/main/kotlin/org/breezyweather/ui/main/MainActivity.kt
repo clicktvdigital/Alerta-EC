@@ -99,6 +99,7 @@ import org.breezyweather.ui.main.fragments.HomeFragment
 import org.breezyweather.ui.main.fragments.ManagementFragment
 import org.breezyweather.ui.main.fragments.PushedManagementFragment
 import org.breezyweather.ui.search.SearchActivity
+import org.breezyweather.ui.support.isTelevisionDevice
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import javax.inject.Inject
@@ -162,8 +163,16 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                     if (viewModel.locationExists(location)) {
                         SnackbarHelper.showSnackbar(getString(R.string.location_message_already_exists))
                     } else {
+                        val isFirstPlace = viewModel.validLocationList.value.isEmpty()
                         viewModel.addLocation(location, null, this)
                         SnackbarHelper.showSnackbar(getString(R.string.location_message_added))
+                        // On TV, the open "Places" panel kept the remote focus after adding the first place, so
+                        // the Home D-pad navigation (blocks, hours, days) did not run. Fold it, as startup does.
+                        if (isFirstPlace && isLandscape && isDrawerLayoutVisible &&
+                            isTelevisionDevice()
+                        ) {
+                            setManagementFragmentVisibility(false)
+                        }
                     }
                 }
             }

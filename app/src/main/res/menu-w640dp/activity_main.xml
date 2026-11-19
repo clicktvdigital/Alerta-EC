@@ -15,4 +15,18 @@
         android:icon="@drawable/ic_open_in_new"
         app:showAsAction="never" />
 
+    <!-- Igual que en menu/activity_main.xml: en TV (ancho ≥ 640 dp) este archivo reemplaza al otro,
+         y sin estas entradas Ajustes y el Centro de Emergencias no aparecían en la barra.
+         La tecla MENÚ suele quedar capturada por el televisor (p. ej. MStar). -->
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="150"
+        android:icon="@drawable/ic_settings"
+        app:showAsAction="always" />
+
+    <item android:id="@+id/action_emergency_center"
+        android:title="Centro de Emergencias"
+        android:orderInCategory="250"
+        app:showAsAction="never" />
+
 </menu>
