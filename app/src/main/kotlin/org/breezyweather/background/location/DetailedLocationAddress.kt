@@ -11,7 +11,9 @@ data class DetailedLocationAddress(
     val locality: String? = null,
     val parish: String? = null,
     val ecclesiasticalParish: String? = null,
+    val ecclesiasticalJurisdiction: String? = null,
     val educationalDistrict: String? = null,
+    val healthDistrict: String? = null,
     val administrativeZone: String? = null,
     val administrativeDistrict: String? = null,
     val canton: String? = null,
@@ -30,21 +32,30 @@ data class DetailedLocationAddress(
 
     val completeAddressLines: List<String>
         get() = buildList {
-            streetLine?.takeIf { it.isNotBlank() }?.let(::add)
-            crossStreet?.takeIf { it.isNotBlank() }?.let { add("Intersección: $it") }
-            postalCode?.takeIf { it.isNotBlank() }?.let { add("Código postal: $it") }
-            sector?.takeIf { it.isNotBlank() }?.let { add("Sector: $it") }
-            neighborhood?.takeIf { it.isNotBlank() }?.let { add("Barrio: $it") }
-            locality?.takeIf { it.isNotBlank() }?.let { add("Localidad/comunidad: $it") }
-            ecclesiasticalParish?.takeIf { it.isNotBlank() }?.let { add("Parroquia eclesiástica: $it") }
-            parish?.takeIf { it.isNotBlank() }?.let { add("Parroquia civil: $it") }
-            educationalDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito educativo: $it") }
-            administrativeZone?.takeIf { it.isNotBlank() }?.let { add("Administración zonal: $it") }
-            administrativeDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito administrativo: $it") }
-            canton?.takeIf { it.isNotBlank() }?.let { add("Cantón: $it") }
-            province?.takeIf { it.isNotBlank() }?.let { add("Provincia: $it") }
-            country?.takeIf { it.isNotBlank() }?.let { add("País: $it") }
-            reference?.takeIf { it.isNotBlank() }?.let { add("Referencia: $it") }
+            val seen = mutableSetOf<String>()
+            fun addPart(label: String, value: String?) {
+                val clean = value?.trim()?.takeIf { it.isNotEmpty() } ?: return
+                if (seen.add(clean.lowercase(java.util.Locale.ROOT))) {
+                    add(if (label.isEmpty()) clean else "$label: $clean")
+                }
+            }
+            addPart("", streetLine)
+            addPart("Calle secundaria/transversal", crossStreet)
+            addPart("Código postal", postalCode)
+            addPart("Sector", sector)
+            addPart("Barrio", neighborhood)
+            addPart("Localidad/comunidad", locality)
+            addPart("Parroquia eclesiástica", ecclesiasticalParish)
+            addPart("Jurisdicción eclesiástica", ecclesiasticalJurisdiction)
+            addPart("Distrito educativo", educationalDistrict)
+            addPart("Distrito de salud", healthDistrict)
+            addPart("Parroquia civil", parish)
+            addPart("Administración zonal", administrativeZone)
+            addPart("Distrito administrativo", administrativeDistrict)
+            addPart("Cantón", canton)
+            addPart("Provincia", province)
+            addPart("País", country)
+            addPart("Referencia", reference)
         }
 
     fun mergePostalCode(candidate: PostalCodeCandidate): DetailedLocationAddress {
@@ -65,15 +76,18 @@ data class DetailedLocationAddress(
             neighborhood,
             locality,
             ecclesiasticalParish,
-            parish,
+            ecclesiasticalJurisdiction,
             educationalDistrict,
+            healthDistrict,
+            parish,
             administrativeZone,
             administrativeDistrict,
             canton,
             province,
             country,
-        ).filter { it.isNotBlank() }
-            .distinct()
+        ).map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(java.util.Locale.ROOT) }
             .takeIf { it.isNotEmpty() }
             ?.joinToString(", ")
 }

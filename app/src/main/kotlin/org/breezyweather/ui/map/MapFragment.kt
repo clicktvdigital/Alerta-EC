@@ -644,6 +644,33 @@ class MapFragment : MainModuleFragment() {
                 addView(gpsDetails)
             }
             mapButtons.addView(android.widget.Button(context).apply {
+                text = "🛰️ Satélite y rayos"
+                setOnClickListener {
+                    if (satellitePlayer != null) return@setOnClickListener
+                    val panel = android.widget.LinearLayout(context).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
+                    }
+                    val gpsPosition = latestMapLocation()
+                    val galapagosTime = gpsPosition != null &&
+                        EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
+                    val player = NoaaSatellitePlayer(context, galapagosTime)
+                    satellitePlayer = player
+                    panel.addView(android.widget.Button(context).apply {
+                        text = "← Volver al mapa"
+                        setOnClickListener {
+                            player.release()
+                            satellitePlayer = null
+                            root.removeView(panel)
+                        }
+                    })
+                    panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
+                    root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
+                    player.resume()
+                }
+            }, android.widget.LinearLayout.LayoutParams(-1, -2))
+            mapButtons.addView(android.widget.Button(context).apply {
                 text = "📍 Datos GPS"
                 setOnClickListener {
                     gpsScroll.visibility = if (gpsScroll.visibility == android.view.View.VISIBLE) {
@@ -734,33 +761,6 @@ class MapFragment : MainModuleFragment() {
                 setTextColor(android.graphics.Color.rgb(225, 232, 242))
                 setPadding(22, 10, 22, 18)
                 setBackgroundColor(android.graphics.Color.rgb(31, 43, 60))
-            }, android.widget.LinearLayout.LayoutParams(-1, -2))
-            mapButtons.addView(android.widget.Button(context).apply {
-                text = "🛰️ Satélite y rayos"
-                setOnClickListener {
-                    if (satellitePlayer != null) return@setOnClickListener
-                    val panel = android.widget.LinearLayout(context).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
-                    }
-                    val gpsPosition = latestMapLocation()
-                    val galapagosTime = gpsPosition != null &&
-                        EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
-                    val player = NoaaSatellitePlayer(context, galapagosTime)
-                    satellitePlayer = player
-                    panel.addView(android.widget.Button(context).apply {
-                        text = "← Volver al mapa"
-                        setOnClickListener {
-                            player.release()
-                            satellitePlayer = null
-                            root.removeView(panel)
-                        }
-                    })
-                    panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
-                    root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
-                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
-                    player.resume()
-                }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             // Limitar todos los controles juntos para conservar mapa visible con paneles abiertos.
             val controlsScroll = object : android.widget.ScrollView(context) {

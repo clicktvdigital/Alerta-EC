@@ -35,7 +35,7 @@ data class AdvancedLocationSnapshot(
 
     val headingDirectionName: String?
         get() = headingDegrees?.let { degrees ->
-            when (((degrees + 22.5f) / 45f).toInt() % 8) {
+            when ((((((degrees % 360f) + 360f) % 360f) + 22.5f) / 45f).toInt() % 8) {
                 0 -> "Norte"
                 1 -> "Nororiente"
                 2 -> "Oriente"
@@ -49,7 +49,7 @@ data class AdvancedLocationSnapshot(
 
     val headingCardinal: String?
         get() = headingDegrees?.let { degrees ->
-            when (((degrees + 22.5f) / 45f).toInt() % 8) {
+            when ((((((degrees % 360f) + 360f) % 360f) + 22.5f) / 45f).toInt() % 8) {
                 0 -> "N"
                 1 -> "NE"
                 2 -> "E"

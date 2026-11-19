@@ -1,6 +1,11 @@
 package org.breezyweather.remoteviews.presenters.notification
 
 import android.content.Context
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.InstallIn
+import dagger.hilt.EntryPoint
+import dagger.hilt.components.SingletonComponent
+import org.breezyweather.background.location.DetailedLocationProvider
 import breezyweather.domain.location.model.Location
 import org.breezyweather.alertaec.AlertaEcNotificationText
 import org.breezyweather.common.extensions.formatMeasure
@@ -11,7 +16,23 @@ import java.util.Date
 import kotlin.math.roundToInt
 
 /** Values used by the compact notification. Keep this payload deliberately short. */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface NotificationAddressEntryPoint {
+    fun detailedLocationProvider(): DetailedLocationProvider
+}
+
 internal class NotificationForecastSummary(context: Context, location: Location) {
+    private val cachedAddress = runCatching {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NotificationAddressEntryPoint::class.java
+        ).detailedLocationProvider().getCached(location.latitude, location.longitude)
+    }.getOrNull()
+    private val addressText = cachedAddress?.completeAddressLines
+        ?.takeIf { it.isNotEmpty() }
+        ?.joinToString(", ") { it.substringAfter(": ", it) }
+
     private val now = System.currentTimeMillis()
     private val current = location.weather?.current
     private val hour = location.weather?.hourlyForecast?.firstOrNull {
@@ -24,7 +45,8 @@ internal class NotificationForecastSummary(context: Context, location: Location)
     } else {
         current?.temperature?.temperature ?: hour?.temperature?.temperature
     }
-    val place = location.geographicName.takeIf { it.isNotBlank() }
+    val place = addressText?.takeIf { it.isNotBlank() }
+        ?: location.geographicName.takeIf { it.isNotBlank() }
         ?: listOf(location.admin1, location.country).firstOrNull { !it.isNullOrBlank() }
         ?: "Ubicación no disponible"
     val phenomenon = NotificationWeatherText.nonBlank(current?.weatherText)

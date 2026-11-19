@@ -1,0 +1,55 @@
+ALERTA EC — RESPALDO, CI Y RELEASE CONDICIONADA
+Fecha: 2026-10-14 23:02 (America/Guayaquil, UTC-5)
+
+RESULTADO
+DETENIDO ANTES DE COMMIT, PUSH, CI REMOTO Y RELEASE por exposición de información residencial en el historial rastreado. No se creó commit ni tag. No se publicó contenido.
+
+ESTADO GIT
+- Proyecto: /data/data/com.termux/files/home/breezy-weather
+- Rama: alerta-ec
+- Remoto origin: https://github.com/clicktvdigital/Alerta-EC.git
+- HEAD: ae1ad2868e02da465483859942e7ff0ed4aa4a7d (tag local v0.1.5)
+- origin/alerta-ec (referencia de seguimiento local): ae1ad2868e02da465483859942e7ff0ed4aa4a7d
+- Estado inicial y final: cambios locales sin confirmar; incluye modificaciones de código, recursos, workflows y documentación, además de archivos nuevos. Se conservaron todos.
+- git diff --check: sin errores.
+- AGENTS.md fue creado en la raíz con la instrucción permanente de responder exclusivamente en español y reglas para preservar cambios y evitar publicaciones no autorizadas.
+- No se hizo fetch en esta ejecución; por tanto, la referencia origin/alerta-ec es la última referencia local conocida, no una comprobación en vivo del servidor.
+
+ARCHIVOS Y VERSIONES
+- Hay 26 archivos rastreados modificados y 7 archivos nuevos antes de añadir este informe temporal; AGENTS.md también es nuevo. No se incluyó ningún informe de Descargas en el conjunto de cambios.
+- Los cambios comprenden README y documentos, workflows, ajustes de compartir/créditos/intro/audio/soporte, pronóstico horario/notificaciones, pruebas, recursos y AGENTS.md. `git status --short` conserva el inventario exacto.
+- applicationId: com.clicktvdigital.alertaec.
+- versionCode/versionName locales: 106 / 0.1.6; v0.1.5 sigue siendo la versión estable indicada y etiquetada en HEAD.
+- En la diferencia pendiente no se identificaron claves privadas ni valores de credenciales; las referencias a secretos de firma son nombres de secretos en el workflow. No se agregaron keystores ni archivos locales ignorados al staging porque no hubo staging.
+
+PRIVACIDAD Y MOTIVO DE DETENCIÓN
+- Se inspeccionaron cambios documentales y se buscaron identificadores geográficos y referencias comunitarias en el historial alcanzable.
+- El commit bdf4c01a164384f91291794fef1acc0676dcf677, “docs: plan GPS 3D y referencias comunitarias”, contiene referencias residenciales detalladas y nombres de comercios cercanos.
+- `git merge-base --is-ancestor bdf4c01a1 origin/alerta-ec` confirmó que ese commit es antecesor de la referencia local origin/alerta-ec. Por ello el historial rastreado conserva la información, aunque partes de los documentos actuales estén redactadas.
+- No se encontró la cadena de coordenadas probadas en la búsqueda histórica realizada; esto no demuestra ausencia de cualquier otra información sensible.
+- El usuario prohíbe reescribir historial y force-push. No existe una reparación segura que permita publicar ahora y retirar esa información histórica. Se detuvo el push público y, por consecuencia, no se creó commit ni se activó CI.
+- La apertura web del commit no pudo verificarse en esta sesión por fallo de recuperación (“Cache miss”); la conclusión se basa en el historial local alcanzable y en la referencia local de seguimiento.
+
+WORKFLOWS Y CI
+- Recomendado: .github/workflows/alerta-ec-ci.yml. Ejecuta `:app:testBasicDebugUnitTest` y `:app:compileBasicReleaseKotlin`; se activa con push o pull request hacia alerta-ec. No genera APK ni Release.
+- .github/workflows/alerta-ec.yml se activa también por push a alerta-ec y compila APK Debug, subiéndola como artefacto temporal. No publica una Release.
+- .github/workflows/alerta-ec-release.yml solo se activa con tags v*. Usa secretos de firma, compila Release y publica. No se creó ni envió tag.
+- .github/workflows/push.yml está condicionado al repositorio upstream breezy-weather/breezy-weather y no debe iniciar su trabajo para clicktvdigital/Alerta-EC.
+- Pruebas JUnit, compilación Kotlin, Actions y pruebas en dispositivo: no ejecutadas. No se ejecutó Gradle en Termux. CI no puede validarse con los cambios locales sin un push o pull request.
+- Pruebas nuevas presentes en el árbol local: orden/preferencias, selección de horas, frescura de notificaciones y formato geográfico. Sin CI no hay resultado de aprobación.
+
+RESPALDO Y PROCEDIMIENTO SEGURO PARA RETOMAR
+1. Mantener intacto este árbol de trabajo. Antes de cualquier cambio adicional, crear un respaldo local fuera del repositorio: guardar `git diff --binary` y copiar por separado solo los archivos nuevos revisados. Excluir `.git`, `local.properties`, keystores, credenciales e informes personales.
+2. Resolver la exposición histórica mediante una decisión del propietario sobre el tratamiento del repositorio público. No ejecutar force-push ni reescritura bajo esta autorización.
+3. Tras resolver privacidad, revisar el remoto actualizado y volver a inspeccionar el contenido que se subirá. Preparar commit solo con archivos revisados y seguros.
+4. Push normal a alerta-ec activaría CI y el workflow de APK Debug; no dispararía Release. Verificar ambos resultados y confirmar las pruebas nombradas.
+5. No preparar v0.1.6 para publicación hasta probar actualización real desde v0.1.5 con la misma firma. Esa prueba no se realizó y es un bloqueo obligatorio.
+6. Solo después de CI verde, privacidad resuelta, identidad/versionado correctos, firma SHA-256 esperada y actualización comprobada se podría crear v0.1.6 y permitir el workflow oficial.
+
+CRITERIOS DE RELEASE
+- applicationId/versionCode/versionName locales cumplen lo indicado: com.clicktvdigital.alertaec / 106 / 0.1.6.
+- No confirmado: CI verde, errores cero, firma candidata con SHA-256 esperado, APK universal, actualización desde v0.1.5, Release pública/latest, descarga, checksum y detección en Obtainium.
+- No hay URL de commit nuevo, Actions nuevo, APK, checksum ni Release porque no se hicieron esas acciones.
+- No afirmar como completas las funciones aún pendientes: MP4 cinematográfico auténtico, ficha geográfica visible segura, comunidad y autos soporte.
+
+Fin del informe.

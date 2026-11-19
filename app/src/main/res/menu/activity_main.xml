@@ -15,6 +15,20 @@
         android:icon="@drawable/ic_open_in_new"
         app:showAsAction="never" />
 
+    <item android:id="@+id/action_weather_map" android:title="Mapa meteorológico" android:orderInCategory="240" app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_feedback_reports"
+        android:title="Opiniones y reportes"
+        android:orderInCategory="260"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_rate_alerta_ec"
+        android:title="Calificar ALERTA EC"
+        android:orderInCategory="255"
+        app:showAsAction="never" />
+
     <item android:id="@+id/action_emergency_center"
         android:title="Centro de Emergencias"
         android:orderInCategory="250"

@@ -198,6 +198,33 @@ class HomeFragment : MainModuleFragment() {
             when (menuItem.itemId) {
                 R.id.action_edit -> callback?.onEditIconClicked()
                 R.id.action_open_in_other_app -> callback?.onOpenInOtherAppIconClicked()
+                R.id.action_weather_map -> {
+                    startActivity(
+                        android.content.Intent(
+                            requireContext(),
+                            org.breezyweather.ui.map.MapActivity::class.java
+                        )
+                    )
+                }
+                R.id.action_rate_alerta_ec -> {
+                    startActivity(
+                        android.content.Intent(
+                            requireContext(),
+                            org.breezyweather.ui.support.ReviewActivity::class.java
+                        )
+                    )
+                }
+                R.id.action_feedback_reports -> {
+                    startActivity(
+                        android.content.Intent(
+                            requireContext(),
+                            org.breezyweather.ui.settings.activities.SettingsActivity::class.java
+                        ).putExtra(
+                            org.breezyweather.ui.settings.activities.SettingsActivity.KEY_SETTINGS_ACTIVITY_START_DESTINATION,
+                            org.breezyweather.ui.settings.compose.SettingsScreenRouter.AutoSupport.route
+                        )
+                    )
+                }
                 R.id.action_emergency_center -> {
                     startActivity(
                         android.content.Intent(

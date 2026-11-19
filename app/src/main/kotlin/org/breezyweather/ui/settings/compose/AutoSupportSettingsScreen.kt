@@ -1,5 +1,6 @@
 package org.breezyweather.ui.settings.compose
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -175,6 +176,32 @@ fun AutoSupportSettingsScreen(
                         )
                     )
                     Text("Esta vista previa no envia informacion.")
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val informe = AutoSupportFeedback.compose(
+                                description = feedbackDescription,
+                                report = progress?.report,
+                                includeDiagnostics = includeDiagnostics,
+                            )
+                            val compartir = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "Reporte tecnico ALERTA EC")
+                                putExtra(Intent.EXTRA_TEXT, informe)
+                            }
+                            try {
+                                context.startActivity(Intent.createChooser(compartir, "Compartir informe ALERTA EC"))
+                            } catch (_: android.content.ActivityNotFoundException) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "No hay una aplicacion disponible para compartir.",
+                                    android.widget.Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
+                    ) {
+                        Text("Compartir informe")
+                    }
                 }
             }
             if (showFaq) {
