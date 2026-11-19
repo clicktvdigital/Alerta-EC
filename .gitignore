@@ -53,3 +53,7 @@ __pycache__/
 
 # Salida generada por Graphify (cache y grafo locales)
 graphify-out/
+
+# Locales: logs del TV y skills de Claude Code (se instalan por equipo, no van al repo)
+ultimo_log_tv.txt
+.claude/skills/
