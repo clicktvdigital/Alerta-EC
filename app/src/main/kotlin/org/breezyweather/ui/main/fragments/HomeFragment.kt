@@ -78,7 +78,7 @@ class HomeFragment : MainModuleFragment() {
     private var remotePendingEdge = 0
     private var remoteOnToolbar = false
 
-    private var remoteFocusRingCache: GradientDrawable? = null
+    private var remoteFocusRingCache: android.graphics.drawable.Drawable? = null
     private lateinit var viewModel: MainActivityViewModel
     private lateinit var weatherView: WeatherView
 
@@ -216,6 +216,9 @@ class HomeFragment : MainModuleFragment() {
             when (menuItem.itemId) {
                 R.id.action_edit -> callback?.onEditIconClicked()
                 R.id.action_open_in_other_app -> callback?.onOpenInOtherAppIconClicked()
+                R.id.action_settings -> activity?.let {
+                    org.breezyweather.common.utils.helpers.IntentHelper.startSettingsActivity(it)
+                }
                 R.id.action_emergency_center -> {
                     startActivity(
                         android.content.Intent(
@@ -387,9 +390,28 @@ class HomeFragment : MainModuleFragment() {
     fun updateViews(location: Location? = viewModel.currentLocation.value?.location) {
         ensureResourceProvider()
         updateDarkMode(location)
+        updateKeepScreenOn(location)
         updateContentViews(location = location)
         if (isAdded && context != null) {
             updatePreviewSubviews()
+        }
+    }
+
+    /**
+     * With an alert in force, keep the screen on so the TV screensaver (or screen timeout) never hides it.
+     * The flag is cleared as soon as no alert is active, so normal power saving resumes.
+     */
+    private fun updateKeepScreenOn(location: Location?) {
+        val window = activity?.window ?: return
+        val now = System.currentTimeMillis()
+        val alertActive = location?.weather?.alertList?.any { alert ->
+            val end = alert.endDate
+            end == null || end.time > now
+        } == true
+        if (alertActive) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
@@ -604,7 +626,13 @@ class HomeFragment : MainModuleFragment() {
             android.util.Log.i("AlertaEcFocus", "ok: card actions tag=$tag shown=$shown")
             return shown
         }
-        val clicked = target.isAttachedToWindow && target.performClick()
+        // A daily cell is focusable but its click listener lives on an inner view: click that one.
+        val clickTarget = if (target.hasOnClickListeners()) {
+            target
+        } else {
+            nestedCellOf(target)?.let { (_, cell) -> firstClickableIn(cell) } ?: target
+        }
+        val clicked = clickTarget.isAttachedToWindow && clickTarget.performClick()
         android.util.Log.i("AlertaEcFocus", "ok: click ${target.javaClass.simpleName} performed=$clicked")
         return clicked
     }
@@ -651,6 +679,8 @@ class HomeFragment : MainModuleFragment() {
             if (dy != 0) revealRemote(next)
             return true
         }
+        // Left/Right at the visible edge of an hourly/daily list: scroll it one cell and keep going.
+        if (dx != 0 && stepNestedList(current, dx)) return true
         // Left/Right at the edge of the row are not consumed, so the side menu and other focus targets still work.
         if (dx != 0) return false
         // Top row and the list cannot scroll up: move focus to the top bar (menu, edit, more).
@@ -665,6 +695,46 @@ class HomeFragment : MainModuleFragment() {
         // Reached the edge of what is on screen: scroll, then select the new edge.
         remotePendingEdge = dy
         return scrollByRemote(dy).also { moved -> if (!moved) remotePendingEdge = 0 }
+    }
+
+    /** The cell of a nested (hourly/daily) list that contains [view], with that list; null outside such lists. */
+    private fun nestedCellOf(view: View): Pair<RecyclerView, View>? {
+        var cell = view
+        var parent = view.parent
+        while (parent is View && parent !is RecyclerView) {
+            cell = parent
+            parent = parent.parent
+        }
+        val list = parent as? RecyclerView ?: return null
+        return if (list === binding.recyclerView) null else list to cell
+    }
+
+    /** What OK should act on inside a list cell: the cell itself if clickable, else its clickable child. */
+    private fun remoteTargetIn(cell: View): View {
+        if (cell.hasOnClickListeners() || cell.isFocusable) return cell
+        return firstClickableIn(cell) ?: cell
+    }
+
+    /** First view with a click listener in [view]'s subtree (depth-first), or null. */
+    private fun firstClickableIn(view: View): View? {
+        if (view.hasOnClickListeners()) return view
+        if (view is ViewGroup) for (i in 0 until view.childCount) firstClickableIn(view.getChildAt(i))?.let { return it }
+        return null
+    }
+
+    /** Moves one hour/day left or right past the visible edge, scrolling the list horizontally. */
+    private fun stepNestedList(current: View, dx: Int): Boolean {
+        val (list, cell) = nestedCellOf(current) ?: return false
+        val position = list.getChildAdapterPosition(cell)
+        val target = position + dx
+        val count = list.adapter?.itemCount ?: 0
+        if (position == RecyclerView.NO_POSITION || target !in 0 until count) return false
+        list.scrollToPosition(target)
+        list.post {
+            if (!isAdded) return@post
+            list.findViewHolderForAdapterPosition(target)?.itemView?.let { selectRemote(remoteTargetIn(it)) }
+        }
+        return true
     }
 
     private fun moveWithinToolbar(dx: Int, dy: Int): Boolean {
@@ -776,18 +846,32 @@ class HomeFragment : MainModuleFragment() {
         remoteSelection = view
         view.foreground = remoteFocusRing()
         // Keep the selected hour/day visible in its horizontal list (automatic horizontal scroll).
-        val parentList = view.parent as? RecyclerView
-        if (parentList != null && parentList !== binding.recyclerView) {
-            parentList.getChildAdapterPosition(view).takeIf { it >= 0 }?.let { parentList.smoothScrollToPosition(it) }
+        nestedCellOf(view)?.let { (list, cell) ->
+            list.getChildAdapterPosition(cell).takeIf { it >= 0 }?.let { list.smoothScrollToPosition(it) }
         }
     }
 
-    private fun remoteFocusRing(): GradientDrawable {
-        return remoteFocusRingCache ?: GradientDrawable().apply {
+    /**
+     * Two-tone ring: dark navy outside, amber inside. The old plain white ring was invisible on the
+     * white cards of the light theme; this one keeps strong contrast on light and dark backgrounds.
+     */
+    private fun remoteFocusRing(): android.graphics.drawable.Drawable {
+        return remoteFocusRingCache ?: run {
             val density = resources.displayMetrics.density
-            setColor(Color.TRANSPARENT)
-            setStroke((3 * density).toInt(), Color.WHITE)
-            cornerRadius = 12 * density
+            val outer = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                setStroke((6 * density).toInt(), REMOTE_RING_OUTER)
+                cornerRadius = 12 * density
+            }
+            val inner = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                setStroke((3 * density).toInt(), REMOTE_RING_INNER)
+                cornerRadius = 10 * density
+            }
+            val inset = (3 * density).toInt()
+            android.graphics.drawable.LayerDrawable(arrayOf(outer, inner)).apply {
+                setLayerInset(1, inset, inset, inset, inset)
+            }
         }.also { remoteFocusRingCache = it }
     }
 
@@ -798,8 +882,19 @@ class HomeFragment : MainModuleFragment() {
     private fun RecyclerView.remoteCandidates(): List<View> {
         val listTop = screenTop()
         val out = ArrayList<View>()
+        val clip = android.graphics.Rect()
         fun walk(v: View) {
             if (!v.isShown) return
+            // A nested horizontal list (hourly / daily trend) is never a single target: it used to be picked as one
+            // big focusable view, which swallowed DOWN/RIGHT and made OK unable to open one hour or day.
+            // Its visible cells are the targets instead, so OK opens that hour/day detail like a tap on a phone.
+            if (v is RecyclerView && v !== this@remoteCandidates) {
+                for (i in 0 until v.childCount) {
+                    val cell = v.getChildAt(i)
+                    if (cell.getGlobalVisibleRect(clip) && clip.width() * 2 >= cell.width) walk(cell)
+                }
+                return
+            }
             // A ComposeView is one selectable card: its own buttons are reached through the Compose mode.
             // Cells of a nested horizontal list (hourly / daily trend) have no id but are focusable on TV.
             val nestedCell = v.isFocusable && v.isEnabled && v.parent.let { it is RecyclerView && it !== this@remoteCandidates }
@@ -868,5 +963,9 @@ class HomeFragment : MainModuleFragment() {
 
         /** Vertical slack (dp) to treat two cards as being on the same row. */
         private const val ROW_TOLERANCE_DP = 24f
+
+        /** Remote focus ring colors: dark navy outside + amber inside (contrast on white and dark cards). */
+        private const val REMOTE_RING_OUTER = 0xFF0B1F3A.toInt()
+        private const val REMOTE_RING_INNER = 0xFFFFC400.toInt()
     }
 }
