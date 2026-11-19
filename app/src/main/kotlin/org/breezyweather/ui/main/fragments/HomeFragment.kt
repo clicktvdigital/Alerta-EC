@@ -398,16 +398,16 @@ class HomeFragment : MainModuleFragment() {
     }
 
     /**
-     * With an alert in force, keep the screen on so the TV screensaver (or screen timeout) never hides it.
-     * The flag is cleared as soon as no alert is active, so normal power saving resumes.
+     * With a warning in force, keep the screen on so the TV screensaver (or screen timeout) never hides it.
+     * Uses the Alerta EC events (official alerts + strong forecast threats) at WARNING or above, so a
+     * light drizzle does not keep the panel on. Cleared as soon as nothing qualifies.
      */
     private fun updateKeepScreenOn(location: Location?) {
         val window = activity?.window ?: return
-        val now = System.currentTimeMillis()
-        val alertActive = location?.weather?.alertList?.any { alert ->
-            val end = alert.endDate
-            end == null || end.time > now
-        } == true
+        val alertActive = location != null &&
+            org.breezyweather.alertaec.AlertaEcWeatherAdapter.fromLocation(location).any {
+                it.severity >= org.breezyweather.alertaec.AlertaEcSeverity.WARNING
+            }
         if (alertActive) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
