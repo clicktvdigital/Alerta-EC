@@ -257,11 +257,8 @@ internal object AlertaEcVideoIntro {
             view.setVideoURI(
                 Uri.parse("android.resource://${context.packageName}/${if (useTvVisuals) R.raw.alertaec_cinematic_intro_tv else R.raw.alertaec_cinematic_intro}")
             )
-            if (isTelevision) {
-                skip.requestFocus()
-            } else {
-                view.requestFocus()
-            }
+            // El foco va a "Omitir", no al video: así OK funciona con el primer pulso (TV y móvil).
+            skip.requestFocus()
         } catch (e: RuntimeException) {
             // Silent before: the intro vanished with no trace. Log the cause so the TV log shows it.
             android.util.Log.e("AlertaEcStartup", "intro setup failed: ${e.javaClass.name}: ${e.message}", e)

@@ -1210,7 +1210,7 @@ class RefreshHelper @Inject constructor(
             .filter { sourceId == null || sourceId == it.id }
             .forEach { source ->
                 val config = SourceConfigStore(context, source.id)
-                val enabledPackages = (config.getString("packages", null) ?: "").let {
+                val enabledPackages = (config.getString("packages", null) ?: SourceConfigStore.defaultPackages(source.id)).let {
                     if (it.isNotEmpty()) it.split(",") else emptyList()
                 }
 

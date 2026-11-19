@@ -381,7 +381,7 @@ fun ModulesSettingsScreen(
                 .forEachIndexed { index, broadcastSource ->
                     item(key = broadcastSource.id) {
                         val config = SourceConfigStore(context, broadcastSource.id)
-                        val enabledPackages = (config.getString("packages", null) ?: "").let {
+                        val enabledPackages = (config.getString("packages", null) ?: SourceConfigStore.defaultPackages(broadcastSource.id)).let {
                             if (it.isNotEmpty()) {
                                 it.split(",").toImmutableList()
                             } else {

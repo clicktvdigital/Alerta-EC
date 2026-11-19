@@ -25,8 +25,8 @@ configure<ApplicationExtension> {
 
     defaultConfig {
         applicationId = "com.clicktvdigital.alertaec"
-        versionCode = 115
-        versionName = "0.1.13-tv"
+        versionCode = 116
+        versionName = "0.1.15"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
@@ -86,7 +86,9 @@ configure<ApplicationExtension> {
 
     buildTypes {
         named("debug") {
-            applicationIdSuffix = ".debug"
+            // Sin sufijo de applicationId: no se instala como app separada.
+            // Este tipo solo se usa para compilación y pruebas en CI; la app
+            // que se entrega al usuario es release.
             versionNameSuffix = "-r${getCommitCount()}"
         }
         named("release") {

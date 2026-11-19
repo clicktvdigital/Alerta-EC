@@ -21,4 +21,17 @@ import android.content.Context
 class SourceConfigStore(
     context: Context,
     sourceId: String,
-) : ConfigStore(context, "source_" + sourceId + "_preferences")
+) : ConfigStore(context, "source_" + sourceId + "_preferences") {
+    companion object {
+        /**
+         * Destinos activos por defecto para cada fuente de broadcast, mientras
+         * el usuario no haya elegido nada. Gadgetbridge envía el clima a
+         * CLICK TV Launcher. Si el usuario desmarca la opción, se guarda una
+         * cadena vacía y el valor por defecto ya no se aplica.
+         */
+        fun defaultPackages(sourceId: String): String = when (sourceId) {
+            "gadgetbridge" -> "com.clicktv.launcher"
+            else -> ""
+        }
+    }
+}

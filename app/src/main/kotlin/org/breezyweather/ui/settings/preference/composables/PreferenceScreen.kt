@@ -31,6 +31,7 @@ fun PreferenceScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     content: LazyListScope.() -> Unit,
 ) {
+    // Sin focusRestorer: el grupo capturaba el foco y las opciones no lo recibían.
     LazyColumn(
         modifier = modifier.fillMaxSize().tvListFocus(),
         contentPadding = paddingValues,

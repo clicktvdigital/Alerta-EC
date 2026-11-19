@@ -1,6 +1,9 @@
 package org.breezyweather.ui.map
 
+import android.content.Intent
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
+import org.breezyweather.ui.main.MainActivity
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 import androidx.fragment.app.commit
@@ -22,5 +25,17 @@ class MapActivity : BreezyActivity() {
                 replace(container.id, MapFragment())
             }
         }
+        // Atrás: primero cierra lo que esté abierto dentro del mapa; si no hay nada, vuelve a la
+        // pantalla principal de Alerta EC (no al launcher).
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.popBackStackImmediate()) return
+                startActivity(
+                    Intent(this@MapActivity, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                )
+                finish()
+            }
+        })
     }
 }

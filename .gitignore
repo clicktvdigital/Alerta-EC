@@ -51,7 +51,7 @@ __pycache__/
 # Respaldos locales: conservar en disco, excluir de Git
 *.pre_*
 
-# Salida generada por Graphify (cache y grafo locales)
+# Grafo generado por graphify (se regenera con `graphify update .`)
 graphify-out/
 
 # Locales: logs del TV y skills de Claude Code (se instalan por equipo, no van al repo)
