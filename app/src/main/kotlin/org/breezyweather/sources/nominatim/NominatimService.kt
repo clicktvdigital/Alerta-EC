@@ -82,7 +82,12 @@ class NominatimService @Inject constructor(
         require(latitude.isFinite() && latitude in -90.0..90.0)
         require(longitude.isFinite() && longitude in -180.0..180.0)
         val endpoint = instance!!
-        val language = context.currentLocale.toLanguageTag()
+        // In Ecuador, ask for Spanish names (street, parish, canton) whatever the device language.
+        val language = if (org.breezyweather.background.location.EcuadorBounds.contains(latitude, longitude)) {
+            "es"
+        } else {
+            context.currentLocale.toLanguageTag()
+        }
         val key = "$endpoint|$language|$latitude|$longitude"
         val result = requestMutex.withLock {
             val now = SystemClock.elapsedRealtime()

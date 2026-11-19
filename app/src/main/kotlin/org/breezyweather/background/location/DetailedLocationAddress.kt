@@ -21,6 +21,10 @@ data class DetailedLocationAddress(
     val postalCodeProvenance: String? = null,
     val country: String? = null,
     val countryCode: String? = null,
+    /** Planning district from the official postal zone (e.g. 17D05), shared by education and health. */
+    val planningDistrict: String? = null,
+    /** Distance and Spanish 8-point direction from the nearest provincial capital. */
+    val polarReference: String? = null,
 ) {
     val streetLine: String?
         get() = listOfNotNull(
@@ -45,6 +49,8 @@ data class DetailedLocationAddress(
             province?.takeIf { it.isNotBlank() }?.let { add("Provincia: $it") }
             country?.takeIf { it.isNotBlank() }?.let { add("País: $it") }
             reference?.takeIf { it.isNotBlank() }?.let { add("Referencia: $it") }
+            planningDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito de planificación: $it") }
+            polarReference?.takeIf { it.isNotBlank() }?.let { add("Posición: $it") }
         }
 
     fun mergePostalCode(candidate: PostalCodeCandidate): DetailedLocationAddress {

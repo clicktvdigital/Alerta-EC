@@ -519,7 +519,8 @@ class SourceManager @Inject constructor(
             SourceFeature.ALERT -> when {
                 BuildConfig.FLAVOR == "freenet" -> null
                 location.countryCode.equals("EC", ignoreCase = true) ||
-                    (location.countryCode.isNullOrBlank() && isInEcuadorBox(location.latitude, location.longitude)) ->
+                    (location.countryCode.isNullOrBlank() &&
+                        org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude)) ->
                     getWeatherSource("wmosevereweather")
                 else -> getWeatherSource("accu")
             }
@@ -553,8 +554,4 @@ class SourceManager @Inject constructor(
             null
         }
     }
-
-    /** Mainland Ecuador and Galápagos, for places added by coordinates before reverse geocoding. */
-    private fun isInEcuadorBox(latitude: Double, longitude: Double): Boolean =
-        latitude in -5.1..1.7 && longitude in -92.1..-75.0
 }

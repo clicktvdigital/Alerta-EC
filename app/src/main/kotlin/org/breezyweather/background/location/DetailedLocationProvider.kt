@@ -3,6 +3,7 @@ package org.breezyweather.background.location
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Observable
+import org.breezyweather.BreezyWeather
 import org.breezyweather.sources.SourceManager
 import javax.inject.Inject
 
@@ -48,6 +49,36 @@ class DetailedLocationProvider @Inject constructor(
         ).map { results ->
             results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
                 ?: DetailedLocationAddress()
-        }.map { address -> applyUserVerifiedZone(latitude, longitude, address) }
+        }.map { address -> withOfficialPostalZone(latitude, longitude, address) }
+            .map { address -> applyUserVerifiedZone(latitude, longitude, address) }
+    }
+
+    /**
+     * In Ecuador, replaces the geocoder postcode with the official postal zone of the point (codigopostal.gob.ec)
+     * and adds the planning district and the Spanish polar reference. If the official service is unreachable,
+     * the geocoder postcode stays, marked with its lower confidence.
+     */
+    private fun withOfficialPostalZone(
+        latitude: Double,
+        longitude: Double,
+        address: DetailedLocationAddress,
+    ): DetailedLocationAddress {
+        if (!EcuadorBounds.contains(latitude, longitude)) return address
+        val polar = EcuadorPolarReference.describe(latitude, longitude)?.text
+        val zone = EcuadorPostalZoneService.find(latitude, longitude, BreezyWeather.instance.userAgent)
+            ?: return address.copy(polarReference = polar)
+        return address
+            .mergePostalCode(
+                PostalCodeCandidate(
+                    code = zone.postalCode,
+                    provenance = EcuadorPostalZoneService.PROVENANCE,
+                    confidence = PostalCodeConfidence.AUTHORIZED_OFFICIAL,
+                )
+            ).copy(
+                canton = address.canton ?: zone.canton,
+                province = address.province ?: zone.province,
+                planningDistrict = zone.district,
+                polarReference = polar,
+            )
     }
 }
