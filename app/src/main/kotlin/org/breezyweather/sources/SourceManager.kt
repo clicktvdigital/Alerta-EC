@@ -514,7 +514,15 @@ class SourceManager @Inject constructor(
                 it.isFeatureSupportedForLocation(location, feature) && BuildConfig.FLAVOR != "freenet"
             }
 
-            SourceFeature.ALERT -> if (BuildConfig.FLAVOR != "freenet") getWeatherSource("accu") else null
+            // Ecuador: INAMHI publishes its CAP warnings to the WMO Severe Weather centre, which needs no API key.
+            // AccuWeather (the generic default) needs a key, so new places in Ecuador ended up with no alerts.
+            SourceFeature.ALERT -> when {
+                BuildConfig.FLAVOR == "freenet" -> null
+                location.countryCode.equals("EC", ignoreCase = true) ||
+                    (location.countryCode.isNullOrBlank() && isInEcuadorBox(location.latitude, location.longitude)) ->
+                    getWeatherSource("wmosevereweather")
+                else -> getWeatherSource("accu")
+            }
             SourceFeature.NORMALS -> if (!location.countryCode.equals("CN", ignoreCase = true) &&
                 BuildConfig.FLAVOR != "freenet"
             ) {
@@ -545,4 +553,8 @@ class SourceManager @Inject constructor(
             null
         }
     }
+
+    /** Mainland Ecuador and Galápagos, for places added by coordinates before reverse geocoding. */
+    private fun isInEcuadorBox(latitude: Double, longitude: Double): Boolean =
+        latitude in -5.1..1.7 && longitude in -92.1..-75.0
 }
