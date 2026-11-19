@@ -446,9 +446,19 @@ class MapFragment : MainModuleFragment() {
         }
     }
 
+    private val inamhiLegendRequested = mutableSetOf<String>()
+
+    /** Fetches the official INAMHI colour scale of [layer] once, then redraws the status with it. */
+    private fun requestInamhiLegend(layer: String) {
+        if (!inamhiLegendRequested.add(layer)) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (InamhiLegend.load(layer) != null) renderInamhiStatus() else inamhiLegendRequested.remove(layer)
+        }
+    }
+
     private fun renderInamhiStatus() {
         val now = Instant.now()
-        inamhiStatusLabel?.text = buildList {
+        inamhiStatusLabel?.text = buildList<CharSequence> {
             if (!styleReady) add(styleMessage)
             add("🇪🇨 Fuente configurada: INAMHI · Pronósticos WRF")
             InamhiLayers.all.forEach { layer ->
@@ -462,6 +472,11 @@ class MapFragment : MainModuleFragment() {
                     InamhiLayers.title(layer), enabled,
                     inamhiStates[layer] ?: InamhiLayerStatus.State(), now
                 ))
+                if (enabled) {
+                    InamhiLegend.cached(layer)?.let {
+                        add(InamhiLegend.strip("Escala oficial INAMHI", InamhiLegend.unit(layer), it))
+                    } ?: requestInamhiLegend(layer)
+                }
             }
             add("Dominio WRF configurado: continental; no cubre Galápagos. " +
                 "La cobertura nacional de ALERTA EC depende de otras fuentes.")
@@ -470,11 +485,14 @@ class MapFragment : MainModuleFragment() {
                     add("Centro del mapa fuera del dominio continental configurado para WRF.")
                 }
             }
-            add("La disponibilidad por punto, unidades y leyenda no están verificadas. " +
+            add("Colores y valores: leyenda oficial del servicio WMS de INAMHI. " +
                 "Una tesela blanca no confirma ausencia de lluvia.")
             add("Fecha WMS de pronóstico, no de emisión ni de observación. " +
                 "Pronóstico de modelo, no alerta oficial ni radar.")
-        }.joinToString("\n")
+        }.fold(android.text.SpannableStringBuilder()) { text, line ->
+            if (text.isNotEmpty()) text.append("\n")
+            text.append(line)
+        }
     }
 
     private fun invalidateInamhiRequest() {

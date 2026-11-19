@@ -65,7 +65,12 @@ internal class InamhiMapOverlay(private val style: Style) {
         try {
             val tiles = TileSet("2.2.0", InamhiWmsTiles.url(layer, time))
             style.addSource(RasterSource(entry.source, tiles, 256))
-            val opacity = if (layer == InamhiLayers.PRECIPITATION_3H) 0.30f else 0.20f
+            // 0,30/0,20 made the layers almost invisible over the base map (and on a TV across the room).
+            val opacity = when (layer) {
+                InamhiLayers.PRECIPITATION_3H -> 0.70f
+                InamhiLayers.PRECIPITATION_24H -> 0.65f
+                else -> 0.55f
+            }
             val overlay = RasterLayer(entry.layer, entry.source).withProperties(rasterOpacity(opacity))
             if (style.getLayer("waterway_line_label") != null) {
                 style.addLayerBelow(overlay, "waterway_line_label")
