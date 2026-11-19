@@ -188,7 +188,21 @@ class MapFragment : MainModuleFragment() {
             setSingleLine(true)
             setText(previa?.second.orEmpty())
         }
-        caja.addView(postal); caja.addView(sector)
+        val transversal = android.widget.EditText(contexto).apply {
+            hint = "Calle secundaria o transversal (opcional)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setSingleLine(true)
+            setText(contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).getString("cruce", "").orEmpty())
+        }
+        val referencia = android.widget.EditText(contexto).apply {
+            hint = "Referencia local (opcional): sector, casa comunal, tienda…"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(true)
+            setText(contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).getString("referencia", "").orEmpty())
+        }
+        caja.addView(postal); caja.addView(sector); caja.addView(transversal); caja.addView(referencia)
         android.app.AlertDialog.Builder(contexto)
             .setTitle("Corregir mi zona en este punto GPS")
             .setMessage("Información voluntaria. Se mostrará como aportada por ti; " +
@@ -207,6 +221,8 @@ class MapFragment : MainModuleFragment() {
                         .putString("lon", ubicacion.longitude.toString())
                         .putString("postal", codigo)
                         .putString("sector", nombre)
+                        .putString("cruce", transversal.text.toString().trim())
+                        .putString("referencia", referencia.text.toString().trim())
                         .apply()
                     addressLabel?.text = "✏️ Datos aportados por ti · GPS cercano\n" +
                         "Sector: $nombre · Código postal: $codigo\n" +

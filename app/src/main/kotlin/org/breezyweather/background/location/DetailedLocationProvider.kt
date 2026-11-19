@@ -28,10 +28,23 @@ class DetailedLocationProvider @Inject constructor(
         val postal = prefs.getString("postal", null)?.trim().orEmpty()
         val sector = prefs.getString("sector", null)?.trim().orEmpty()
         if (!Regex("[0-9]{6}").matches(postal) || sector.isBlank()) return result
+        val cross = prefs.getString("cruce", null)?.trim()?.takeIf { it.isNotEmpty() }
+        val localReference = prefs.getString("referencia", null)?.trim()?.takeIf { it.isNotEmpty() }
+        // The first two digits of an Ecuadorian postal code are the province (17 = Pichincha). A user code from
+        // another province than the official zone of this point is a typo: keep the
+        // official code, but still show the user's sector, cross street and local reference.
+        val keepOfficial = result.postalCodeConfidence == PostalCodeConfidence.AUTHORIZED_OFFICIAL &&
+            result.postalCode?.take(2) != postal.take(2)
         return result.copy(
             sector = sector,
-            postalCode = postal,
-            postalCodeProvenance = "Aportado por el usuario (ubicación cercana)"
+            crossStreet = cross ?: result.crossStreet,
+            reference = localReference ?: result.reference,
+            postalCode = if (keepOfficial) result.postalCode else postal,
+            postalCodeProvenance = if (keepOfficial) {
+                result.postalCodeProvenance
+            } else {
+                "Aportado por el usuario (ubicación cercana)"
+            },
         )
     }
 
