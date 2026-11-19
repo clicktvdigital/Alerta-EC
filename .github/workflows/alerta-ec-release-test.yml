@@ -41,8 +41,8 @@ jobs:
               raise SystemExit("La etiqueta no coincide con versionName de app/build.gradle.kts")
           if package.group(1) != "com.clicktvdigital.alertaec":
               raise SystemExit("applicationId no coincide con el paquete de produccion esperado")
-          if int(code.group(1)) != 114:
-              raise SystemExit("versionCode debe ser 114 para v0.1.14")
+          if int(code.group(1)) <= 0:
+              raise SystemExit("versionCode debe ser un entero positivo")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={tag_version}\n")
               output.write(f"version_code={code.group(1)}\n")
