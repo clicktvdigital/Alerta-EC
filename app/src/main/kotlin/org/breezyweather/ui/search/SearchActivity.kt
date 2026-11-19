@@ -61,7 +61,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -69,6 +76,7 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
 import breezyweather.domain.location.model.Location
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
@@ -86,10 +94,10 @@ import org.breezyweather.ui.common.composables.SecondarySourcesPreference
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
 import org.breezyweather.ui.common.widgets.Material3SearchBarInputField
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.settings.preference.LargeSeparatorItem
 import org.breezyweather.ui.settings.preference.composables.RadioButton
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class SearchActivity : BreezyActivity() {
@@ -167,6 +175,7 @@ class SearchActivity : BreezyActivity() {
                 tonalElevation = SearchBarDefaults.TonalElevation,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                val focusManager = LocalFocusManager.current
                 Column(
                     modifier = Modifier.padding(paddings)
                 ) {
@@ -185,7 +194,13 @@ class SearchActivity : BreezyActivity() {
                             if (!it) finishSelf(null)
                         },
                         placeholder = { Text(stringResource(R.string.location_search_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        // With a TV remote, DOWN stayed inside the text field and results were unreachable.
+                        modifier = Modifier.onPreviewKeyEvent { event ->
+                            event.type == KeyEventType.KeyDown &&
+                                event.key == Key.DirectionDown &&
+                                focusManager.moveFocus(FocusDirection.Down)
+                        }
                     )
                     HorizontalDivider(color = SearchBarDefaults.colors().dividerColor)
                     val listResourceState = viewModel.listResource.collectAsState()
@@ -203,9 +218,11 @@ class SearchActivity : BreezyActivity() {
                                         .colors(containerColor = SearchBarDefaults.colors().containerColor),
                                     headlineContent = { Text(location.getPlace(context)) },
                                     supportingContent = { Text(location.administrationLevels()) },
-                                    modifier = Modifier.clickable {
-                                        viewModel.setSelectedLocation(location, locationSearchSource)
-                                    }
+                                    modifier = Modifier
+                                        .tvFocusIndicator()
+                                        .clickable {
+                                            viewModel.setSelectedLocation(location, locationSearchSource)
+                                        }
                                 )
                             }
                         }
