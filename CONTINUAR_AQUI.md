@@ -127,6 +127,13 @@ Bitácora según `docs/PROTOCOLO_EXPERIMENTOS.md` (evidencia fuera de git, en `~
 |---|---|---|---|---|
 | 2026-11-19 | `7ea7673a0` | release 0.1.15 (116) | Arranque en frío sin crash | **PASA**. COLD 3177 ms, 0 errores `AndroidRuntime`. En el release no hay logs `AlertaEc*`: R8 los elimina (`proguard-rules.pro:58`) |
 | 2026-11-19 | `a36ae4952` | release 0.1.15 (116) | Revisión de 120 s: video + `logcat *:E` | **PASA**. COLD 3108 ms, la app queda en primer plano y viva, 0 errores de la app. Solo hay ruido del sistema (`PartnerReceiver`, `WifiVendorHal`, MediaTek). Evidencia: `sesiones/alerta_ec_20261119_225127.mp4` (17 MB) |
+| 2026-11-19 | — | APK del TV | ¿El APK instalado incluye los fixes de TV? | **FALLA**: estaba instalado desde las 18:02, antes de `26a0556f3`/`fae89239b`/`7ea7673a0`. Las corridas anteriores probaban un build viejo. Se instaló el APK firmado de CI `7ea7673a0` (sha256 OK, mismo certificado, datos conservados) |
+| 2026-11-19 | `7ea7673a0` | release prueba CI | Atrás con Lugares abierto | **PASA**. El 1.er Atrás pliega Lugares; el 2.º, en Inicio arriba, sale de la app (diseño de `26a0556f3`) |
+| 2026-11-19 | `7ea7673a0` | release prueba CI | Foco visible en los FAB de Lugares y en la barra del mapa | **FALLA**: el rosa del FAB apenas cambia; en el mapa, borde blanco sobre botón gris claro; el encabezado recibe el foco sin indicador. Corregido en `fedbe0a1c` |
+| 2026-11-19 | `7ea7673a0` | release prueba CI | Mapa: capas INAMHI y NOAA | **PASA**. WMS 200 + PNG en 3 capas WRF (26 tiempos de 3 h, 3 de 24 h); NOAA GeoColor/GLM/Sandwich 200, ~20 min de antigüedad. INAMHI no publica granizo, rayos ni radar (GetCapabilities) |
+| 2026-11-19 | — | WFS oficial | 170528 frente a 170318 | **PASA**. El centroide de Atucucho (−0,1290, −78,5137) → 170528/17D05. 170318 tiene 0 zonas. A 1,2 km al NO (−0,1200, −78,5260) ya es 170304/17D03: el barrio roza un límite, por eso se consulta por punto |
+| 2026-11-19 | `7ea7673a0` | release prueba CI | Alertas de Ecuador por defecto | **PASA**: 3 avisos INAMHI (vía WMO) visibles en Inicio. El orden cambiaba entre arranques; se ordena por severidad en `fedbe0a1c` |
+| 2026-11-19 | `fedbe0a1c` | release prueba CI (CI verde) | Anillo en FAB de Lugares y barra del mapa; zoom satelital con OK/flechas; orden de alertas | **DUDOSO**: instalado y arrancando (COLD 3854 ms). Falta la confirmación visual con el control físico (con ADB no se llega de forma determinista). Ahora no hay alertas vigentes |
 
 ## 7. Próximos pasos
 
