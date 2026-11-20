@@ -41,7 +41,7 @@ internal object NoaaImageLoader {
                     !connection.contentType.orEmpty().startsWith("image/")) return@withLock null
                 if (connection.contentLengthLong > 6_000_000L) return@withLock null
                 connection.inputStream.use { input ->
-                    val bytes = input.readNBytes(6_000_001)
+                    val bytes = input.readUpTo(6_000_001)
                     currentCoroutineContext().ensureActive()
                     if (bytes.size > 6_000_000) return@withLock null
                     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -91,5 +91,21 @@ internal object NoaaImageLoader {
                 connection.disconnect()
             }
         }
+    }
+
+    /**
+     * Reads at most [limit] bytes. InputStream.readNBytes(int) only exists from Android 13 (API 33): on the
+     * Android 11 TV it threw NoSuchMethodError (an Error, so not caught here) and every NOAA frame showed
+     * «Imagen no disponible» (2026-11-20).
+     */
+    private fun java.io.InputStream.readUpTo(limit: Int): ByteArray {
+        val out = java.io.ByteArrayOutputStream(minOf(limit, 1 shl 20))
+        val buffer = ByteArray(64 * 1024)
+        while (out.size() < limit) {
+            val read = read(buffer, 0, minOf(buffer.size, limit - out.size()))
+            if (read < 0) break
+            out.write(buffer, 0, read)
+        }
+        return out.toByteArray()
     }
 }
