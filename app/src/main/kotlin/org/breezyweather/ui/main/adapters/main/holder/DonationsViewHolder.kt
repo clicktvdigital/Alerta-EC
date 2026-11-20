@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import org.breezyweather.ui.support.TvCardActions
@@ -38,9 +39,27 @@ class DonationsViewHolder(
         composeView.tag = TvCardActions.TAG_DONATIONS
     }
 
-    /** OK on the card (TV remote): toggles «Ver formas de colaborar» like pressing its blue button. */
-    fun toggleFromRemote() {
-        expanded.value = !expanded.value
+    /** Asks Compose to move the real focus onto the toggle button (first control of the card). */
+    private val focusToggle = mutableStateOf(0)
+    private val toggleFocus = androidx.compose.ui.focus.FocusRequester()
+
+    /** The ComposeView of this card (to know whether the real focus is still inside it). */
+    val cardView: ComposeView get() = composeView
+
+    /**
+     * OK on the card (TV remote): opens the options and hands the D-pad to the card's own buttons (Compose moves
+     * focus between them and OK presses the focused one). Returns true when the card is now open.
+     */
+    fun openFromRemote(): Boolean {
+        expanded.value = true
+        composeView.requestFocus()
+        focusToggle.value++
+        return true
+    }
+
+    /** BACK while inside the card: folds the options. */
+    fun collapseFromRemote() {
+        expanded.value = false
     }
 
     override fun onBindView(
@@ -82,9 +101,13 @@ class DonationsViewHolder(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                androidx.compose.runtime.LaunchedEffect(focusToggle.value) {
+                    if (focusToggle.value > 0) runCatching { toggleFocus.requestFocus() }
+                }
                 Button(
                     onClick = { expanded.value = !expanded.value },
-                    modifier = Modifier.fillMaxWidth().tvFocusIndicator(),
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()
+                        .then(androidx.compose.ui.Modifier.focusRequester(toggleFocus)),
                 ) {
                     Text(if (expanded.value) "Ocultar opciones de apoyo ▲" else "Ver formas de colaborar ▼")
                 }

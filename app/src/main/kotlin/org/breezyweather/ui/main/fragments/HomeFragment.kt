@@ -78,6 +78,8 @@ class HomeFragment : MainModuleFragment() {
     private var remoteSelection: View? = null
     private var remotePendingEdge = 0
     private var remoteOnToolbar = false
+    /** Card whose own Compose buttons currently own the D-pad («Apoya ALERTA EC» opened with OK). */
+    private var remoteInner: org.breezyweather.ui.main.adapters.main.holder.DonationsViewHolder? = null
 
     private var remoteFocusRingCache: android.graphics.drawable.Drawable? = null
     private lateinit var viewModel: MainActivityViewModel
@@ -601,6 +603,12 @@ class HomeFragment : MainModuleFragment() {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         val name = remoteKeyName(keyCode)
         if (name == null) return false
+        // Inside «Apoya»: Compose moves focus between its buttons and OK presses them; once the real focus has
+        // left the card, the remote selection takes over again.
+        remoteInner?.let { inner ->
+            if (inner.cardView.hasFocus()) return false
+            remoteInner = null
+        }
         val before = describeRemoteSelection()
         val handled = when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> moveRemoteSelection(0, 1)
@@ -625,6 +633,13 @@ class HomeFragment : MainModuleFragment() {
      */
     fun handleRemoteBack(): Boolean {
         if (!isAdded || !::binding.isInitialized) return false
+        // BACK inside «Apoya»: fold the options and keep the card selected (do not jump to the top).
+        remoteInner?.let { inner ->
+            remoteInner = null
+            inner.collapseFromRemote()
+            selectRemote(inner.cardView)
+            return true
+        }
         val recycler = binding.recyclerView
         val scrolled = recycler.canRemoteScroll(-1)
         if (remoteSelection == null && !remoteOnToolbar && !scrolled) return false
@@ -647,8 +662,10 @@ class HomeFragment : MainModuleFragment() {
             if (tag == TvCardActions.TAG_DONATIONS) {
                 val holder = runCatching { binding.recyclerView.getChildViewHolder(target) }.getOrNull()
                 if (holder is org.breezyweather.ui.main.adapters.main.holder.DonationsViewHolder) {
-                    holder.toggleFromRemote()
-                    return true
+                    // Hand the D-pad to the card's own buttons (PayPal, Payphone, Banco Pichincha, Deuna, QR…).
+                    target.foreground = null
+                    remoteInner = holder
+                    return holder.openFromRemote()
                 }
             }
             val shown = tag != null && TvCardActions.show(target.context, tag)

@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -37,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import org.breezyweather.ui.support.isTelevisionDevice
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,11 +77,31 @@ class AlertViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
     ) {
         super.onBindView(activity, location, provider, listAnimationEnabled, itemAnimationEnabled)
 
-        // Don’t show if alertList only contains alerts in the past
-        if (location.weather?.alertList?.any { it.endDate == null || it.endDate!!.time > Date().time } == true) {
+        // Don’t show if alertList only contains alerts in the past, or the user dismissed every current one
+        val dismissed = DismissedAlerts(activity)
+        val hasCurrent = location.weather?.currentAlertList.orEmpty().any { isToday(it) && !dismissed.contains(it) }
+        val hasUpcoming = location.weather?.currentAlertList.isNullOrEmpty() &&
+            location.weather?.alertList?.any { it.endDate == null || it.endDate!!.time > Date().time } == true
+        if (hasCurrent || hasUpcoming) {
             itemView.visibility = View.VISIBLE
             itemView.setOnClickListener {
-                IntentHelper.startAlertActivity(activity, location.formattedId)
+                if (activity.isTelevisionDevice()) {
+                    // TV: OK offers the detail or dismissing the warnings shown (they come back if they change).
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                        .setItems(arrayOf("Ver detalle de las alertas", "Descartar estas alertas")) { _, which ->
+                            if (which == 0) {
+                                IntentHelper.startAlertActivity(activity, location.formattedId)
+                            } else {
+                                dismissed.addAll(location.weather?.currentAlertList.orEmpty())
+                                dismissedVersion.intValue++
+                                itemView.visibility = View.GONE
+                            }
+                        }
+                        .setNegativeButton(R.string.action_close, null)
+                        .show()
+                } else {
+                    IntentHelper.startAlertActivity(activity, location.formattedId)
+                }
             }
             itemView.findViewById<ComposeView>(R.id.container_main_first_card_alert_list).setContent {
                 BreezyWeatherTheme(!ThemeManager.isLightTheme(activity, location)) {
@@ -140,7 +163,11 @@ class AlertViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
         val context = LocalContext.current
         // Most severe first (red → orange → yellow), then by start: the source order varies between
         // refreshes, so the same INAMHI warnings used to swap places on the TV home.
+        // Only today's warnings that the user has not dismissed (X on touch, OK → «Descartar» on TV).
+        val version = dismissedVersion.intValue
+        val dismissed = remember(version) { DismissedAlerts(context) }
         val sortedAlerts = location.weather!!.currentAlertList
+            .filter { isToday(it) && !dismissed.contains(it) }
             .sortedWith(compareByDescending<Alert> { it.severity.id }.thenBy { it.startDate })
         Column {
             sortedAlerts.forEach { currentAlert ->
@@ -158,6 +185,15 @@ class AlertViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                     colors = ListItemDefaults.colors(
                         containerColor = Color.Transparent
                     ),
+                    // Touch: X dismisses this warning on the device until it ends (TV uses OK → «Descartar»).
+                    trailingContent = {
+                        androidx.compose.material3.IconButton(onClick = {
+                            dismissed.add(currentAlert)
+                            dismissedVersion.intValue++
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Descartar alerta")
+                        }
+                    },
                     headlineContent = {
                         Text(
                             currentAlert.headline?.ifEmpty {
@@ -196,5 +232,37 @@ class AlertViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 )
             }
         }
+    }
+
+    /** Bumped when the user dismisses warnings, so the Compose list recomposes without them. */
+    private val dismissedVersion = androidx.compose.runtime.mutableIntStateOf(0)
+
+    /** True when the warning's period touches today (no warnings from previous days). */
+    private fun isToday(alert: Alert): Boolean {
+        val start = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val end = start + 24L * 60 * 60 * 1000
+        return (alert.startDate?.time ?: Long.MIN_VALUE) < end && (alert.endDate?.time ?: Long.MAX_VALUE) >= start
+    }
+
+    /** Warnings dismissed on this device, kept until each one ends (an updated warning gets a new id). */
+    private class DismissedAlerts(context: android.content.Context) {
+        private val prefs = context.getSharedPreferences("alerta_ec_alertas_descartadas", android.content.Context.MODE_PRIVATE)
+        private fun key(alert: Alert) = alert.alertId
+
+        fun contains(alert: Alert): Boolean = prefs.contains(key(alert))
+
+        fun addAll(alerts: List<Alert>) {
+            val now = System.currentTimeMillis()
+            prefs.edit().apply {
+                // Forget dismissals of warnings that already ended.
+                prefs.all.forEach { (k, v) -> if ((v as? Long ?: 0L) in 1 until now) remove(k) }
+                alerts.forEach { putLong(key(it), it.endDate?.time ?: (now + 24L * 60 * 60 * 1000)) }
+            }.apply()
+        }
+
+        fun add(alert: Alert) = addAll(listOf(alert))
     }
 }

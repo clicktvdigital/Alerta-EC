@@ -341,7 +341,8 @@ internal fun AboutScreen(
             }
 
             largeSeparatorItem()
-            item { SupportSection() }
+            // «Acerca de» is drawn on white: use the black-lettered Banco Pichincha mark there.
+            item { SupportSection(onWhiteBackground = true) }
             largeSeparatorItem()
             item { SectionTitle(stringResource(R.string.alertaec_creators_title)) }
             itemsIndexed(appCreators) { index, item ->

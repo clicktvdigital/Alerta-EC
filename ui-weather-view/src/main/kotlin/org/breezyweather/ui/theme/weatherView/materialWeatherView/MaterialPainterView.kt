@@ -201,6 +201,7 @@ class MaterialPainterView(
         mDeviceOrientation = DeviceOrientation.TOP
 
         background = getWeatherBackgroundDrawable(weatherKind, daylight)
+        applyNightVeil(weatherKind, daylight)
     }
 
     fun update(
@@ -221,6 +222,7 @@ class MaterialPainterView(
         }
 
         background = getWeatherBackgroundDrawable(weatherKind, daylight)
+        applyNightVeil(weatherKind, daylight)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -315,24 +317,26 @@ class MaterialPainterView(
         postInvalidate()
     }
 
-    /**
-     * The background is an image per weather kind and only «clear» has a night version: at night the others
-     * (fog, rain, clouds…) kept their daytime blue/grey. A 70 % black veil makes the night read as night on the TV;
-     * day and afternoon (until sunset) are unchanged (2026-11-20).
-     */
     private fun getWeatherBackgroundDrawable(
         weatherKind: Int,
         daylight: Boolean,
-    ): android.graphics.drawable.Drawable? {
-        val base = ResourcesCompat.getDrawable(
-            resources,
-            WeatherImplementorFactory.getBackgroundId(weatherKind, daylight),
+    ) = ResourcesCompat.getDrawable(
+        resources,
+        WeatherImplementorFactory.getBackgroundId(weatherKind, daylight),
+        null
+    )
+
+    /**
+     * Night veil drawn OVER the animation: only «clear» has a night background image, and at night the fog/rain/
+     * cloud implementors paint large light translucent shapes on top of the background, so a background-only veil
+     * still read as medium blue on the TV (2026-11-20). Day and afternoon (until sunset) stay unchanged.
+     */
+    private fun applyNightVeil(weatherKind: Int, daylight: Boolean) {
+        foreground = if (daylight || weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR) {
             null
-        ) ?: return null
-        if (daylight || weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR) return base
-        return android.graphics.drawable.LayerDrawable(
-            arrayOf(base, android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(178, 0, 0, 0)))
-        )
+        } else {
+            android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(150, 0, 0, 0))
+        }
     }
 
     private fun setWeatherImplementor() {

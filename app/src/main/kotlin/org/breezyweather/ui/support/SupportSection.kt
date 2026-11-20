@@ -86,8 +86,12 @@ private val otrosApoyos = listOf(
     Triple("GitHub Sponsors", "https://github.com/sponsors/clicktvdigital", R.drawable.alertaec_marca_githubsponsors)
 )
 
+/**
+ * @param onWhiteBackground «Acerca de» draws this on white: Banco Pichincha then uses its black-lettered mark
+ * (the default one has white letters with a grey outline and a white inner mark, made for dark cards).
+ */
 @Composable
-internal fun SupportSection() {
+internal fun SupportSection(onWhiteBackground: Boolean = false) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var qrSeleccionado by rememberSaveable { mutableIntStateOf(-1) }
@@ -213,7 +217,11 @@ internal fun SupportSection() {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (apoyo.marca != null) {
                         PaymentBrand(
-                            resource = apoyo.marca,
+                            resource = if (onWhiteBackground && apoyo.marca == R.drawable.alertaec_marca_pichincha_profesional) {
+                                R.drawable.alertaec_marca_pichincha_sobre_blanco
+                            } else {
+                                apoyo.marca
+                            },
                             // Reservar un area comun evita comprimir los textos de marca y
                             // deja que ContentScale.Fit conserve la proporcion de cada logo.
                             modifier = Modifier.fillMaxWidth().height(88.dp)
