@@ -1039,6 +1039,16 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         val drawerLayout = binding.drawerLayout
         if (drawerLayout != null) {
             drawerLayout.isUnfold = visible
+            // TV: move the real focus into Places when it opens. Otherwise it stayed on a Home card behind it and
+            // the arrows walked Home (Presión, Humedad…) instead of the places and the +, GPS and Clima TV buttons
+            // (TV test 2026-11-20). When it closes, Home's own remote selection takes over again.
+            drawerLayout.post {
+                if (visible) {
+                    findManagementFragment()?.view?.requestFocus()
+                } else {
+                    currentFocus?.clearFocus()
+                }
+            }
             return
         }
         if (visible == isOrWillManagementFragmentVisible) return
