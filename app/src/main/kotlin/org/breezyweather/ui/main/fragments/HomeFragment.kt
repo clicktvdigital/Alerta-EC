@@ -29,6 +29,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.forEach
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
@@ -234,6 +235,10 @@ class HomeFragment : MainModuleFragment() {
         binding.toolbar.menu.findItem(R.id.action_open_in_other_app).isVisible = false
         // Needed to get the icon to show the correct color depending on dark mode
         binding.toolbar.overflowIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_more_vert)
+        // Title, menu and action icons sit on the weather background: colorSurfaceInverse is almost black in the
+        // light theme and looked grey/dim on the TV, so they are drawn white for contrast (2026-11-20).
+        binding.toolbar.overflowIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
+        binding.toolbar.menu.forEach { it.icon?.mutate()?.setTint(android.graphics.Color.WHITE) }
 
         // Con mando de TV: desde los botones de la barra superior, la tecla de abajo
         // lleva el foco a la lista de tarjetas.
@@ -639,6 +644,13 @@ class HomeFragment : MainModuleFragment() {
         }
         if (target is AbstractComposeView) {
             val tag = target.tag as? String
+            if (tag == TvCardActions.TAG_DONATIONS) {
+                val holder = runCatching { binding.recyclerView.getChildViewHolder(target) }.getOrNull()
+                if (holder is org.breezyweather.ui.main.adapters.main.holder.DonationsViewHolder) {
+                    holder.toggleFromRemote()
+                    return true
+                }
+            }
             val shown = tag != null && TvCardActions.show(target.context, tag)
             android.util.Log.i("AlertaEcFocus", "ok: card actions tag=$tag shown=$shown")
             return shown

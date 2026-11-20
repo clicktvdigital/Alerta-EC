@@ -176,7 +176,7 @@ class MainAdapter(
         ViewType.SUN -> SunViewHolder(parent)
         ViewType.MOON -> MoonViewHolder(parent)
         ViewType.CLOCK -> ClockViewHolder(parent)
-        VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(ComposeView(parent.context))
+        VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(android.widget.LinearLayout(parent.context))
         VIEW_TYPE_DONATIONS -> DonationsViewHolder(ComposeView(parent.context))
         ViewType.FOOTER -> FooterViewHolder(ComposeView(parent.context))
         else -> FooterViewHolder(ComposeView(parent.context))

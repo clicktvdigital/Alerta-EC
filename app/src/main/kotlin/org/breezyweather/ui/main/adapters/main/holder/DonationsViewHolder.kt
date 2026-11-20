@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import org.breezyweather.ui.support.TvCardActions
@@ -32,8 +31,16 @@ class DonationsViewHolder(
     private val composeView: ComposeView,
 ) : AbstractMainViewHolder(composeView) {
 
+    /** Held here (not in remember) so OK on TV can open/close the options in place, without another window. */
+    private val expanded = mutableStateOf(false)
+
     init {
         composeView.tag = TvCardActions.TAG_DONATIONS
+    }
+
+    /** OK on the card (TV remote): toggles «Ver formas de colaborar» like pressing its blue button. */
+    fun toggleFromRemote() {
+        expanded.value = !expanded.value
     }
 
     override fun onBindView(
@@ -53,7 +60,6 @@ class DonationsViewHolder(
 
     @Composable
     private fun DonationsPanel() {
-        val expanded = rememberSaveable { mutableStateOf(false) }
         ElevatedCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         ) {

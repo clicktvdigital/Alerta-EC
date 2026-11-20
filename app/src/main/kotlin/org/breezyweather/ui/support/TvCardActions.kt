@@ -9,11 +9,13 @@ import org.breezyweather.ui.map.MapActivity
 
 /**
  * OK on the Home cards with their own buttons (Compose). Compose buttons cannot take the TV D-pad
- * inside a RecyclerView card, so OK opens a native list of the card's actions instead. Each row runs
+ * inside a RecyclerView card: a card with one action runs it directly; with several, OK opens a native list. Each row runs
  * its action directly (Intent or dialog). D-pad navigates the list natively.
  */
 object TvCardActions {
     const val TAG_MAP = "tv_card_map"
+    const val TAG_REVIEW = "tv_card_review"
+    const val TAG_REPORT = "tv_card_report"
     const val TAG_DONATIONS = "tv_card_donations"
 
     /** True when the card has actions and the dialog was shown. */
@@ -21,13 +23,18 @@ object TvCardActions {
         val actions: List<Pair<String, () -> Unit>> = when (tag) {
             TAG_MAP -> listOf(
                 "Abrir mapa meteorológico" to { context.startActivity(Intent(context, MapActivity::class.java)) },
-                "Escribir reseña" to { showFeedback(context, false) },
-                "Redactar reporte y adjuntar evidencia" to { showFeedback(context, true) },
             )
+            TAG_REVIEW -> listOf("Escribir reseña" to { showFeedback(context, false) })
+            TAG_REPORT -> listOf("Redactar reporte y adjuntar evidencia" to { showFeedback(context, true) })
             TAG_DONATIONS -> listOf(
                 "Ver formas para colaborar" to { context.startActivity(Intent(context, AboutActivity::class.java)) },
             )
             else -> return false
+        }
+        // One action: OK runs it directly, like pressing the card's button (no extra window).
+        if (actions.size == 1) {
+            actions.single().second()
+            return true
         }
         MaterialAlertDialogBuilder(context)
             .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }

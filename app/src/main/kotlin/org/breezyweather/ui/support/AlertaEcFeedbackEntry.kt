@@ -29,35 +29,53 @@ fun AlertaEcFeedbackEntry(context: Context, firstFocus: FocusRequester? = null) 
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("🗺️ Meteorología de Ecuador", style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary)
-                Text("Lluvia, temperatura y capas INAMHI", style = MaterialTheme.typography.bodyMedium)
-                Text("Las capas se consultan por separado; activadas no significa que haya datos recientes.",
-                    style = MaterialTheme.typography.bodySmall)
-                Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
-                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()
-                        .then(if (firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier)) { Text("Abrir mapa meteorológico") }
-            }
+        AlertaEcMapEntryCard(context, firstFocus)
+        AlertaEcReviewEntryCard(context)
+        AlertaEcReportEntryCard(context)
+    }
+}
+
+/** Card «Meteorología de Ecuador»: its own Home target on TV (OK opens the map directly). */
+@Composable
+fun AlertaEcMapEntryCard(context: Context, firstFocus: FocusRequester? = null) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("🗺️ Meteorología de Ecuador", style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary)
+            Text("Lluvia, temperatura y capas INAMHI", style = MaterialTheme.typography.bodyMedium)
+            Text("Las capas se consultan por separado; activadas no significa que haya datos recientes.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
+                modifier = Modifier.fillMaxWidth().tvFocusIndicator()
+                    .then(if (firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier)) { Text("Abrir mapa meteorológico") }
         }
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("⭐ Reseñas de ALERTA EC", style = MaterialTheme.typography.titleLarge)
-                OutlinedButton(onClick = { showFeedback(context, false) },
-                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Escribir reseña") }
-            }
+    }
+}
+
+/** Card «Reseñas»: its own Home target on TV (OK opens the review form directly). */
+@Composable
+fun AlertaEcReviewEntryCard(context: Context) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("⭐ Reseñas de ALERTA EC", style = MaterialTheme.typography.titleLarge)
+            OutlinedButton(onClick = { showFeedback(context, false) },
+                modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Escribir reseña") }
         }
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("📢 Reporte meteorológico", style = MaterialTheme.typography.titleLarge)
-                Text("Incluye texto, foto, video o audio y GPS voluntario.",
-                    style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = { showFeedback(context, true) },
-                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Redactar reporte y adjuntar evidencia") }
-                Text("El envío requiere elegir una aplicación externa. No equivale a un reporte recibido por ECU 911.",
-                    style = MaterialTheme.typography.bodySmall)
-            }
+    }
+}
+
+/** Card «Reporte meteorológico»: its own Home target on TV (OK opens the report form directly). */
+@Composable
+fun AlertaEcReportEntryCard(context: Context) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("📢 Reporte meteorológico", style = MaterialTheme.typography.titleLarge)
+            Text("Incluye texto, foto, video o audio y GPS voluntario.",
+                style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = { showFeedback(context, true) },
+                modifier = Modifier.fillMaxWidth().tvFocusIndicator()) { Text("Redactar reporte y adjuntar evidencia") }
+            Text("El envío requiere elegir una aplicación externa. No equivale a un reporte recibido por ECU 911.",
+                style = MaterialTheme.typography.bodySmall)
         }
     }
 }
