@@ -932,7 +932,11 @@ class HomeFragment : MainModuleFragment() {
             val nestedCell = v.isFocusable && v.isEnabled && v.parent.let { it is RecyclerView && it !== this@remoteCandidates }
             // Only the Compose cards that have actions (tagged) are selectable; other ComposeViews are not.
             val actionCard = v is AbstractComposeView && v.tag != null
-            if (actionCard || v.hasOnClickListeners() || nestedCell || (v.isFocusable && v.isEnabled && v.id != View.NO_ID)) {
+            // A focusable card with an id is one target only when it has nothing selectable inside: the hourly and
+            // daily cards (focusable for Android TV) used to be taken whole, so after BACK on the top bar DOWN picked
+            // the whole card and LEFT/RIGHT could not reach its chips, hours or days (TV test 2026-11-20).
+            val plainFocusableCard = v.isFocusable && v.isEnabled && v.id != View.NO_ID && !hasSelectableInside(v)
+            if (actionCard || v.hasOnClickListeners() || nestedCell || plainFocusableCard) {
                 val top = v.screenTop()
                 if (top + v.height > listTop && top < listTop + height) out.add(v)
                 return // do not descend into clickable children of a card
@@ -941,6 +945,16 @@ class HomeFragment : MainModuleFragment() {
         }
         for (i in 0 until childCount) walk(getChildAt(i))
         return out.sortedWith(compareBy({ it.screenTop() }, { it.screenLeft() }))
+    }
+
+    /** True when [view] holds a clickable child or a nested list (chips, hours, days) that should be targets. */
+    private fun hasSelectableInside(view: View): Boolean {
+        if (view !is ViewGroup) return false
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            if (child is RecyclerView || child.hasOnClickListeners() || hasSelectableInside(child)) return true
+        }
+        return false
     }
 
     private fun View.screenTop(): Int = IntArray(2).also { getLocationOnScreen(it) }[1]

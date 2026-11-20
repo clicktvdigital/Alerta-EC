@@ -51,18 +51,8 @@ class FitTabletRecyclerView @JvmOverloads constructor(
                 }
                 view.isFocusable = true
                 view.isFocusableInTouchMode = true
-                view.setOnFocusChangeListener { v, hasFocus ->
-                    // Halo neón cian alrededor de la tarjeta seleccionada, sin cambiar su tamaño.
-                    v.foreground = if (hasFocus) {
-                        val density = v.resources.displayMetrics.density
-                        android.graphics.drawable.GradientDrawable().apply {
-                            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                            cornerRadius = 16f * density
-                            setStroke((5 * density).toInt(), android.graphics.Color.parseColor("#00E5FF"))
-                        }
-                    } else null
-                    v.alpha = if (hasFocus) 1f else 0.9f
-                }
+                // No native halo or dimming: Home draws its own remote ring (navy + amber). The cyan halo marked
+                // a second, competing focus and the 0.9 alpha made every unfocused card look dull (2026-11-20).
             }
 
             override fun onChildViewDetachedFromWindow(view: View) {}
