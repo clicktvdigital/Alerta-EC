@@ -125,13 +125,14 @@ Bitácora según `docs/PROTOCOLO_EXPERIMENTOS.md` (evidencia fuera de git, en `~
 
 | Fecha | Commit | Build | Hipótesis | Resultado |
 |---|---|---|---|---|
-| 2026-11-19 | `7ea7673a0` | release 0.1.15 (116) | Arranque en frío sin crash | **PASA**. COLD 3177 ms, 0 errores `AndroidRuntime`. En el release no aparece ningún log `AlertaEcStartup/Keys/Focus` |
+| 2026-11-19 | `7ea7673a0` | release 0.1.15 (116) | Arranque en frío sin crash | **PASA**. COLD 3177 ms, 0 errores `AndroidRuntime`. En el release no hay logs `AlertaEc*`: R8 los elimina (`proguard-rules.pro:58`) |
+| 2026-11-19 | `a36ae4952` | release 0.1.15 (116) | Revisión de 120 s: video + `logcat *:E` | **PASA**. COLD 3108 ms, la app queda en primer plano y viva, 0 errores de la app. Solo hay ruido del sistema (`PartnerReceiver`, `WifiVendorHal`, MediaTek). Evidencia: `sesiones/alerta_ec_20261119_225127.mp4` (17 MB) |
 
 ## 7. Próximos pasos
 
 1. Validar en el TV el release firmado de v0.1.15: horas/días con OK, foco visible, Ajustes desde la barra, intro y Atrás. Hacer una corrida `tv_bitacora.sh run` + `decide` por cada punto.
 2. Fusionar el PR #2 y crear el tag `v0.1.15`. El workflow publica los dos APK firmados.
-3. Retirar los logs de diagnóstico temporales (`AlertaEcStartup`, `AlertaEcKeys`, `AlertaEcFocus`) antes del release definitivo, o dejarlos solo en debug.
+3. ~~Retirar los logs de diagnóstico~~ Resuelto en el release: `-assumenosideeffects` (`app/proguard-rules.pro:58`) elimina `Log.v/i/w/d`. Solo se conserva `Log.e` («intro setup failed»). En debug siguen activos, que es lo que se quería.
 4. Arranque en frío: ~0,9 s en `super.onCreate` y ~2 s hasta "adapter attached" en el TV. Diferir trabajo fuera del hilo principal. Valorar mostrar el intro solo en el primer arranque en equipos de poca RAM.
 5. Revisar la rama `respaldo/breezy-wip-20261119` y archivar `~/breezy-weather` cuando se integre.
 6. Ejecutar `~/ALERTA_EC_ARCHIVO_20261119/PLAN_BORRADO.sh --si` (libera ~758 MB). El `.tar` de datos en claro solo se borra si el `.enc` descifra al mismo SHA-256 (pide la contraseña).
