@@ -151,6 +151,8 @@ Bitácora según `docs/PROTOCOLO_EXPERIMENTOS.md` (evidencia fuera de git, en `~
 | 2026-11-20 | `5a4d4a3e5` | release prueba CI | Atrás en el menú → volver a bajar | **FALLA → corregido en la rama `wip/v0115-foco`** (fila siguiente): tras Atrás en la barra, ABAJO selecciona la tarjeta entera del pronóstico (horas o días) y DERECHA/IZQUIERDA no recorren celdas. `FitTabletRecyclerView` hace enfocable cada tarjeta (halo cian, alpha 0,9) y compite con la selección del mando cuando una tecla escapa al foco de Android. Primer arreglo: `d14752dc9` (extremos de la barra) |
 | 2026-11-20 | `wip/v0115-foco` | release prueba CI | Foco tras menú → Atrás, horas, días y bloques | **PASA**: las tarjetas de horas y días ya no se seleccionan enteras (`remoteCandidates` entra si tienen elementos seleccionables dentro); se quita el halo cian nativo y la opacidad 0,9 de `FitTabletRecyclerView`. Tras Atrás: celdas 2:00 y Hoy; DERECHA/IZQUIERDA recorren días y bloques (Precipitaciones ↔ Índice UV). 0 `FATAL`. `sesiones/alerta_ec_master_20261120_021543.mp4` |
 | 2026-11-20 | `52ffc165e` (wip) | release prueba CI | Mapa INAMHI: leyenda y flechas | **PASA**: leyenda oficial de las capas activas visible sobre el mapa; ◀ ▲ ▼ ▶ en la barra desplazan el mapa. «Corregir mi zona» con radio de 300 m, sin el barrio de OSM y con campos «Parroquia eclesiástica» y «Posición» (solo en el dispositivo). Pendiente: el gráfico de «Precipitaciones previstas» (`1ddcae3c4`) no se pudo ver porque la tarjeta solo aparece con datos de lluvia por minutos |
+| 2026-11-20 | `7d30e1e64`…`3e3919a3b` (wip) | release prueba CI | Mapa: leyenda, rosa, flechas, Capas | **PASA**: leyenda vertical a la izquierda, una fila por color con su rango («1–5», «≥ 75»); rosa de 8 rumbos a la derecha; ▶ ◀ ▲ ▼ en sentido natural (en `scrollBy` solo X estaba invertido); Atrás con Capas abierto vuelve a «Capas» |
+| 2026-11-20 | `5603e7042` (wip) | release prueba CI | Fondo nocturno negro | **FALLA (abierto)**: con niebla de noche el fondo sigue azul medio aunque `MaterialPainterView` ya añade un velo del 70 %. Falta confirmar qué vista pinta el fondo en TV (¿animaciones desactivadas en equipos de poca RAM?) o si `isDaylight` es verdadero de madrugada |
 
 ## 7. Próximos pasos
 
@@ -160,3 +162,28 @@ Bitácora según `docs/PROTOCOLO_EXPERIMENTOS.md` (evidencia fuera de git, en `~
 4. Arranque en frío: ~0,9 s en `super.onCreate` y ~2 s hasta "adapter attached" en el TV. Diferir trabajo fuera del hilo principal. Valorar mostrar el intro solo en el primer arranque en equipos de poca RAM.
 5. Revisar la rama `respaldo/breezy-wip-20261119` y archivar `~/breezy-weather` cuando se integre.
 6. Ejecutar `~/ALERTA_EC_ARCHIVO_20261119/PLAN_BORRADO.sh --si` (libera ~758 MB). El `.tar` de datos en claro solo se borra si el `.enc` descifra al mismo SHA-256 (pide la contraseña).
+
+## 8. Pendiente (rama `wip/v0115-foco`, sin pasar aún a `release/v0.1.15`)
+
+1. Fondo nocturno negro (ver la fila FALLA de arriba) y anillo ámbar en la barra superior (el foco la recorre, pero solo se ve un círculo tenue).
+2. «Apoya ALERTA EC»: dar foco D-pad a los botones internos de Compose (PayPal, Payphone, Banco Pichincha, Deuna, QR, copiar enlace) y hacer que Atrás pliegue.
+3. Alertas INAMHI: mostrar solo las del día y poder descartarlas (X, deslizar, mando).
+4. Logo de Banco Pichincha en «Acerca de» (bordes negros e interior del icono en negro), con captura.
+5. Ver en pantalla el gráfico de «Precipitaciones previstas» (`1ddcae3c4`) cuando haya lluvia por minutos.
+6. Celular (192.168.100.164): probar este APK por rendimiento.
+7. Comprobar en pantalla «Corregir mi zona» con «Parroquia eclesiástica» y «Posición».
+
+## 9. Hoja de ruta (v0.1.16 y siguientes)
+
+- Prioridad INAMHI sobre Open-Meteo: INAMHI no publica pronóstico por puntos (solo avisos CAP y capas WRF); hace falta diseñar la combinación.
+- Reproducción por horas tipo NOAA en el mapa INAMHI (los tiempos WRF ya se leen en `InamhiWmsTimes`).
+- Sismos en Ecuador (IG-EPN; ya existe la base `AlertaEcSeismicProtocol`).
+- SOS para familiares y botón al 911 con envío de ubicación, audio y video en tiempo real (requiere diseño de privacidad y permisos).
+- Geocodificación de Ecuador más fiable que Nominatim (evaluar datos abiertos del DMQ).
+
+## 10. Herramientas y rutas clave
+
+- Bitácora: `bash scripts/tv_bitacora.sh base|run|decide` (evidencia en `~/ALERTA_EC_BITACORA/`, fuera de git).
+- APK de prueba: `gh workflow run alerta-ec-release-test.yml --ref <rama>` y `adb install -r` (misma firma, conserva los datos). El APK debug usa otra firma: no instalarlo sobre el release.
+- Diagnóstico en release: R8 elimina `Log.v/d/i/w/e`; usar `Log.println` en una rama `diag/*`.
+- Skills de diseño (`.claude/skills/`: emil-design-eng, impeccable, learn-taste…) solo se cargan si Claude Code se abre dentro del repo.
