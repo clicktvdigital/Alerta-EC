@@ -45,7 +45,7 @@ class NoaaListingTest {
                 val hh = (minute % 288) / 12
                 val mm = (minute % 12) * 5
                 append(row("2026%03d%02d%02d".format(day, hh, mm)))
-                append("<td>padding padding padding padding padding padding padding padding padding</td>\n".repeat(6))
+                append("<td>padding padding padding padding padding padding padding padding padding</td>\n".repeat(8))
             }
         }
         assertTrue(html.length > 1_000_000)
