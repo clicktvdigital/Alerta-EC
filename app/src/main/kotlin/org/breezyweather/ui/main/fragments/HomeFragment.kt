@@ -954,8 +954,17 @@ class HomeFragment : MainModuleFragment() {
         // Continue from the current card in the scroll direction; never jump back to the opposite edge.
         val current = remoteSelection?.takeIf { it in candidates }
         val next = current?.let { nextRemoteCard(candidates, it, 0, direction) }
-        // Scrolled up and still nothing above (only the header): finish the press on the top bar.
-        if (direction < 0 && current != null && next == null && jumpToToolbar()) return
+        // Scrolled up and still nothing above: a tall card (the daily trend column) can hide what is above it for
+        // more than one 40 % step, so keep scrolling within the same press; only at the very top (header only)
+        // finish the press on the top bar.
+        if (direction < 0 && current != null && next == null) {
+            if (binding.recyclerView.canRemoteScroll(-1)) {
+                remotePendingEdge = direction
+                if (scrollByRemote(direction)) return
+                remotePendingEdge = 0
+            }
+            if (jumpToToolbar()) return
+        }
         val edge = next ?: current ?: if (direction > 0) candidates.firstOrNull() else candidates.lastOrNull()
         if (edge != null && edge !== current) selectRemote(edge)
     }
