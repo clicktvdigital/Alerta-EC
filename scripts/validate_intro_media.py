@@ -25,7 +25,7 @@ def main():
     # Primer fotograma exacto y muestras tempranas para revisión visual.
     subprocess.run([
         "ffmpeg", "-v", "error", "-y", "-i", str(VIDEO), "-vf",
-        "select='eq(n,0)+eq(n,1)+eq(n,15)+eq(n,30)'", "-vsync", "0",
+        "select='eq(n,0)+eq(n,1)+eq(n,15)+eq(n,30)'", "-fps_mode", "passthrough",
         "-frames:v", "4", str(OUTPUT / "frame-%02d.png")
     ], check=True)
     pixels = subprocess.check_output([

@@ -224,7 +224,8 @@ internal object AlertaEcVideoIntro {
                                 }
                             }
                             .onFailure { stop() }
-                    }, START_IMAGE_MS)
+                    // Phone: the vertical intro already opens on its own poster (1080x1920), so no black wait.
+                    }, if (useTvVisuals) START_IMAGE_MS else 0L)
                 }
             }
             view.setOnCompletionListener {
