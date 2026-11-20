@@ -523,20 +523,34 @@ class MapFragment : MainModuleFragment() {
             text.append(line)
         }
         val legends = InamhiLayers.all.filter { inamhiSelection.enabled(it) }.mapNotNull { layer ->
-            InamhiLegend.cached(layer)?.let { InamhiLegend.column(InamhiLayers.title(layer), InamhiLegend.unit(layer), it) }
+            InamhiLegend.cached(layer)?.let {
+                // TV: vertical column at the side. Phone: thin horizontal strip (a column took half the screen).
+                if (requireContext().isTelevisionDevice()) {
+                    InamhiLegend.column(InamhiLayers.title(layer), InamhiLegend.unit(layer), it)
+                } else {
+                    InamhiLegend.strip(InamhiLayers.title(layer), InamhiLegend.unit(layer), it)
+                }
+            }
         }
         inamhiLegendOverlay?.apply {
             removeAllViews()
             legends.forEach { legend ->
                 addView(android.widget.TextView(context).apply {
                     text = legend
-                    textSize = 13f
+                    textSize = if (context.isTelevisionDevice()) 13f else 10f
                     typeface = android.graphics.Typeface.MONOSPACE
                     setTextColor(android.graphics.Color.WHITE)
                     setPadding(10, 6, 10, 6)
                 })
             }
-            visibility = if (legends.isEmpty()) View.GONE else View.VISIBLE
+            val show = legends.isNotEmpty()
+            if (show && visibility != View.VISIBLE) {
+                alpha = 0f
+                visibility = View.VISIBLE
+                animate().alpha(1f).setDuration(150).start()
+            } else if (!show) {
+                visibility = View.GONE
+            }
         }
     }
 
@@ -712,15 +726,20 @@ class MapFragment : MainModuleFragment() {
             }
             androidx.core.view.ViewCompat.requestApplyInsets(this)
             // Legend on the left side, one vertical column per active layer, so it no longer covers the map centre.
+            val tv = context.isTelevisionDevice()
             inamhiLegendOverlay = android.widget.LinearLayout(context).apply {
-                orientation = android.widget.LinearLayout.HORIZONTAL
+                orientation = if (tv) android.widget.LinearLayout.HORIZONTAL else android.widget.LinearLayout.VERTICAL
                 setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
                 setPadding(6, 6, 6, 6)
                 visibility = View.GONE
             }
-            addView(inamhiLegendOverlay, android.widget.FrameLayout.LayoutParams(
-                -2, -2, android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
-            ).apply { marginStart = 12 })
+            addView(inamhiLegendOverlay, if (tv) {
+                android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL)
+                    .apply { marginStart = 12 }
+            } else {
+                android.widget.FrameLayout.LayoutParams(-1, -2, android.view.Gravity.TOP)
+                    .apply { topMargin = (110f * resources.displayMetrics.density).toInt() }
+            })
             compassRose = android.widget.TextView(context).apply {
                 text = "NO   N   NE\n\nO    ✛    E\n\nSO   S   SE"
                 typeface = android.graphics.Typeface.MONOSPACE
@@ -731,6 +750,8 @@ class MapFragment : MainModuleFragment() {
                 setPadding(14, 10, 14, 10)
                 contentDescription = "Rosa de los vientos: norte arriba"
             }
+            // Phone: MapLibre's own compass (Google Maps style, follows touch rotation); text rose only on TV.
+            if (!tv) compassRose?.visibility = View.GONE
             addView(compassRose, android.widget.FrameLayout.LayoutParams(
                 -2, -2, android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
             ).apply { marginEnd = 12 })
@@ -971,6 +992,10 @@ class MapFragment : MainModuleFragment() {
         requestedMapView.getMapAsync { map ->
             if (this.view !== view || mapView !== requestedMapView || !isAdded) return@getMapAsync
             currentMap = map
+            if (!requireContext().isTelevisionDevice()) {
+                map.uiSettings.isCompassEnabled = true
+                map.uiSettings.setCompassFadeFacingNorth(false)
+            }
             // The compass follows the map bearing (fixed north-up on TV; rotates on touch devices).
             map.addOnCameraMoveListener { compassRose?.rotation = -map.cameraPosition.bearing.toFloat() }
             if (savedInstanceState == null) {

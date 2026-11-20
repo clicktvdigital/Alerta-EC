@@ -71,7 +71,12 @@ internal class InamhiMapOverlay(private val style: Style) {
                 InamhiLayers.PRECIPITATION_24H -> 0.65f
                 else -> 0.55f
             }
-            val overlay = RasterLayer(entry.layer, entry.source).withProperties(rasterOpacity(opacity))
+            // Short crossfade (Emil: motion only with a purpose — here, continuity when the hour or layer changes)
+            // instead of tiles popping in.
+            val overlay = RasterLayer(entry.layer, entry.source).withProperties(
+                rasterOpacity(opacity),
+                org.maplibre.android.style.layers.PropertyFactory.rasterFadeDuration(200f),
+            )
             if (style.getLayer("waterway_line_label") != null) {
                 style.addLayerBelow(overlay, "waterway_line_label")
             } else {

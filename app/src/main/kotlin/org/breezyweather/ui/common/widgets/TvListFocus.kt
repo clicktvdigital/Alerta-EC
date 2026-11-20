@@ -39,6 +39,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 class TvListFocusTarget {
     internal var requester: FocusRequester? = null
 
+    /** True while the focus is on one of the list's items (kept by [tvListFocus]). */
+    internal var inList: Boolean = false
+
     /** Moves focus into the current list. False when no list is registered. */
     fun enterList(): Boolean {
         val target = requester ?: return false
@@ -78,6 +81,9 @@ class TvScreenFocus {
         }
 
         if (manager.moveFocus(direction)) return true
+        // Already on the last item of the list: stay there. Re-entering the list here made focusRestorer jump
+        // back to a remembered item («Complementos…») at the end of Settings (TV test 2026-11-20).
+        if (direction == FocusDirection.Down && list.inList) return true
         // A Compose top bar sits over the list, so geometric search cannot reach it: DOWN enters the list.
         return direction == FocusDirection.Down && list.enterList()
     }
@@ -119,7 +125,10 @@ fun Modifier.tvListFocus(): Modifier {
     LaunchedEffect(Unit) {
         runCatching { listFocus.requestFocus() }
     }
-    return this.focusRequester(listFocus).focusRestorer()
+    return this
+        .onFocusChanged { state -> target?.inList = state.hasFocus }
+        .focusRequester(listFocus)
+        .focusRestorer()
 }
 
 /**

@@ -39,11 +39,13 @@ internal object NoaaImageLoader {
             try {
                 if (connection.responseCode != HttpURLConnection.HTTP_OK ||
                     !connection.contentType.orEmpty().startsWith("image/")) return@withLock null
-                if (connection.contentLengthLong > 6_000_000L) return@withLock null
+                // NOAA 3600 px frames: GLM reached 7.4 MB and daytime GeoColor 5.6 MB (2026-11-20); the old 6 MB cap
+                // rejected lightning entirely. The bytes are transient; only the decoded Ecuador crop is kept.
+                if (connection.contentLengthLong > MAX_BYTES) return@withLock null
                 connection.inputStream.use { input ->
-                    val bytes = input.readUpTo(6_000_001)
+                    val bytes = input.readUpTo(MAX_BYTES.toInt() + 1)
                     currentCoroutineContext().ensureActive()
-                    if (bytes.size > 6_000_000) return@withLock null
+                    if (bytes.size > MAX_BYTES) return@withLock null
                     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                     if (options.outWidth <= 0 || options.outHeight <= 0) return@withLock null
@@ -108,4 +110,6 @@ internal object NoaaImageLoader {
         }
         return out.toByteArray()
     }
+
+    private const val MAX_BYTES = 12_000_000L
 }
