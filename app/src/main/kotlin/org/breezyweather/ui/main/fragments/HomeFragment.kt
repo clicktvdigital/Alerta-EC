@@ -775,7 +775,9 @@ class HomeFragment : MainModuleFragment() {
         }
         val current = remoteSelection?.takeIf { it in bar } ?: bar.first().also { selectRemote(it) }
         if (dx != 0) {
-            val next = bar.getOrNull(bar.indexOf(current) + dx) ?: return false
+            // At either end of the bar the key is consumed: handing it to Android's focus search moved the real
+            // focus into a Home card (cyan halo) and broke the remote selection afterwards (TV test 2026-11-20).
+            val next = bar.getOrNull(bar.indexOf(current) + dx) ?: return true
             selectRemote(next)
             return true
         }
