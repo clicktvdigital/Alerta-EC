@@ -447,6 +447,18 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         ) {
             return true
         }
+        // Places open but the real focus still outside it (e.g. on the menu button, whose DOWN points into Home):
+        // the first arrow only brings the focus into Places, so the arrows never walk Home behind it.
+        if (isManagementFragmentVisible && binding.drawerLayout != null &&
+            event.action == KeyEvent.ACTION_DOWN &&
+            event.keyCode in intArrayOf(
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT
+            )
+        ) {
+            val places = findManagementFragment()?.view
+            if (places != null && !places.hasFocus() && places.requestFocus()) return true
+        }
         // Holding DOWN for about 2 seconds refreshes the home screen (same as pull-to-refresh).
         if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isManagementFragmentVisible) {
             if (event.action == KeyEvent.ACTION_UP) {
