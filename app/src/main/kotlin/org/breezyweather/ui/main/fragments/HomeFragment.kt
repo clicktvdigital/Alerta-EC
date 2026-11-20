@@ -790,7 +790,17 @@ class HomeFragment : MainModuleFragment() {
             remoteOnToolbar = false
             return false
         }
-        val current = remoteSelection?.takeIf { it in bar } ?: bar.first().also { selectRemote(it) }
+        // After Settings (or a theme change) the bar is rebuilt and the old button is gone: find the same control in
+        // the new bar (by id or description) instead of jumping to the menu, which left the old gear highlighted.
+        val previous = remoteSelection
+        val current = previous?.takeIf { it in bar }
+            ?: bar.firstOrNull { previous != null && it.id != View.NO_ID && it.id == previous.id }
+                ?.also { selectRemote(it) }
+            ?: bar.firstOrNull {
+                previous != null && !previous.contentDescription.isNullOrEmpty() &&
+                    it.contentDescription == previous.contentDescription
+            }?.also { selectRemote(it) }
+            ?: bar.first().also { selectRemote(it) }
         if (dx != 0) {
             // At either end of the bar the key is consumed: handing it to Android's focus search moved the real
             // focus into a Home card (cyan halo) and broke the remote selection afterwards (TV test 2026-11-20).
