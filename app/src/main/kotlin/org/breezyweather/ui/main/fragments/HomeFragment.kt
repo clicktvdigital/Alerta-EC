@@ -701,8 +701,8 @@ class HomeFragment : MainModuleFragment() {
         if (dx != 0) {
             // Edge of the row. Never hand the key to Android's focus search: it moved the real focus to some other
             // view and the list scrolled towards it while our selection stayed put (the "up and down" bounce).
-            // LEFT at the left edge opens Places (same as the menu button); RIGHT at the right edge does nothing.
-            if (dx < 0) callback?.onManageIconClicked()
+            // Both edges do nothing: LEFT used to open Places, which pulled the user out of the hourly/daily rows
+            // while scrolling them (TV test 2026-11-20). Places stays one press away on the menu button.
             return true
         }
         // Nothing visible above and the list is already at its top: go straight to the top bar (menu, edit,
