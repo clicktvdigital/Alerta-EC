@@ -15,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Rain actually measured in the last hour by the EPMAPS rain-gauge network of Quito (CLIMATICA,
+ * Rain actually measured in the last 2 hours by the EPMAPS rain-gauge network of Quito (CLIMATICA,
  * paramh2o.aguaquito.gob.ec), near the user's point.
  *
  * Why: forecast models (Open-Meteo 10–25 km cells, INAMHI WRF in 3 h steps) showed «Chubascos ligeros» for hours
@@ -33,6 +33,9 @@ object QuitoRainGauges {
     private const val FORM = "$BASE/telemetria/multiestacion_precipitacion/"
     private const val MAX_DISTANCE_KM = 5.0
     private const val CACHE_MS = 10 * 60 * 1000L
+    /** Measurement window shown to the user («en 2 h»). */
+    const val WINDOW_HOURS = 2
+    private const val WINDOW_MS = WINDOW_HOURS * 60 * 60 * 1000L
     private val cache = HashMap<Int, Pair<Long, Double>>()
 
     /** Active stations of the form, TMQ coordinates (Transversa de Mercator Quito, WGS84). */
@@ -119,7 +122,7 @@ object QuitoRainGauges {
             ?.takeIf { it.second <= MAX_DISTANCE_KM }
     }
 
-    /** Rain measured in the last 60 minutes at the nearest station within 5 km; null outside Quito or on error. */
+    /** Rain measured in the last 2 hours at the nearest station within 5 km; null outside Quito or on error. */
     suspend fun lastHour(latitude: Double, longitude: Double): Reading? = withContext(Dispatchers.IO) {
         val (station, distance) = nearest(latitude, longitude) ?: return@withContext null
         val now = System.currentTimeMillis()
@@ -140,20 +143,23 @@ object QuitoRainGauges {
         page.disconnect()
         val token = Regex("name=\"csrfmiddlewaretoken\" value=\"([^\"]+)\"").find(html)?.groupValues?.get(1)
             ?: return null
-        // 2) Last 60 minutes, Ecuador local time.
+        // 2) Last 2 hours, Ecuador local time. The form only accepts minutes in steps of 5, and the telemetry
+        //    arrives with some delay: a 1 h window often answered «No hay datos para ese período».
         val zone = TimeZone.getTimeZone("America/Guayaquil")
+        val step = 5 * 60 * 1000L
+        val end = now - now % step
         fun fmt(pattern: String, at: Long) = SimpleDateFormat(pattern, Locale.US).apply { timeZone = zone }
             .format(Date(at))
-        val from = now - 60 * 60 * 1000L
+        val from = end - WINDOW_MS
         val fields = listOf(
             "csrfmiddlewaretoken" to token,
             "estacion" to stationId.toString(),
             "fecha_inicio" to fmt("yyyy-MM-dd", from),
             "hora_inicio" to fmt("HH", from),
             "minuto_inicio" to fmt("mm", from),
-            "fecha_fin" to fmt("yyyy-MM-dd", now),
-            "hora_fin" to fmt("HH", now),
-            "minuto_fin" to fmt("mm", now),
+            "fecha_fin" to fmt("yyyy-MM-dd", end),
+            "hora_fin" to fmt("HH", end),
+            "minuto_fin" to fmt("mm", end),
         ).joinToString("&") { (k, v) -> k + "=" + URLEncoder.encode(v, "UTF-8") }
         val post = open(FORM, cookies).apply {
             requestMethod = "POST"

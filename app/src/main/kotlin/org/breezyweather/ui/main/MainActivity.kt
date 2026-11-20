@@ -126,6 +126,8 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isLocationBasedLightTheme = _isLocationBasedLightTheme.asStateFlow()
 
     companion object {
+        /** A return from outside stays valid this long, across the launcher's quick pause/resume. */
+        private const val RETURN_INTRO_WINDOW_MS = 3_000L
         private const val HOLD_REFRESH_MS = 2000L
         const val SEARCH_ACTIVITY = 4
 
@@ -239,6 +241,8 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     private var tvIntroPending = false
+    /** When the last return from outside the app was detected (elapsedRealtime), 0 if none pending. */
+    private var returnIntroAt = 0L
 
     private fun playAlertaEcIntro() {
         AlertaEcIntroController.play(
@@ -499,7 +503,12 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         super.onResume()
         // Start the intro as soon as the activity resumes; waiting for window focus could skip it on cold start.
         // Back from outside the app (Home, another app, the TV launcher): play the intro again, every time.
-        val returnedFromOutside = AlertaEcReturnIntro.consume()
+        // The launcher first resumes this activity, then pauses it for a moment while the duplicate launcher
+        // activity is created and closed (see onCreate); that pause stopped the intro. So the return stays valid
+        // for a few seconds and a second resume replays it (TV trace 2026-11-20).
+        if (AlertaEcReturnIntro.consume()) returnIntroAt = android.os.SystemClock.elapsedRealtime()
+        val returnedFromOutside = android.os.SystemClock.elapsedRealtime() - returnIntroAt < RETURN_INTRO_WINDOW_MS &&
+            !org.breezyweather.ui.main.intro.AlertaEcVideoIntro.isActive()
         if (tvIntroPending || returnedFromOutside) {
             tvIntroPending = false
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer)?.visibility = android.view.View.VISIBLE

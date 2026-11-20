@@ -232,7 +232,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
 
     /**
      * Measured rain wins over the model for «now»: «Sin lluvia medida · P03 a 1,5 km (el modelo prevé chubascos
-     * ligeros)» or «Lluvia medida: 0,8 mm en 1 h · P03 a 1,5 km».
+     * ligeros)» or «Lluvia medida: 0,8 mm en 2 h · P03 a 1,5 km».
      */
     private fun gaugeText(
         modelText: String,
@@ -248,7 +248,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
         )
         return when {
             reading.lastHourMm > 0.0 -> "Lluvia medida: " +
-                String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f", reading.lastHourMm) + " mm en 1 h · $where"
+                String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f", reading.lastHourMm) + " mm en ${org.breezyweather.alertaec.observation.QuitoRainGauges.WINDOW_HOURS} h · $where"
             wet -> "Sin lluvia medida · $where (el modelo prevé ${modelText.lowercase()})"
             else -> "$modelText · sin lluvia medida ($where)"
         }
