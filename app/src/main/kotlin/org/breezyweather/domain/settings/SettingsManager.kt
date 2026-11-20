@@ -16,6 +16,7 @@
 
 package org.breezyweather.domain.settings
 
+import org.breezyweather.ui.support.isTelevisionDevice
 import android.content.Context
 import android.os.Build
 import org.breezyweather.BreezyWeather
@@ -94,6 +95,9 @@ class SettingsManager private constructor(
     }
 
     private val config = ConfigStore(context)
+
+    /** Android TV / TV Box: dark theme by default (white cards hid the white texts drawn over the weather). */
+    private val isTelevision = context.isTelevisionDevice()
 
     // App updates
     var lastVersionCode: Int
@@ -206,7 +210,7 @@ class SettingsManager private constructor(
             notifySettingsChanged()
         }
         get() = DarkMode.getInstance(
-            config.getString("dark_mode", null) ?: "system"
+            config.getString("dark_mode", null) ?: if (isTelevision) "dark" else "system"
         )
 
     // Default config is: follow system on Android 10+ (disabled), automatic day/night switch (enabled)
