@@ -340,7 +340,11 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
 
         if (viewModel.validLocationList.value.isEmpty()) {
             setManagementFragmentVisibility(true)
-        } else if (viewModel.validLocationList.value.size == 1 && isLandscape && isDrawerLayoutVisible) {
+        } else if ((viewModel.validLocationList.value.size == 1 || isTelevisionDevice()) &&
+            isLandscape && isDrawerLayoutVisible
+        ) {
+            // TV: always start with Places folded once there is a place. Open, it took the real focus at launch:
+            // UP reached its gear (→ Settings) and the Home menu was unreachable (TV test 2026-11-20, 2 places).
             setManagementFragmentVisibility(false)
         }
 
