@@ -705,18 +705,11 @@ class HomeFragment : MainModuleFragment() {
             if (dx < 0) callback?.onManageIconClicked()
             return true
         }
-        // Nothing above the current card: go straight to the top bar (menu, edit, settings, more) in one press,
-        // instead of creeping up 40 % of the screen per press.
-        if (dy < 0) {
-            val bar = toolbarCandidates()
-            if (bar.isNotEmpty()) {
-                if (recycler.canRemoteScroll(-1)) recycler.smoothScrollToPosition(0)
-                remotePendingEdge = 0
-                remoteOnToolbar = true
-                selectRemote(bar.first())
-                return true
-            }
-        }
+        // Nothing visible above and the list is already at its top: go straight to the top bar (menu, edit,
+        // settings, more). If the list can still scroll up, cards may be hidden above (e.g. the first row of
+        // blocks when "Visibility" sits at the top edge): scroll first; onRemoteScrollIdle() goes to the bar
+        // only if no new card appeared, so the header is never crept through 40 % per press.
+        if (dy < 0 && !recycler.canRemoteScroll(-1) && jumpToToolbar()) return true
         // Reached the edge of what is on screen: scroll, then select the new edge.
         remotePendingEdge = dy
         return scrollByRemote(dy).also { moved -> if (!moved) remotePendingEdge = 0 }
@@ -940,6 +933,18 @@ class HomeFragment : MainModuleFragment() {
 
     private fun View.screenLeft(): Int = IntArray(2).also { getLocationOnScreen(it) }[0]
 
+    /** Selects the first top-bar control and scrolls the list back to its start; false if the bar is empty. */
+    private fun jumpToToolbar(): Boolean {
+        val bar = toolbarCandidates()
+        if (bar.isEmpty()) return false
+        val recycler = binding.recyclerView
+        if (recycler.canRemoteScroll(-1)) recycler.smoothScrollToPosition(0)
+        remotePendingEdge = 0
+        remoteOnToolbar = true
+        selectRemote(bar.first())
+        return true
+    }
+
     /** After a remote scroll settles, select the card at the edge we scrolled towards. */
     private fun onRemoteScrollIdle() {
         val direction = remotePendingEdge
@@ -949,6 +954,8 @@ class HomeFragment : MainModuleFragment() {
         // Continue from the current card in the scroll direction; never jump back to the opposite edge.
         val current = remoteSelection?.takeIf { it in candidates }
         val next = current?.let { nextRemoteCard(candidates, it, 0, direction) }
+        // Scrolled up and still nothing above (only the header): finish the press on the top bar.
+        if (direction < 0 && current != null && next == null && jumpToToolbar()) return
         val edge = next ?: current ?: if (direction > 0) candidates.firstOrNull() else candidates.lastOrNull()
         if (edge != null && edge !== current) selectRemote(edge)
     }
