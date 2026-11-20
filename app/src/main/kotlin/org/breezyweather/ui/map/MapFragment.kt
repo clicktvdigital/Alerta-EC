@@ -316,6 +316,10 @@ class MapFragment : MainModuleFragment() {
     private var satelliteOpenButton: View? = null
     private var satelliteHiddenViews: List<View> = emptyList()
     private var satelliteBackCallback: OnBackPressedCallback? = null
+    /** BACK with the «Capas» panel open closes the panel (focus back on «Capas») instead of leaving the map. */
+    private var layersBackCallback: OnBackPressedCallback? = null
+    private var layersPanel: View? = null
+    private var layersButton: View? = null
     private var addressLabel: android.widget.TextView? = null
     private var gpsInfoLabel: android.widget.TextView? = null
     private var inamhiStatusLabel: android.widget.TextView? = null
@@ -888,10 +892,12 @@ class MapFragment : MainModuleFragment() {
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
                     text = "☰ Capas"
+                    layersButton = this
+                    layersPanel = controlsScroll
                     setOnClickListener {
-                        controlsScroll.visibility = if (controlsScroll.visibility ==
-                            android.view.View.VISIBLE) android.view.View.GONE
-                        else android.view.View.VISIBLE
+                        val open = controlsScroll.visibility != android.view.View.VISIBLE
+                        controlsScroll.visibility = if (open) android.view.View.VISIBLE else android.view.View.GONE
+                        layersBackCallback?.isEnabled = open
                     }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
@@ -914,7 +920,9 @@ class MapFragment : MainModuleFragment() {
                     val step = 160f * resources.displayMetrics.density
                     // Natural sense requested on the TV: ▶ moves the map to the right, ▲ up (scrollBy moves the content).
                     listOf("◀" to (-step to 0f), "▲" to (0f to -step), "▼" to (0f to step), "▶" to (step to 0f))
-                        .map { (label, d) -> label to (-d.first to -d.second) }
+                        // Measured on the TV: inverting X makes ▶ move the map right; Y already moved it in the
+                        // natural sense (▲ up), so only X is inverted.
+                        .map { (label, d) -> label to (-d.first to d.second) }
                         .forEach { (label, delta) ->
                             addView(android.widget.Button(context).apply {
                                 text = label
@@ -941,6 +949,16 @@ class MapFragment : MainModuleFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Registered first so the NOAA panel callback below keeps priority: BACK closes NOAA, then «Capas», then the map.
+        val layersBack = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                layersPanel?.visibility = View.GONE
+                isEnabled = false
+                layersButton?.requestFocus()
+            }
+        }
+        layersBackCallback = layersBack
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, layersBack)
         // Atrás (botón del mando) cierra primero el panel NOAA; sin panel, se comporta como siempre.
         val backCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() = closeSatellitePanel()
@@ -1207,6 +1225,9 @@ class MapFragment : MainModuleFragment() {
         satelliteOpenButton = null
         satelliteHiddenViews = emptyList()
         satelliteBackCallback = null
+        layersBackCallback = null
+        layersPanel = null
+        layersButton = null
         val destroyedMapView = mapView
         mapView = null
         destroyedMapView?.onDestroy()
