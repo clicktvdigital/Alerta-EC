@@ -806,7 +806,12 @@ class HomeFragment : MainModuleFragment() {
         if (dx != 0) {
             // At either end of the bar the key is consumed: handing it to Android's focus search moved the real
             // focus into a Home card (cyan halo) and broke the remote selection afterwards (TV test 2026-11-20).
-            val next = bar.getOrNull(bar.indexOf(current) + dx) ?: return true
+            val next = bar.getOrNull(bar.indexOf(current) + dx) ?: run {
+                // LEFT on the menu (left end of the bar) opens Places, with its places and its settings gear, as the
+                // menu button does; the right end still consumes the key (TV feedback 2026-11-20).
+                if (dx < 0) callback?.onManageIconClicked()
+                return true
+            }
             selectRemote(next)
             return true
         }
