@@ -320,7 +320,9 @@ class MapFragment : MainModuleFragment() {
     private var gpsInfoLabel: android.widget.TextView? = null
     private var inamhiStatusLabel: android.widget.TextView? = null
     /** Always-visible colour key of the active INAMHI layers, over the map (not only inside «Información INAMHI»). */
-    private var inamhiLegendOverlay: android.widget.TextView? = null
+    private var inamhiLegendOverlay: android.widget.LinearLayout? = null
+    /** 8-point compass (N, NE, E, SE, S, SO, O, NO); rotates with the map bearing. */
+    private var compassRose: android.widget.TextView? = null
 
     private val gpsHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPosition: Pair<Double, Double>? = null
@@ -514,12 +516,18 @@ class MapFragment : MainModuleFragment() {
             text.append(line)
         }
         val legends = InamhiLayers.all.filter { inamhiSelection.enabled(it) }.mapNotNull { layer ->
-            InamhiLegend.cached(layer)?.let { InamhiLegend.strip(InamhiLayers.title(layer), InamhiLegend.unit(layer), it) }
+            InamhiLegend.cached(layer)?.let { InamhiLegend.column(InamhiLayers.title(layer), InamhiLegend.unit(layer), it) }
         }
         inamhiLegendOverlay?.apply {
-            text = legends.fold(android.text.SpannableStringBuilder()) { all, line ->
-                if (all.isNotEmpty()) all.append("\n")
-                all.append(line)
+            removeAllViews()
+            legends.forEach { legend ->
+                addView(android.widget.TextView(context).apply {
+                    text = legend
+                    textSize = 11f
+                    typeface = android.graphics.Typeface.MONOSPACE
+                    setTextColor(android.graphics.Color.WHITE)
+                    setPadding(10, 6, 10, 6)
+                })
             }
             visibility = if (legends.isEmpty()) View.GONE else View.VISIBLE
         }
@@ -696,16 +704,29 @@ class MapFragment : MainModuleFragment() {
                 insets
             }
             androidx.core.view.ViewCompat.requestApplyInsets(this)
-            inamhiLegendOverlay = android.widget.TextView(context).apply {
-                textSize = 13f
-                setTextColor(android.graphics.Color.WHITE)
+            // Legend on the left side, one vertical column per active layer, so it no longer covers the map centre.
+            inamhiLegendOverlay = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
                 setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
-                setPadding(18, 10, 18, 10)
+                setPadding(6, 6, 6, 6)
                 visibility = View.GONE
             }
             addView(inamhiLegendOverlay, android.widget.FrameLayout.LayoutParams(
-                -2, -2, android.view.Gravity.TOP or android.view.Gravity.END
-            ).apply { topMargin = (120f * resources.displayMetrics.density).toInt(); marginEnd = 12 })
+                -2, -2, android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+            ).apply { marginStart = 12 })
+            compassRose = android.widget.TextView(context).apply {
+                text = "NO   N   NE\n\nO    ✛    E\n\nSO   S   SE"
+                typeface = android.graphics.Typeface.MONOSPACE
+                textSize = 12f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(android.graphics.Color.WHITE)
+                setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
+                setPadding(14, 10, 14, 10)
+                contentDescription = "Rosa de los vientos: norte arriba"
+            }
+            addView(compassRose, android.widget.FrameLayout.LayoutParams(
+                -2, -2, android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+            ).apply { marginEnd = 12 })
             val root = this
             val mapButtons = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -927,6 +948,8 @@ class MapFragment : MainModuleFragment() {
         requestedMapView.getMapAsync { map ->
             if (this.view !== view || mapView !== requestedMapView || !isAdded) return@getMapAsync
             currentMap = map
+            // The compass follows the map bearing (fixed north-up on TV; rotates on touch devices).
+            map.addOnCameraMoveListener { compassRose?.rotation = -map.cameraPosition.bearing.toFloat() }
             if (savedInstanceState == null) {
                 val location = latestMapLocation()
                 map.cameraPosition = CameraPosition.Builder()

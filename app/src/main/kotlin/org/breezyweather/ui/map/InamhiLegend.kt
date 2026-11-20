@@ -86,6 +86,27 @@ internal object InamhiLegend {
         return text
     }
 
+    /**
+     * Vertical scale for a side panel: title, then one row per step from the highest value down, each value on its
+     * own colour. Keeps the map clear instead of a long strip across its middle.
+     */
+    fun column(title: String, unit: String, steps: List<InamhiLegendStep>): CharSequence {
+        val text = SpannableStringBuilder("$title\n($unit)")
+        steps.filter { it.quantity > 0.0 || steps.size == 1 }.asReversed().forEach { step ->
+            text.append("\n")
+            val start = text.length
+            text.append("  ").append(format(step.quantity).padStart(4)).append("  ")
+            text.setSpan(BackgroundColorSpan(step.color), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(
+                ForegroundColorSpan(if (luminance(step.color) > 0.5) Color.BLACK else Color.WHITE),
+                start,
+                text.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        return text
+    }
+
     private fun format(value: Double): String =
         if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.forLanguageTag("es-EC"), "%.1f", value)
 

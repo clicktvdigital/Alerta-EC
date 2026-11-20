@@ -89,7 +89,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             bindSkyIcon(context, location, provider, current.weatherCode, current.weatherText, itemAnimationEnabled)
             if (!current.weatherText.isNullOrEmpty()) {
                 mWeatherText.visibility = View.VISIBLE
-                mWeatherText.text = current.weatherText
+                mWeatherText.text = current.weatherText + precipitationModelNote(location, current.weatherCode)
             } else {
                 mWeatherText.visibility = View.GONE
             }
@@ -193,5 +193,28 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             weatherText?.takeIf { it.isNotEmpty() }
         ).joinToString(context.getString(R.string.dot_separator))
         if (animate) mSkyIcon.post { mSkyIcon.startAnimators() }
+    }
+
+    /**
+     * «Llovizna ligera» comes from the forecast model for the whole grid cell, not from an observation at the point.
+     * When the minute-by-minute forecast shows no precipitation right now (or there is none), say so instead of
+     * presenting rain as confirmed at the user's place.
+     */
+    private fun precipitationModelNote(
+        location: breezyweather.domain.location.model.Location,
+        code: breezyweather.domain.weather.reference.WeatherCode?,
+    ): String {
+        val wet = code in setOf(
+            breezyweather.domain.weather.reference.WeatherCode.RAIN,
+            breezyweather.domain.weather.reference.WeatherCode.SLEET,
+            breezyweather.domain.weather.reference.WeatherCode.SNOW,
+            breezyweather.domain.weather.reference.WeatherCode.HAIL,
+            breezyweather.domain.weather.reference.WeatherCode.THUNDERSTORM,
+        )
+        if (!wet) return ""
+        val now = System.currentTimeMillis()
+        val minute = location.weather?.minutelyForecast?.firstOrNull { now >= it.date.time && now < it.endingDate.time }
+        val raining = (minute?.precipitationIntensity?.inMillimeters ?: 0.0) > 0.0
+        return if (raining) "" else " · según el modelo"
     }
 }
