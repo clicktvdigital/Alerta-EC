@@ -16,6 +16,7 @@
 
 package org.breezyweather.ui.main
 
+import org.breezyweather.ui.main.intro.AlertaEcReturnIntro
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -497,8 +498,11 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     override fun onResume() {
         super.onResume()
         // Start the intro as soon as the activity resumes; waiting for window focus could skip it on cold start.
-        if (tvIntroPending) {
+        // Back from outside the app (Home, another app, the TV launcher): play the intro again, every time.
+        val returnedFromOutside = AlertaEcReturnIntro.consume()
+        if (tvIntroPending || returnedFromOutside) {
             tvIntroPending = false
+            findViewById<android.view.View>(R.id.alerta_ec_intro_layer)?.visibility = android.view.View.VISIBLE
             playAlertaEcIntro()
         }
         // Resume enabled forecasts after the notification permission is granted.

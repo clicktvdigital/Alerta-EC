@@ -81,6 +81,8 @@ class BreezyWeather : Application(), Configuration.Provider {
         super.onCreate()
 
         instance = this
+        // Replays the intro whenever the user comes back to the app from outside (not only on cold start).
+        org.breezyweather.ui.main.intro.AlertaEcReturnIntro.register(this)
 
         setupNotificationChannels()
         android.util.Log.i("AlertaEcStartup", "application onCreate: ${(System.nanoTime() - appT0) / 1_000_000} ms")
