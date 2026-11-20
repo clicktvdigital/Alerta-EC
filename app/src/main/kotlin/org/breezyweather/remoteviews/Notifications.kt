@@ -433,6 +433,18 @@ object Notifications {
             notificationId,
             buildSingleAlertNotification(context, location, alert, inGroup, notificationId)
         )
+        // TV: official severe/extreme warnings also reach whoever is watching a film or video (both opt-in).
+        if (alert.severity.id >= AlertSeverity.SEVERE.id) {
+            val headline = alert.headline?.takeIf { it.isNotBlank() } ?: context.getString(R.string.alert)
+            org.breezyweather.alertaec.tv.AlertaEcTvOverlay.show(
+                context, headline, location.city,
+                if (alert.severity == AlertSeverity.EXTREME) 0xFFD32F2F.toInt() else 0xFFFF8F00.toInt()
+            )
+            org.breezyweather.alertaec.tv.AlertaEcEmergencyVoice.speakIfAllowed(
+                context,
+                "Alerta oficial. $headline. En ${location.city}. Revisa la aplicación ALERTA EC."
+            )
+        }
         if (inGroup) {
             context.notify(
                 ID_ALERT_GROUP,

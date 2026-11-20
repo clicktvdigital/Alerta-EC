@@ -261,6 +261,12 @@ object AlertaEcNotifier {
         context.notify(notificationId, notification)
         // TV: brief banner over the app being watched (only WARNING/EMERGENCY, only if the user allowed it).
         if (event.severity >= AlertaEcSeverity.WARNING) {
+            // TV emergency voice (opt-in): speaks even over a film or video playing in another app.
+            org.breezyweather.alertaec.tv.AlertaEcEmergencyVoice.speakIfAllowed(
+                context,
+                "Alerta de ALERTA EC. ${event.phenomenon.spokenName}. ${event.headline}. " +
+                    (event.locationName?.let { "En $it. " } ?: "") + "Revisa la aplicación."
+            )
             org.breezyweather.alertaec.tv.AlertaEcTvOverlay.show(
                 context, title, compact,
                 if (event.severity == AlertaEcSeverity.EMERGENCY) 0xFFD32F2F.toInt() else 0xFFFF8F00.toInt()
