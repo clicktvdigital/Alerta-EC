@@ -16,6 +16,7 @@
 
 package org.breezyweather.ui.main.adapters.main.holder
 
+import kotlinx.coroutines.launch
 import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
@@ -90,6 +91,15 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             if (!current.weatherText.isNullOrEmpty()) {
                 mWeatherText.visibility = View.VISIBLE
                 mWeatherText.text = current.weatherText + precipitationModelNote(location, current.weatherCode)
+                // Quito: replace the model's «is it raining now» with the nearest EPMAPS rain gauge, when available.
+                val modelText = current.weatherText.orEmpty()
+                val code = current.weatherCode
+                gaugeJob?.cancel()
+                gaugeJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                    val reading = org.breezyweather.alertaec.observation.QuitoRainGauges
+                        .lastHour(location.latitude, location.longitude) ?: return@launch
+                    mWeatherText.text = gaugeText(modelText, code, reading)
+                }
             } else {
                 mWeatherText.visibility = View.GONE
             }
@@ -216,5 +226,31 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
         val minute = location.weather?.minutelyForecast?.firstOrNull { now >= it.date.time && now < it.endingDate.time }
         val raining = (minute?.precipitationIntensity?.inMillimeters ?: 0.0) > 0.0
         return if (raining) "" else " · según el modelo"
+    }
+
+    private var gaugeJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Measured rain wins over the model for «now»: «Sin lluvia medida · P03 a 1,5 km (el modelo prevé chubascos
+     * ligeros)» or «Lluvia medida: 0,8 mm en 1 h · P03 a 1,5 km».
+     */
+    private fun gaugeText(
+        modelText: String,
+        code: breezyweather.domain.weather.reference.WeatherCode?,
+        reading: org.breezyweather.alertaec.observation.QuitoRainGauges.Reading,
+    ): String {
+        val where = "${reading.station.code} a " + String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f km", reading.distanceKm)
+        val wet = code in setOf(
+            breezyweather.domain.weather.reference.WeatherCode.RAIN,
+            breezyweather.domain.weather.reference.WeatherCode.SLEET,
+            breezyweather.domain.weather.reference.WeatherCode.HAIL,
+            breezyweather.domain.weather.reference.WeatherCode.THUNDERSTORM,
+        )
+        return when {
+            reading.lastHourMm > 0.0 -> "Lluvia medida: " +
+                String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f", reading.lastHourMm) + " mm en 1 h · $where"
+            wet -> "Sin lluvia medida · $where (el modelo prevé ${modelText.lowercase()})"
+            else -> "$modelText · sin lluvia medida ($where)"
+        }
     }
 }
