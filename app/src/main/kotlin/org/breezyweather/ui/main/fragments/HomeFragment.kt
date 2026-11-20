@@ -655,7 +655,9 @@ class HomeFragment : MainModuleFragment() {
     private fun activateRemoteSelection(): Boolean {
         val target = remoteSelection ?: run {
             android.util.Log.i("AlertaEcFocus", "ok: no selection")
-            return false
+            // Consume it: handing OK to Android pressed whatever kept the real focus, e.g. the gear after coming
+            // back from Settings, which reopened Settings instead of the menu (TV test 2026-11-20).
+            return true
         }
         if (target is AbstractComposeView) {
             val tag = target.tag as? String
@@ -904,6 +906,9 @@ class HomeFragment : MainModuleFragment() {
         remoteSelection?.foreground = null
         remoteSelection = view
         view.foreground = remoteFocusRing()
+        // Top bar: move the real focus along with the selection, so no stale real focus (the gear) stays behind
+        // and the native focus highlight matches what OK will press.
+        if (remoteOnToolbar && view.isFocusable) view.requestFocus()
         // Keep the selected hour/day visible in its horizontal list (automatic horizontal scroll).
         nestedCellOf(view)?.let { (list, cell) ->
             list.getChildAdapterPosition(cell).takeIf { it >= 0 }?.let { list.smoothScrollToPosition(it) }
