@@ -457,7 +457,10 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             )
         ) {
             val places = findManagementFragment()?.view
-            if (places != null && !places.hasFocus() && places.requestFocus()) return true
+            if (places != null && !places.hasFocus()) {
+                focusIntoPlaces(places)
+                return true
+            }
         }
         // Holding DOWN for about 2 seconds refreshes the home screen (same as pull-to-refresh).
         if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isManagementFragmentVisible) {
@@ -1051,6 +1054,14 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isDrawerLayoutVisible: Boolean
         get() = binding.drawerLayout?.isVisible ?: false
 
+    /** Puts the real focus on the first focusable control of Places (requestFocus on its root alone was not enough). */
+    private fun focusIntoPlaces(places: View): Boolean {
+        if (places.requestFocus(View.FOCUS_DOWN)) return true
+        val focusables = ArrayList<View>()
+        places.addFocusables(focusables, View.FOCUS_DOWN)
+        return focusables.firstOrNull { it.isShown }?.requestFocus() == true
+    }
+
     fun setManagementFragmentVisibility(visible: Boolean) {
         val drawerLayout = binding.drawerLayout
         if (drawerLayout != null) {
@@ -1060,7 +1071,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             // (TV test 2026-11-20). When it closes, Home's own remote selection takes over again.
             drawerLayout.post {
                 if (visible) {
-                    findManagementFragment()?.view?.requestFocus()
+                    findManagementFragment()?.view?.let(::focusIntoPlaces)
                 } else {
                     currentFocus?.clearFocus()
                 }
