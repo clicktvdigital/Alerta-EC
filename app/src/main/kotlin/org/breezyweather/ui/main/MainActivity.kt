@@ -261,6 +261,17 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // A launcher intent over an existing task (opened before from a notification, `am start` or the other
+        // launcher category) created one more MainActivity per relaunch: 9 stacked copies were seen on the TV,
+        // each with its own Home (RAM on 1 GB devices) and its own intro, whose keys could reach a hidden copy.
+        // Close the duplicate so the existing task shows exactly as it was (map or panels included).
+        if (!isTaskRoot && intent?.action == Intent.ACTION_MAIN &&
+            (intent.hasCategory(Intent.CATEGORY_LAUNCHER) || intent.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER))
+        ) {
+            super.onCreate(savedInstanceState)
+            finish()
+            return
+        }
         val startupT0 = System.nanoTime()
         if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
             packageManager.hasSystemFeature("android.software.leanback") ||
