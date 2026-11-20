@@ -1,6 +1,17 @@
 # Continuar aquí — Alerta EC
 
-Actualizado: 2026-11-19 · Versión en preparación: **v0.1.15 (versionCode 116)**
+Actualizado: 2026-11-20 · Versión publicada: **v0.1.15 (versionCode 116)** · tag `v0.1.15`
+
+## 0. Cierre de v0.1.15 (2026-11-20)
+
+Publicada desde `release/v0.1.15` (incluye toda la rama `wip/v0115-foco`), instalada en el TV (192.168.100.11) y el celular (192.168.100.164).
+
+- **TV y mando:** foco estable (menú ↔ Inicio ↔ Lugares, Atrás, horas, días y bloques); anillo ámbar visible en la barra; IZQUIERDA en el menú abre Lugares; Lugares arranca plegado; sin tirón al final de Configuración; las relanzadas no apilan copias de MainActivity.
+- **Mapa:** satélite NOAA resuelto de raíz (Regex sobre 1 MB y readNBytes en Android 11), rayos con límite de 12 MB, leyenda INAMHI por rangos (vertical en TV, horizontal en celular), rosa de 8 rumbos en TV y brújula nativa en el celular, flechas en sentido natural, Atrás en Capas vuelve a Capas.
+- **Apariencia:** tema oscuro por defecto en TV; noche en negro universo (despejado #05070D con estrellas; 85 % de velo en niebla, lluvia y nubes); «Hace N min» y barra superior en blanco; icono del celular y banner de TV sin recortes.
+- **Notificaciones:** sin canales duplicados; tormenta con canal propio; icono monocromo por fenómeno en la barra de estado; voz en alertas y pronósticos (con la app en pantalla); en TV, voz desactivada por defecto, sonido solo para alertas graves y extremas, y aviso opcional sobre otras apps («Avisos graves sobre otras apps»).
+- **Alertas:** solo las del día; se descartan con X (celular) u OK → «Descartar» (TV).
+- **Sin verificar en pantalla:** gráfico de «Precipitaciones previstas» (necesita lluvia por minutos) y el aviso sobre otras apps con una alerta real.
 
 ## 1. Estado actual
 
