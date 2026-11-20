@@ -740,7 +740,7 @@ class HomeFragment : MainModuleFragment() {
         // settings, more). If the list can still scroll up, cards may be hidden above (e.g. the first row of
         // blocks when "Visibility" sits at the top edge): scroll first; onRemoteScrollIdle() goes to the bar
         // only if no new card appeared, so the header is never crept through 40 % per press.
-        if (dy < 0 && !recycler.canRemoteScroll(-1) && jumpToToolbar()) return true
+        if (dy < 0 && recycler.isRemoteTop() && jumpToToolbar()) return true
         // Reached the edge of what is on screen: scroll, then select the new edge.
         remotePendingEdge = dy
         return scrollByRemote(dy).also { moved -> if (!moved) remotePendingEdge = 0 }
@@ -861,6 +861,14 @@ class HomeFragment : MainModuleFragment() {
             .filter { kotlin.math.abs(it.screenTop() - targetTop) <= tolerance }
             .minByOrNull { kotlin.math.abs(it.screenLeft() - currentLeft) }
     }
+
+    /**
+     * Nothing selectable can be above: the list is at its start, or its first item (the temperature header, never a
+     * target) is already on screen. With the header half visible the scroll could not move further and UP got stuck
+     * on the hourly chips instead of reaching the menu (TV trace 2026-11-20).
+     */
+    private fun RecyclerView.isRemoteTop(): Boolean =
+        !canRemoteScroll(-1) || layoutManager?.findViewByPosition(0)?.let { it.bottom > paddingTop } == true
 
     /** Scrolls the list by a fraction of its height. False when it cannot move that way. */
     private fun scrollByRemote(direction: Int): Boolean {
@@ -1023,7 +1031,7 @@ class HomeFragment : MainModuleFragment() {
         // more than one 40 % step, so keep scrolling within the same press; only at the very top (header only)
         // finish the press on the top bar.
         if (direction < 0 && current != null && next == null) {
-            if (binding.recyclerView.canRemoteScroll(-1)) {
+            if (!binding.recyclerView.isRemoteTop()) {
                 remotePendingEdge = direction
                 if (scrollByRemote(direction)) return
                 remotePendingEdge = 0
