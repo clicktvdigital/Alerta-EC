@@ -406,7 +406,10 @@ class MapFragment : MainModuleFragment() {
                                     it.startsWith("Sector:") || it.startsWith("Código postal:")
                                 }
                         } else address.completeAddressLines
-                        addressLabel?.text = addressLines
+                        // Full coordinates in the zone card, not only inside «Datos GPS».
+                        val conCoordenadas = addressLines +
+                            "Coordenadas: ${LocationHumanFormatter.decimalCoordinates(latitude, longitude)}"
+                        addressLabel?.text = conCoordenadas
                             .takeIf { it.isNotEmpty() }
                             ?.joinToString("\n")
                             ?: "📍 Dirección detallada no disponible para estas coordenadas"
@@ -523,7 +526,7 @@ class MapFragment : MainModuleFragment() {
             legends.forEach { legend ->
                 addView(android.widget.TextView(context).apply {
                     text = legend
-                    textSize = 11f
+                    textSize = 13f
                     typeface = android.graphics.Typeface.MONOSPACE
                     setTextColor(android.graphics.Color.WHITE)
                     setPadding(10, 6, 10, 6)
@@ -909,7 +912,9 @@ class MapFragment : MainModuleFragment() {
                 // Flechas para desplazar el mapa con el mando, como en el panel NOAA (el mapa no toma el foco).
                 if (context.isTelevisionDevice()) {
                     val step = 160f * resources.displayMetrics.density
+                    // Natural sense requested on the TV: ▶ moves the map to the right, ▲ up (scrollBy moves the content).
                     listOf("◀" to (-step to 0f), "▲" to (0f to -step), "▼" to (0f to step), "▶" to (step to 0f))
+                        .map { (label, d) -> label to (-d.first to -d.second) }
                         .forEach { (label, delta) ->
                             addView(android.widget.Button(context).apply {
                                 text = label

@@ -91,18 +91,19 @@ internal object InamhiLegend {
      * own colour. Keeps the map clear instead of a long strip across its middle.
      */
     fun column(title: String, unit: String, steps: List<InamhiLegendStep>): CharSequence {
-        val text = SpannableStringBuilder("$title\n($unit)")
-        steps.filter { it.quantity > 0.0 || steps.size == 1 }.asReversed().forEach { step ->
+        val shown = steps.filter { it.quantity > 0.0 || steps.size == 1 }
+        val text = SpannableStringBuilder("$title ($unit)")
+        // One row per colour, highest first: a colour block, then its own range («10–15», «≥ 75»), so each colour
+        // reads with its value instead of a run of numbers on colours.
+        shown.indices.reversed().forEach { index ->
+            val step = shown[index]
+            val upper = shown.getOrNull(index + 1)?.quantity
             text.append("\n")
             val start = text.length
-            text.append("  ").append(format(step.quantity).padStart(4)).append("  ")
+            text.append("      ")
             text.setSpan(BackgroundColorSpan(step.color), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            text.setSpan(
-                ForegroundColorSpan(if (luminance(step.color) > 0.5) Color.BLACK else Color.WHITE),
-                start,
-                text.length,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+            val range = if (upper == null) "≥ ${format(step.quantity)}" else "${format(step.quantity)}–${format(upper)}"
+            text.append("  ").append(range)
         }
         return text
     }

@@ -49,7 +49,7 @@ data class DetailedLocationAddress(
             province?.takeIf { it.isNotBlank() }?.let { add("Provincia: $it") }
             country?.takeIf { it.isNotBlank() }?.let { add("País: $it") }
             reference?.takeIf { it.isNotBlank() }?.let { add("Referencia: $it") }
-            planningDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito de planificación: $it") }
+            planningDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito $it (planificación · Distrito de Salud MSP · Distrito Educativo)") }
             polarReference?.takeIf { it.isNotBlank() }?.let { add("Posición: $it") }
         }
 
