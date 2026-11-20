@@ -441,13 +441,6 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             }
             return super.dispatchKeyEvent(event)
         }
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            // TEMP diag (remove before release): who handles each key.
-            android.util.Log.println(
-                android.util.Log.WARN, "AlertaEcDiag",
-                "key=${event.keyCode} places=$isManagementFragmentVisible focus=${currentFocus?.javaClass?.simpleName}"
-            )
-        }
         if (!isManagementFragmentVisible &&
             currentFocus !is android.widget.EditText &&
             findHomeFragment()?.handleRemoteKey(event) == true
