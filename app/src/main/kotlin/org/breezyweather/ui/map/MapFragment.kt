@@ -157,7 +157,7 @@ class MapFragment : MainModuleFragment() {
         val b = datos.getString("lon", null)?.toDoubleOrNull() ?: return null
         val distancia = FloatArray(1)
         android.location.Location.distanceBetween(a, b, latitud, longitud, distancia)
-        if (distancia[0] > 75f) return null
+        if (distancia[0] > org.breezyweather.background.location.DetailedLocationProvider.USER_ZONE_RADIUS_M) return null
         val postal = datos.getString("postal", "")?.trim().orEmpty()
         val sector = datos.getString("sector", "")?.trim().orEmpty()
         if (!Regex("[0-9]{6}").matches(postal) || sector.isBlank()) return null
@@ -202,7 +202,23 @@ class MapFragment : MainModuleFragment() {
             setSingleLine(true)
             setText(contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).getString("referencia", "").orEmpty())
         }
+        val guardado = contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0)
+        val parroquiaEclesiastica = android.widget.EditText(contexto).apply {
+            hint = "Parroquia eclesiástica (opcional)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setSingleLine(true)
+            setText(guardado.getString("parroquia_eclesiastica", "").orEmpty())
+        }
+        val posicion = android.widget.EditText(contexto).apply {
+            hint = "Posición (opcional): p. ej. ladera occidental, noroccidente de la ciudad"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(true)
+            setText(guardado.getString("posicion", "").orEmpty())
+        }
         caja.addView(postal); caja.addView(sector); caja.addView(transversal); caja.addView(referencia)
+        caja.addView(parroquiaEclesiastica); caja.addView(posicion)
         android.app.AlertDialog.Builder(contexto)
             .setTitle("Corregir mi zona en este punto GPS")
             .setMessage("Información voluntaria. Se mostrará como aportada por ti; " +
@@ -223,6 +239,8 @@ class MapFragment : MainModuleFragment() {
                         .putString("sector", nombre)
                         .putString("cruce", transversal.text.toString().trim())
                         .putString("referencia", referencia.text.toString().trim())
+                        .putString("parroquia_eclesiastica", parroquiaEclesiastica.text.toString().trim())
+                        .putString("posicion", posicion.text.toString().trim())
                         .apply()
                     addressLabel?.text = "✏️ Datos aportados por ti · GPS cercano\n" +
                         "Sector: $nombre · Código postal: $codigo\n" +
@@ -301,6 +319,8 @@ class MapFragment : MainModuleFragment() {
     private var addressLabel: android.widget.TextView? = null
     private var gpsInfoLabel: android.widget.TextView? = null
     private var inamhiStatusLabel: android.widget.TextView? = null
+    /** Always-visible colour key of the active INAMHI layers, over the map (not only inside «Información INAMHI»). */
+    private var inamhiLegendOverlay: android.widget.TextView? = null
 
     private val gpsHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPosition: Pair<Double, Double>? = null
@@ -493,6 +513,16 @@ class MapFragment : MainModuleFragment() {
             if (text.isNotEmpty()) text.append("\n")
             text.append(line)
         }
+        val legends = InamhiLayers.all.filter { inamhiSelection.enabled(it) }.mapNotNull { layer ->
+            InamhiLegend.cached(layer)?.let { InamhiLegend.strip(InamhiLayers.title(layer), InamhiLegend.unit(layer), it) }
+        }
+        inamhiLegendOverlay?.apply {
+            text = legends.fold(android.text.SpannableStringBuilder()) { all, line ->
+                if (all.isNotEmpty()) all.append("\n")
+                all.append(line)
+            }
+            visibility = if (legends.isEmpty()) View.GONE else View.VISIBLE
+        }
     }
 
     private fun invalidateInamhiRequest() {
@@ -666,6 +696,16 @@ class MapFragment : MainModuleFragment() {
                 insets
             }
             androidx.core.view.ViewCompat.requestApplyInsets(this)
+            inamhiLegendOverlay = android.widget.TextView(context).apply {
+                textSize = 13f
+                setTextColor(android.graphics.Color.WHITE)
+                setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
+                setPadding(18, 10, 18, 10)
+                visibility = View.GONE
+            }
+            addView(inamhiLegendOverlay, android.widget.FrameLayout.LayoutParams(
+                -2, -2, android.view.Gravity.TOP or android.view.Gravity.END
+            ).apply { topMargin = (120f * resources.displayMetrics.density).toInt(); marginEnd = 12 })
             val root = this
             val mapButtons = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -844,6 +884,20 @@ class MapFragment : MainModuleFragment() {
                             }
                         }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                     }
+                }
+                // Flechas para desplazar el mapa con el mando, como en el panel NOAA (el mapa no toma el foco).
+                if (context.isTelevisionDevice()) {
+                    val step = 160f * resources.displayMetrics.density
+                    listOf("◀" to (-step to 0f), "▲" to (0f to -step), "▼" to (0f to step), "▶" to (step to 0f))
+                        .forEach { (label, delta) ->
+                            addView(android.widget.Button(context).apply {
+                                text = label
+                                contentDescription = "Mover mapa " + when (label) {
+                                    "◀" -> "a la izquierda"; "▲" -> "arriba"; "▼" -> "abajo"; else -> "a la derecha"
+                                }
+                                setOnClickListener { currentMap?.scrollBy(delta.first, delta.second) }
+                            }, android.widget.LinearLayout.LayoutParams(0, -2, 0.6f))
+                        }
                 }
                 // Borde de foco visible en cada control del mando (solo TV).
                 for (i in 0 until childCount) getChildAt(i).applyTvFocusRing()

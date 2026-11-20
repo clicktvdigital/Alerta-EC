@@ -24,12 +24,16 @@ class DetailedLocationProvider @Inject constructor(
             !latitude.isFinite() || !longitude.isFinite()) return result
         val distance = FloatArray(1)
         android.location.Location.distanceBetween(storedLat, storedLon, latitude, longitude, distance)
-        if (distance[0] > 75f) return result
+        // 300 m (neighbourhood scale): on a TV the position comes from IP or typed coordinates and rarely falls
+        // within 75 m of the saved point, so the geocoder's sector («San José») came back (2026-11-20).
+        if (distance[0] > USER_ZONE_RADIUS_M) return result
         val postal = prefs.getString("postal", null)?.trim().orEmpty()
         val sector = prefs.getString("sector", null)?.trim().orEmpty()
         if (!Regex("[0-9]{6}").matches(postal) || sector.isBlank()) return result
         val cross = prefs.getString("cruce", null)?.trim()?.takeIf { it.isNotEmpty() }
         val localReference = prefs.getString("referencia", null)?.trim()?.takeIf { it.isNotEmpty() }
+        val churchParish = prefs.getString("parroquia_eclesiastica", null)?.trim()?.takeIf { it.isNotEmpty() }
+        val position = prefs.getString("posicion", null)?.trim()?.takeIf { it.isNotEmpty() }
         // The first two digits of an Ecuadorian postal code are the province (17 = Pichincha). A user code from
         // another province than the official zone of this point is a typo: keep the
         // official code, but still show the user's sector, cross street and local reference.
@@ -37,6 +41,10 @@ class DetailedLocationProvider @Inject constructor(
             result.postalCode?.take(2) != postal.take(2)
         return result.copy(
             sector = sector,
+            // The user's sector is the local truth: the geocoder neighbourhood (OSM «San José») is not shown with it.
+            neighborhood = null,
+            ecclesiasticalParish = churchParish ?: result.ecclesiasticalParish,
+            polarReference = position ?: result.polarReference,
             crossStreet = cross ?: result.crossStreet,
             reference = localReference ?: result.reference,
             postalCode = if (keepOfficial) result.postalCode else postal,
@@ -93,5 +101,10 @@ class DetailedLocationProvider @Inject constructor(
                 planningDistrict = zone.district,
                 polarReference = polar,
             )
+    }
+
+    companion object {
+        /** Distance within which the user's own zone correction applies (meters). */
+        const val USER_ZONE_RADIUS_M = 300f
     }
 }
