@@ -332,10 +332,13 @@ class MaterialPainterView(
      * still read as medium blue on the TV (2026-11-20). Day and afternoon (until sunset) stay unchanged.
      */
     private fun applyNightVeil(weatherKind: Int, daylight: Boolean) {
-        foreground = if (daylight || weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR) {
-            null
-        } else {
-            android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(150, 0, 0, 0))
+        // «Negro universo» at night (user request 2026-11-20): 85 % black over fog/cloud/rain; clear nights keep
+        // their stars with a lighter 45 % veil.
+        foreground = when {
+            daylight -> null
+            weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR ->
+                android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(115, 0, 0, 0))
+            else -> android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(217, 0, 0, 0))
         }
     }
 
