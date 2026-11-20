@@ -185,7 +185,8 @@ class SettingsManager private constructor(
             config.edit().putBoolean("alert_voice_switch", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("alert_voice_switch", true)
+        // TV / TV Box: off by default (shared room, it would talk over the programme); phones keep it on.
+        get() = config.getBoolean("alert_voice_switch", !isTelevision)
 
     var updateInterval: UpdateInterval
         set(value) {

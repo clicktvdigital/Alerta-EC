@@ -4,6 +4,8 @@
 
     <!-- location. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- TV only, opt-in: brief WARNING/EMERGENCY banner over other apps (granted by the user in Settings). -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 

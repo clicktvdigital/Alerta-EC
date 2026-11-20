@@ -1,5 +1,6 @@
 package org.breezyweather.alertaec
 
+import org.breezyweather.ui.support.isTelevisionDevice
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
@@ -210,8 +211,12 @@ object AlertaEcNotifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // TV / TV Box: only WARNING and EMERGENCY make a sound; forecasts and advisories arrive silently.
+        val isTv = context.isTelevisionDevice()
+        val soundAllowed = settings.isAlertSoundEnabled &&
+            (!isTv || event.severity >= AlertaEcSeverity.WARNING)
         val requestedChannel = org.breezyweather.remoteviews.Notifications.selectChannel(
-            settings.isAlertSoundEnabled,
+            soundAllowed,
             settings.isAlertVibrationEnabled,
             AlertaEcNotificationAppearance.eventSoundChannel(event.phenomenon, event.severity),
             AlertaEcNotificationAppearance.eventChannel(event.severity)
@@ -254,6 +259,13 @@ object AlertaEcNotifier {
 
         onNotifyInvoked()
         context.notify(notificationId, notification)
+        // TV: brief banner over the app being watched (only WARNING/EMERGENCY, only if the user allowed it).
+        if (event.severity >= AlertaEcSeverity.WARNING) {
+            org.breezyweather.alertaec.tv.AlertaEcTvOverlay.show(
+                context, title, compact,
+                if (event.severity == AlertaEcSeverity.EMERGENCY) 0xFFD32F2F.toInt() else 0xFFFF8F00.toInt()
+            )
+        }
         // Spoken summary (voice setting on): AlertVoice.alert existed but was never called, so no alert was ever
         // read aloud. Its policy still applies (app visible, unlocked, normal ringer, no call or music, no TalkBack).
         org.breezyweather.alertaec.accessibility.AlertVoice.alert(
