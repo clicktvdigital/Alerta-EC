@@ -100,6 +100,7 @@ Mejora posible: mover cada video a `raw/` y `raw-television/` con el mismo nombr
   - este archivo.
 - **Diseño/UI (local en `.claude/skills/`, ignorado por git):** `emil-design-eng`, `ask-emil`, `learn-taste`, `design-taste-frontend`, `apple-design` e `impeccable` (enlace a la copia del launcher).
 - **Proceso:** superpowers (`systematic-debugging`, `verification-before-completion`, `writing-plans`).
+- **Experimentos en TV:** `docs/PROTOCOLO_EXPERIMENTOS.md`, inspirado en Karpathy: hipótesis → un cambio → evidencia → decisión. `bash scripts/tv_bitacora.sh base|run|decide`.
 
 ## 5. Ramas
 
@@ -120,9 +121,15 @@ Mejora posible: mover cada video a `raw/` y `raw-television/` con el mismo nombr
 
 <!-- RESULTADOS_TV_V0115 -->
 
+Bitácora según `docs/PROTOCOLO_EXPERIMENTOS.md` (evidencia fuera de git, en `~/ALERTA_EC_BITACORA/`):
+
+| Fecha | Commit | Build | Hipótesis | Resultado |
+|---|---|---|---|---|
+| 2026-11-19 | `7ea7673a0` | release 0.1.15 (116) | Arranque en frío sin crash | **PASA**. COLD 3177 ms, 0 errores `AndroidRuntime`. En el release no aparece ningún log `AlertaEcStartup/Keys/Focus` |
+
 ## 7. Próximos pasos
 
-1. Validar en el TV el release firmado de v0.1.15: horas/días con OK, foco visible, Ajustes desde la barra, intro y Atrás.
+1. Validar en el TV el release firmado de v0.1.15: horas/días con OK, foco visible, Ajustes desde la barra, intro y Atrás. Hacer una corrida `tv_bitacora.sh run` + `decide` por cada punto.
 2. Fusionar el PR #2 y crear el tag `v0.1.15`. El workflow publica los dos APK firmados.
 3. Retirar los logs de diagnóstico temporales (`AlertaEcStartup`, `AlertaEcKeys`, `AlertaEcFocus`) antes del release definitivo, o dejarlos solo en debug.
 4. Arranque en frío: ~0,9 s en `super.onCreate` y ~2 s hasta "adapter attached" en el TV. Diferir trabajo fuera del hilo principal. Valorar mostrar el intro solo en el primer arranque en equipos de poca RAM.

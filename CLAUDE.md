@@ -14,6 +14,7 @@
 - **Causa raíz antes de parchar:** usa `systematic-debugging`.
 - **Verificación antes de subir** (`verification-before-completion`):
   - `python3 scripts/validate_alerta_ec.py` (local, sin toolchain Android).
+  - Pruebas en el TV: una hipótesis por corrida, registrada con `bash scripts/tv_bitacora.sh` (`docs/PROTOCOLO_EXPERIMENTOS.md`). La evidencia queda fuera de git.
   - `./gradlew :app:testBasicDebugUnitTest` y `:app:compileBasicReleaseKotlin` donde haya toolchain. En Termux no hay Gradle/aapt2: la compilación se verifica en GitHub Actions (`alerta-ec-ci.yml` en push/PR a `alerta-ec`; `alerta-ec.yml` manual para el APK de prueba).
 - **Commits:** agrega rutas explícitas (`git add <archivos>`), nunca `git add .`: hay logs y skills locales ignorados. Push de la rama de trabajo para que compile CI.
 - **Release:** tag `vX.Y.Z` → `alerta-ec-release.yml` publica un APK firmado por ABI (`armeabi-v7a`, `arm64-v8a`). versionName/versionCode en `app/build.gradle.kts`.
