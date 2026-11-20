@@ -51,6 +51,7 @@
         <!-- Escala vertical a la izquierda del gráfico: Torrencial arriba, Moderada al centro, Ligera abajo. -->
         <LinearLayout
             android:id="@+id/nowcasting_intensity_legend"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_marginStart="@dimen/large_margin"
