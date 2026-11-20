@@ -134,6 +134,11 @@ class ForecastNotificationNotifier(
             if (today) Notifications.ID_TODAY_FORECAST else Notifications.ID_TOMORROW_FORECAST,
             notification
         )
+        // Voice assistant: read the forecast aloud too (only while the app is on screen, see AlertVoice.announce).
+        org.breezyweather.alertaec.accessibility.AlertVoice.announce(
+            (if (today) "Pronóstico de hoy. " else "Pronóstico de mañana. ") +
+                getDayString(daily, temperatureUnit) + ". " + getNightString(daily, temperatureUnit)
+        )
     }
 
     private fun getDayString(daily: Daily, temperatureUnit: TemperatureUnit) =

@@ -254,6 +254,13 @@ object AlertaEcNotifier {
 
         onNotifyInvoked()
         context.notify(notificationId, notification)
+        // Spoken summary (voice setting on): AlertVoice.alert existed but was never called, so no alert was ever
+        // read aloud. Its policy still applies (app visible, unlocked, normal ringer, no call or music, no TalkBack).
+        org.breezyweather.alertaec.accessibility.AlertVoice.alert(
+            context,
+            org.breezyweather.remoteviews.Notifications.weatherChannel(context, requestedChannel),
+            event.phenomenon.spokenName
+        )
     }
 
     private fun windDirection(degrees: Int): String = when ((((degrees % 360 + 360) % 360 + 22.5) / 45).toInt() % 8) {
