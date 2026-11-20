@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import breezyweather.domain.location.model.Location
+import breezyweather.domain.weather.model.Alert
 import org.breezyweather.R
 import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.common.utils.helpers.IntentHelper
@@ -137,8 +138,12 @@ class AlertViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
     ) {
         val activity = LocalActivity.current
         val context = LocalContext.current
+        // Most severe first (red → orange → yellow), then by start: the source order varies between
+        // refreshes, so the same INAMHI warnings used to swap places on the TV home.
+        val sortedAlerts = location.weather!!.currentAlertList
+            .sortedWith(compareByDescending<Alert> { it.severity.id }.thenBy { it.startDate })
         Column {
-            location.weather!!.currentAlertList.forEach { currentAlert ->
+            sortedAlerts.forEach { currentAlert ->
                 ListItem(
                     modifier = modifier
                         .clickable(

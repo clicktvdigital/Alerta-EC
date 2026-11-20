@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.widget.ImageView
@@ -118,11 +119,63 @@ internal class NoaaZoomImageView(context: Context) : ImageView(context) {
         post { resetZoom() }
     }
 
+    /** Zoom around the view center to [target] (1x–5x); used by the remote, where there is no pinch. */
+    fun zoomTo(target: Float) {
+        if (drawable == null || width <= 0 || height <= 0) return
+        val next = target.coerceIn(1f, 5f)
+        if (next == 1f) {
+            resetZoom()
+            return
+        }
+        transform.postScale(next / zoom, next / zoom, width / 2f, height / 2f)
+        zoom = next
+        constrain()
+    }
+
+    /**
+     * Remote control (D-pad) on TV: OK cycles 1x → 2x → 4x → 1x around the center; with zoom, the
+     * arrows pan 20 % of the view per press. At 1x the arrows are not consumed, so focus can still
+     * leave the image (no focus trap).
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                zoomTo(
+                    when {
+                        zoom < 2f -> 2f
+                        zoom < 4f -> 4f
+                        else -> 1f
+                    }
+                )
+                return true
+            }
+        }
+        if (zoom > 1f) {
+            val stepX = width * PAN_STEP
+            val stepY = height * PAN_STEP
+            val (dx, dy) = when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> stepX to 0f
+                KeyEvent.KEYCODE_DPAD_RIGHT -> -stepX to 0f
+                KeyEvent.KEYCODE_DPAD_UP -> 0f to stepY
+                KeyEvent.KEYCODE_DPAD_DOWN -> 0f to -stepY
+                else -> return super.onKeyDown(keyCode, event)
+            }
+            transform.postTranslate(dx, dy)
+            constrain()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         scaler.onTouchEvent(event)
         if (!scaler.isInProgress && event.pointerCount == 1) {
             gestures.onTouchEvent(event)
         }
         return true
+    }
+
+    private companion object {
+        const val PAN_STEP = 0.2f
     }
 }

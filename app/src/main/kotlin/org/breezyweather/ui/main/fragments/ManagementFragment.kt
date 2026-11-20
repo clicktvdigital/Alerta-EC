@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -225,6 +226,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                     Column {
                         if (BreezyWeather.instance.debugMode) {
                             FloatingActionButton(
+                                modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 onClick = {
                                     viewModel.openChooseDebugLocationDialog()
@@ -241,6 +243,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                             !isTelevisionWithoutGps(LocalContext.current)
                         ) {
                             FloatingActionButton(
+                                modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 onClick = {
                                     viewModel.openChooseWeatherSourcesDialog(
@@ -257,6 +260,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                             Spacer(modifier = Modifier.height(dimensionResource(R.dimen.normal_margin)))
                         }
                         FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 callback?.onSearchBarClicked()
@@ -269,6 +273,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 showManualCoordinateEntry(requireContext()) { lat, lon, label ->
@@ -280,6 +285,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 showLauncherWeatherLocationPicker(

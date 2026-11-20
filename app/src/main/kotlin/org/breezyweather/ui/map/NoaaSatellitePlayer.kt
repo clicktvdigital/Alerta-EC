@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Button
 import android.widget.SeekBar
 import org.breezyweather.ui.support.applyTvFocusRing
+import org.breezyweather.ui.support.isTelevisionDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -149,11 +150,18 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         addView(TextView(context).apply {
             text = "NOAA GOES-19 · Nubes, rayos y lluvia encuadrados en Ecuador continental; " +
                 "Mapa completo: norte de Sudamérica. Lluvia = nubes de tormenta, no milímetros medidos. " +
-                "Galápagos queda fuera del sector."
+                "Galápagos queda fuera del sector." +
+                if (context.isTelevisionDevice()) TV_ZOOM_HINT else ""
             textSize = 12f
             setPadding(12, 6, 12, 9)
         })
         refreshModeButtons()
+        // En TV la imagen es un destino del D-pad: OK acerca y las flechas desplazan (sin pellizco).
+        if (context.isTelevisionDevice()) {
+            image.isFocusable = true
+            image.isFocusableInTouchMode = false
+            image.applyTvFocusRing()
+        }
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
@@ -309,5 +317,9 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         handler.removeCallbacksAndMessages(null)
         // Soltar el bitmap del fotograma visible: a pantalla completa pesa varios MB.
         image.setImageDrawable(null)
+    }
+
+    private companion object {
+        const val TV_ZOOM_HINT = " Mando: OK sobre la imagen acerca 2× / 4×; las flechas la mueven."
     }
 }

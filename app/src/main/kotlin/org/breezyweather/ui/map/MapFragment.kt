@@ -649,6 +649,8 @@ class MapFragment : MainModuleFragment() {
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 setOnClickListener { maxLines = if (maxLines == 2) 16 else 2 }
+                // Recibe el foco inicial del mando: sin anillo no se sabía dónde estaba el foco.
+                applyTvFocusRing()
             }
             addView(addressLabel, android.widget.FrameLayout.LayoutParams(
                 -1, -2, android.view.Gravity.TOP
