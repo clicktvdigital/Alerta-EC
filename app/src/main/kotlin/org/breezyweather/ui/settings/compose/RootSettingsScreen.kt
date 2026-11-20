@@ -18,7 +18,11 @@ package org.breezyweather.ui.settings.compose
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -45,6 +49,13 @@ fun RootSettingsView(
     val scrollBehavior = generateCollapsedScrollBehavior()
     val context = LocalContext.current
 
+    // Con mando de TV: al abrir la pantalla, el foco va a la primera opción.
+    val firstRowFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(200)
+        runCatching { firstRowFocus.requestFocus() }
+    }
+
     Material3Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -62,6 +73,7 @@ fun RootSettingsView(
             clickablePreferenceItem(R.string.settings_background_updates) { id ->
                 PreferenceViewWithCard(
                     titleId = id,
+                    modifier = Modifier.focusRequester(firstRowFocus),
                     iconId = R.drawable.ic_sync,
                     summaryId = R.string.settings_background_updates_summary,
                     isFirst = true,

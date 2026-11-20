@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Imágenes del intro de TV (AlertaEcVideoIntro: TV_START_LOGO / TV_END_LOGO).
+  Hoy son el mismo arte Full HD que el splash, así que se apuntan a un único
+  archivo (drawable-nodpi/alertaec_tv_splash.jpg) en lugar de tres copias
+  idénticas de 216 KB dentro del APK.
+  Para usar un arte distinto: borrar el alias correspondiente aquí y agregar
+  drawable-nodpi/alertaec_tv_intro_start.jpg (o _end.jpg) con ese nombre.
+-->
+<resources>
+    <item name="alertaec_tv_intro_start" type="drawable">@drawable/alertaec_tv_splash</item>
+    <item name="alertaec_tv_intro_end" type="drawable">@drawable/alertaec_tv_splash</item>
+</resources>

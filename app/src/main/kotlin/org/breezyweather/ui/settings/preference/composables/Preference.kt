@@ -20,6 +20,8 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,6 +42,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -151,14 +154,25 @@ fun PreferenceView(
         PaddingValues(bottom = 8.dp)
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
+
     ListItem(
         colors = colors,
         tonalElevation = if (card && enabled) defaultCardListItemElevation else 0.dp,
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (enabled) 1f else 0.5f)
+            // Halo neón cian en la opción enfocada con el mando de TV.
+            .then(
+                if (focused) Modifier.border(
+                    3.dp,
+                    androidx.compose.ui.graphics.Color(0xFF00E5FF),
+                    androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                ) else Modifier
+            )
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = themeRipple(),
                 onClick = onClick,
                 enabled = enabled

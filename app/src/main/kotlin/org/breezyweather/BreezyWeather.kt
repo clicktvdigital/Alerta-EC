@@ -77,11 +77,13 @@ class BreezyWeather : Application(), Configuration.Provider {
     lateinit var workerFactory: HiltWorkerFactory
 
     override fun onCreate() {
+        val appT0 = System.nanoTime()
         super.onCreate()
 
         instance = this
 
         setupNotificationChannels()
+        android.util.Log.i("AlertaEcStartup", "application onCreate: ${(System.nanoTime() - appT0) / 1_000_000} ms")
 
         if (getProcessName().equals(packageName)) {
             // Sets and persists the night mode setting for this app. This allows the system to know
@@ -128,7 +130,13 @@ class BreezyWeather : Application(), Configuration.Provider {
         updateDayNightMode(SettingsManager.getInstance(this).darkMode.value)
     }
 
+    private var appliedDayNightMode: Int? = null
+
     fun updateDayNightMode(dayNightMode: Int) {
+        // Re-applying the same mode can make the system change the configuration and recreate the
+        // visible activity, which aborts the TV intro. Only apply real changes.
+        if (appliedDayNightMode == dayNightMode) return
+        appliedDayNightMode = dayNightMode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             uiModeManager?.setApplicationNightMode(
                 when (dayNightMode) {

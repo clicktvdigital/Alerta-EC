@@ -35,6 +35,8 @@ class LocationHolder(
     private val mBinding: ItemLocationCardBinding,
     private val mClickListener: (String) -> Unit,
     private val mDragListener: (LocationHolder) -> Unit,
+    /** Holding OK on a TV remote: open this place's settings, where it can be deleted. */
+    private val mLongClickListener: ((String) -> Unit)? = null,
 ) : RecyclerView.ViewHolder(mBinding.root) {
     @SuppressLint("SetTextI18n", "ClickableViewAccessibility")
     fun onBindView(context: Context, model: LocationModel, resourceProvider: ResourceProvider) {
@@ -131,6 +133,24 @@ class LocationHolder(
         }
 
         mBinding.container.setOnClickListener { mClickListener(model.location.formattedId) }
+        // Navegacion con control remoto, exclusivamente en Android TV.
+        if ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) {
+            mBinding.container.isFocusable = true
+            mBinding.sortButton.isFocusable = false
+            // Holding OK opens this place's settings (with "Delete"). Only on TV: on phones a long press
+            // starts reordering, and swiping the card already deletes it.
+            mBinding.container.setOnLongClickListener {
+                mLongClickListener?.invoke(model.location.formattedId)
+                mLongClickListener != null
+            }
+            val normalStroke = mBinding.root.strokeWidth
+            val focusStroke = (3f * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+            mBinding.root.strokeColor = context.getThemeColor(androidx.appcompat.R.attr.colorPrimary)
+            mBinding.container.setOnFocusChangeListener { _, focused ->
+                mBinding.root.strokeWidth = if (focused) focusStroke else normalStroke
+            }
+        }
         // TODO
         mBinding.sortButton.setOnTouchListener { _: View?, event: MotionEvent ->
             if (event.action == MotionEvent.ACTION_DOWN) {

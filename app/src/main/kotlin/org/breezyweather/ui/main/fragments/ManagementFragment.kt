@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -58,6 +59,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
@@ -111,11 +114,13 @@ import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
 import org.breezyweather.ui.common.widgets.defaultCardListItemElevation
 import org.breezyweather.ui.common.widgets.insets.BWCenterAlignedTopAppBar
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.main.MainActivity
 import org.breezyweather.ui.main.MainActivityViewModel
 import org.breezyweather.ui.main.adapters.location.LocationAdapter
 import org.breezyweather.ui.main.widgets.LocationItemTouchCallback
 import org.breezyweather.ui.main.widgets.LocationItemTouchCallback.TouchReactor
+import org.breezyweather.ui.support.isTelevisionDevice
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import org.breezyweather.ui.theme.compose.themeRipple
 import org.breezyweather.ui.theme.resource.ResourcesProviderFactory
@@ -221,6 +226,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                     Column {
                         if (BreezyWeather.instance.debugMode) {
                             FloatingActionButton(
+                                modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 onClick = {
                                     viewModel.openChooseDebugLocationDialog()
@@ -233,8 +239,11 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                             }
                             Spacer(modifier = Modifier.height(dimensionResource(R.dimen.normal_margin)))
                         }
-                        if (validLocationListState.value.firstOrNull { it.isCurrentPosition } == null) {
+                        if (validLocationListState.value.firstOrNull { it.isCurrentPosition } == null &&
+                            !isTelevisionWithoutGps(LocalContext.current)
+                        ) {
                             FloatingActionButton(
+                                modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 onClick = {
                                     viewModel.openChooseWeatherSourcesDialog(
@@ -251,6 +260,7 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                             Spacer(modifier = Modifier.height(dimensionResource(R.dimen.normal_margin)))
                         }
                         FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 callback?.onSearchBarClicked()
@@ -260,6 +270,33 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                                 Icons.Outlined.Add,
                                 stringResource(R.string.action_add_new_location)
                             )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = {
+                                showManualCoordinateEntry(requireContext()) { lat, lon, label ->
+                                    viewModel.askToAddLocation(requireContext(), lat, lon, label)
+                                }
+                            }
+                        ) {
+                            Text("GPS")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(
+                            modifier = Modifier.tvFocusIndicator(FloatingActionButtonDefaults.shape),
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = {
+                                showLauncherWeatherLocationPicker(
+                                    requireContext(),
+                                    validLocationListState.value
+                                ) {
+                                    viewModel.broadcastLauncherWeatherNow(requireContext())
+                                }
+                            }
+                        ) {
+                            Text("Clima TV")
                         }
                     }
                 }
@@ -384,6 +421,13 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // On TV with no saved place the D-pad could not reach these buttons (focus stayed on the empty
+                    // home): put focus on "Add new place" and show a visible focus ring on each button.
+                    val addFirstPlaceFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+                    val isTv = remember { requireContext().isTelevisionDevice() }
+                    if (isTv) {
+                        LaunchedEffect(Unit) { runCatching { addFirstPlaceFocus.requestFocus() } }
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth(),
@@ -393,7 +437,10 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                         Button(
                             onClick = {
                                 callback?.onSearchBarClicked()
-                            }
+                            },
+                            modifier = Modifier
+                                .focusRequester(addFirstPlaceFocus)
+                                .tvFocusIndicator()
                         ) {
                             Text(
                                 text = stringResource(R.string.action_add_new_location),
@@ -403,11 +450,22 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                         }
                         OutlinedButton(
                             onClick = {
+                                showManualCoordinateEntry(requireContext()) { lat, lon, label ->
+                                    viewModel.askToAddLocation(requireContext(), lat, lon, label)
+                                }
+                            },
+                            modifier = Modifier.tvFocusIndicator()
+                        ) {
+                            Text("📍 Introducir coordenadas GPS")
+                        }
+                        OutlinedButton(
+                            onClick = {
                                 viewModel.openChooseWeatherSourcesDialog(
                                     Location(isCurrentPosition = true)
                                         .applyDefaultPreset((requireActivity() as MainActivity).sourceManager)
                                 )
-                            }
+                            },
+                            modifier = Modifier.tvFocusIndicator()
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.MyLocation,
@@ -530,10 +588,16 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
                 mClickListener = { formattedId ->
                     viewModel.setLocation(formattedId)
                     parentFragmentManager.popBackStack()
-                }
-            ) { holder ->
-                itemTouchHelper.startDrag(holder)
-            }
+                },
+                mDragListener = { holder ->
+                    itemTouchHelper.startDrag(holder)
+                },
+                // Hold OK (TV) or long press (phone): select the place and open its settings, with "Delete".
+                mLongClickListener = { formattedId ->
+                    viewModel.setLocation(formattedId)
+                    (requireActivity() as MainActivity).onEditIconClicked()
+                },
+            )
         recyclerView = RecyclerView(requireContext())
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(
@@ -715,4 +779,17 @@ open class ManagementFragment : MainModuleFragment(), TouchReactor {
             }
         )
     }
+}
+
+/**
+ * Android TV boxes usually have no GPS. Offering "current location" there only
+ * leads to a long search that never resolves, so the option is hidden.
+ */
+private fun isTelevisionWithoutGps(context: android.content.Context): Boolean {
+    val pm = context.packageManager
+    val isTelevision = (context.resources.configuration.uiMode and
+        android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+        android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+        pm.hasSystemFeature("android.software.leanback")
+    return isTelevision && !pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)
 }

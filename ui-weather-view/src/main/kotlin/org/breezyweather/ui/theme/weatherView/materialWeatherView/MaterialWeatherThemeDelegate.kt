@@ -43,7 +43,21 @@ class MaterialWeatherThemeDelegate : WeatherThemeDelegate {
             return Color.HSVToColor(hsv)
         }
 
+        /**
+         * Night backgrounds are blended 75 % towards black (e.g. rain at night #264E8F → #091323): the medium blue
+         * read as evening on the TV. Daytime colours, including the afternoon until sunset, are unchanged.
+         */
         private fun innerGetBackgroundColor(
+            @WeatherKindRule weatherKind: Int,
+            daytime: Boolean,
+        ): Int {
+            val color = baseBackgroundColor(weatherKind, daytime)
+            return if (daytime || color == Color.TRANSPARENT) color else ColorUtils.blendARGB(color, Color.BLACK, NIGHT_BLACK)
+        }
+
+        private const val NIGHT_BLACK = 0.75f
+
+        private fun baseBackgroundColor(
             @WeatherKindRule weatherKind: Int,
             daytime: Boolean,
         ): Int = when (weatherKind) {

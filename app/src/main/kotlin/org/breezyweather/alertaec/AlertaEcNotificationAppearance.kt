@@ -73,11 +73,26 @@ internal object AlertaEcNotificationAppearance {
         else -> null
     }
 
+    /**
+     * Status-bar icon (monochrome silhouette: Android draws only its alpha next to the clock). One per phenomenon so
+     * hail, heat, fog or a volcano are recognisable at a glance instead of the generic weather icon.
+     */
     fun icon(phenomenon: AlertaEcPhenomenon): Int = when (phenomenon) {
         AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN -> R.drawable.ic_notification_rain
         AlertaEcPhenomenon.THUNDERSTORM -> R.drawable.ic_notification_thunderstorm
         AlertaEcPhenomenon.STRONG_WIND -> R.drawable.ic_notification_wind
-        else -> R.drawable.ic_notification_weather
+        AlertaEcPhenomenon.HAIL -> R.drawable.weather_hail_mini_xml
+        AlertaEcPhenomenon.FOG -> R.drawable.weather_fog_mini_xml
+        AlertaEcPhenomenon.SNOW, AlertaEcPhenomenon.EXTREME_COLD -> R.drawable.weather_snow_mini_xml
+        AlertaEcPhenomenon.EXTREME_HEAT -> R.drawable.weather_clear_day_mini_xml
+        AlertaEcPhenomenon.FLOOD -> R.drawable.ic_notification_flood
+        AlertaEcPhenomenon.LANDSLIDE -> R.drawable.ic_notification_landslide
+        AlertaEcPhenomenon.EARTHQUAKE -> R.drawable.ic_notification_earthquake
+        AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> R.drawable.ic_notification_volcano
+        AlertaEcPhenomenon.WILDFIRE -> R.drawable.ic_notification_wildfire
+        AlertaEcPhenomenon.TSUNAMI -> R.drawable.ic_notification_tsunami
+        AlertaEcPhenomenon.TROPICAL_CYCLONE -> R.drawable.ic_notification_cyclone
+        AlertaEcPhenomenon.OTHER -> R.drawable.ic_notification_weather
     }
 }
 

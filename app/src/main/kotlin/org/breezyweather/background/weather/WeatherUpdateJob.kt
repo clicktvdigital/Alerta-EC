@@ -190,15 +190,33 @@ class WeatherUpdateJob @AssistedInject constructor(
                 else -> locationRepository.getXLocations(1)
             }
 
-            locationList
+            // Incluir siempre la ubicacion elegida para CLICK TV,
+            // aunque no este entre las primeras cinco guardadas.
+            val selectedWeatherId =
+                org.breezyweather.sources.gadgetbridge.LauncherWeatherLocation.preferredId(context)
+            val selectedWeatherLocation =
+                selectedWeatherId?.let { locationRepository.getLocation(it) }
+
+            val locationsIncludingSelected =
+                if (selectedWeatherLocation != null &&
+                    locationList.none { it.formattedId == selectedWeatherLocation.formattedId }
+                ) {
+                    locationList + selectedWeatherLocation
+                } else {
+                    locationList
+                }
+
+            locationsIncludingSelected
                 .map {
                     it.copy(
                         weather = weatherRepository.getWeatherByLocationId(it.formattedId)
                     )
                 }
                 .filterIndexed { i, location ->
-                    // Only refresh secondary locations once a day as we only need daily info
+                    // Mantener la primera ubicacion y la elegida para CLICK TV
+                    // actualizadas en cada ciclo; las demas conservan su frecuencia.
                     i == 0 ||
+                        location.formattedId == selectedWeatherId ||
                         location.weather?.base?.refreshTime == null ||
                         location.weather!!.base.refreshTime!!.getIsoFormattedDate(location) <
                         Date().getFormattedDate("yyyy-MM-dd")

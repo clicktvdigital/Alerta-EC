@@ -17,24 +17,23 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 
-val supportedAbi = setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+// Solo arquitecturas de TV Box y Android TV. Sin x86 ni APK universal (artefactos de cientos de MB).
+val supportedAbi = setOf("armeabi-v7a", "arm64-v8a")
 
 configure<ApplicationExtension> {
     namespace = "org.breezyweather"
 
     defaultConfig {
         applicationId = "com.clicktvdigital.alertaec"
-        versionCode = 111
-        versionName = "0.1.11"
+        versionCode = 116
+        versionName = "0.1.15"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
         buildConfigField("boolean", "IS_BREEZY", "${Config.isBreezy}")
 
         multiDexEnabled = true
-        ndk {
-            abiFilters += supportedAbi
-        }
+        // ABIs se filtran con splits.abi (no mezclar con ndk.abiFilters: Gradle lo rechaza).
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -46,7 +45,7 @@ configure<ApplicationExtension> {
             isEnable = true
             reset()
             include(*supportedAbi.toTypedArray())
-            isUniversalApk = true
+            isUniversalApk = false
         }
     }
 
@@ -74,9 +73,22 @@ configure<ApplicationExtension> {
         }
     }
 
+    // Keystore de depuración fijo y versionado: cada build (local o CI) queda firmado con la misma clave,
+    // así puede actualizarse con 'adb install -r' sin reinstalar ni perder ajustes. No es la clave de producción.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/alerta-ec-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         named("debug") {
-            applicationIdSuffix = ".debug"
+            // Sin sufijo de applicationId: no se instala como app separada.
+            // Este tipo solo se usa para compilación y pruebas en CI; la app
+            // que se entrega al usuario es release.
             versionNameSuffix = "-r${getCommitCount()}"
         }
         named("release") {

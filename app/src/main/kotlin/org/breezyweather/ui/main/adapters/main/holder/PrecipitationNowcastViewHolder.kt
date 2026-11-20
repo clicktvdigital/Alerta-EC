@@ -229,7 +229,9 @@ class PrecipitationNowcastViewHolder(parent: ViewGroup) : AbstractMainCardViewHo
                         verticalLabelPosition = Position.Vertical.Bottom,
                         line = LineComponent(fill = Fill(lineColor.toArgb())),
                         labelComponent = TextComponent(color = labelColor),
-                        label = { "" } // Etiquetas en leyenda separada para no tapar las barras
+                        // Each label is drawn on its own threshold line: the old fixed column (top/center/bottom)
+                        // never matched the lines at 5/10/15 mm/h nor the plot area above the time axis.
+                        label = { line.value }
                     )
                 }
             } else {

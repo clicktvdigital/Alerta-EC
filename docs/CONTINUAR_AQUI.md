@@ -1,3 +1,52 @@
+## Paso 634 — Mejoras rápidas (13-11-2026)
+
+Cambios locales validados solo por lectura; no compilados ni probados en dispositivo:
+
+- «GPS y seguridad» eliminado del menú (`res/menu/activity_main.xml`). No tenía función; el texto sigue en `strings.xml` por si se reactiva.
+- Satélite NOAA: 8 cuadros por consulta en lugar de 24 (`NoaaSatelliteFrames.kt`). Trade-off: la animación es más corta, pero la carga inicial debe ser más rápida. Medir en el teléfono antes y después.
+- Capas INAMHI: opacidad de precipitación 0,15 → 0,30 y de las demás 0,10 → 0,20 (`InamhiMapOverlay.kt`). Ajuste a ciegas: validar en el teléfono con nubosidad real.
+
+Pendiente: compilación firmada (workflow de prueba en la rama) e instalación en el Samsung S21 FE y en el TV.
+
+## Paso 633 — Revisión del 13-11-2026 y plan de mejoras
+
+Estado: revisión por lectura de código y del índice Graphify (`graphify-out/`, generado localmente y excluido de Git). No hay compilación Android en este entorno: no hay SDK ni acceso a `dl.google.com`. **Nada de esta sección está compilado ni probado en dispositivo.**
+
+### Verificado en el código
+
+- **Centro de emergencias** (`ui/emergency/EmergencyCenterScreen.kt`): abre cinco sitios externos con `ACTION_VIEW` (servicios INAMHI, ECU 911, Gestión de Riesgos, IG-EPN y Municipio de Quito). Por eso no se siente como parte de la app.
+- **«GPS y seguridad»** (`res/menu/activity_main.xml`): el ítem existe, pero no hay ningún manejador en `HomeFragment.kt`. Al tocarlo no ocurre nada. Las funciones previstas (SOS, compartir ubicación con contactos autorizados) no están implementadas; ver la sección «SOS/comunidad» de `ALERTA_EC_CONTINUIDAD.md`.
+- **Satélite NOAA** (`ui/map/NoaaSatelliteFrames.kt`, `NoaaImageLoader.kt`): cada consulta trae 24 cuadros. Cada imagen puede pesar hasta 6 MB y se decodifica a casi tamaño completo (1800×1080). Es una causa probable de la lentitud, pero **no está medida**.
+- **Capas INAMHI** (`ui/map/InamhiMapOverlay.kt`): las opacidades son 0,15 / 0,10 / 0,10 (según el paso 632). Sobre nubes blancas la capa casi no se distingue. Es una hipótesis que hay que comprobar en el teléfono.
+- **Sonidos de notificación**: los canales usan IDs `_v2` desde el commit `bff248ed5`. Falta comprobar en dispositivo que Android aplique el sonido.
+- **Decimales en el clima**: `NotificationForecastSummary.kt` usa `%.1f` en viento, ráfagas, visibilidad y acumulación. Falta confirmar qué línea exacta muestra el usuario.
+- **Android TV**: la rama `alerta-ec` no tiene navegación con control remoto. El trabajo de TV está en `claude/clima-launcher-por-defecto` (versión 0.1.12, código 112).
+
+### Amaru (referencia de producto, no de código)
+
+Amaru es una app pública de alertas de lluvia para Ecuador y otros países. Según la prensa, calcula un índice de riesgo de 0 a 100 con cinco variables, muestra niveles verde, amarillo, naranja y rojo, avisa cuando sube el riesgo en ubicaciones seguidas, y ofrece pronóstico a lo largo de una ruta. Se declara no oficial. Fuentes: Primicias (https://www.primicias.ec/ciencia-tecnologia/lluvias-inundaciones-ecuador-guayaquil-amaru-aplicacion-alertas-135827/) y Teleamazonas (https://www.teleamazonas.com/tendencias/entretenimiento/tecnologia/amaru-plataforma-web-app-consultar-clima-131542/). Primicias no se pudo leer desde esta sesión (dominio no permitido en la red), así que lo anterior viene de resúmenes de búsqueda.
+
+No hay repositorio público de Amaru ni información de licencia o API. No se copia código ni contenido. Se toman ideas de producto, con datos y fuentes propias: índice de riesgo con niveles de color explicados, aviso solo cuando sube el riesgo y pronóstico por ruta. Las alertas oficiales siguen siendo del INAMHI y de la Secretaría de Gestión de Riesgos.
+
+### Plan priorizado
+
+1. **Centro de emergencias dentro de la app**: pantalla propia con guía de qué hacer y botón de marcar 911 (`ACTION_DIAL`, para que el usuario confirme la llamada). Los contactos de otras instituciones solo se añaden si están verificados en fuentes oficiales; no se inventan números.
+2. **«GPS y seguridad»**: mientras no tenga función, ocultar el ítem para no confundir. Después, una pantalla de estado (permisos de ubicación, última ubicación conocida y cómo compartirla) antes de implementar SOS.
+3. **Satélite NOAA**: bajar a 6–8 cuadros por defecto, decodificar a la mitad de resolución, mostrar progreso de carga y conservar el último cuadro mientras llegan los demás. Medir antes y después en el teléfono.
+4. **Capas INAMHI**: revisar opacidad y contraste sobre nubes, y añadir leyenda con unidades. No afirmar unidades ni leyenda hasta confirmarlas en la fuente oficial.
+5. **TV**: integrar la navegación con control remoto en la rama `alerta-ec` solo después de compilar y probar el build firmado en el TV.
+6. **Repositorio Amaru**: confirmar nombre y dueño antes de evaluar qué adoptar.
+
+### Pendientes de verificación
+
+- Compilación y pruebas en Android (la compilación firmada de 0.1.12 corrió en verde en GitHub Actions; falta instalarla y comprobar cada punto en dispositivo).
+- Decimal exacto que aparece en la notificación del clima.
+- Comportamiento del sonido en el Samsung S21 FE y en el TV tras la instalación.
+- Medición real de la carga del satélite.
+
+No se han hecho push, merge, tag ni Release en esta sección.
+> **Para retomar esta sesión, lee primero [docs/RETOMAR_SESION.md](docs/RETOMAR_SESION.md).**
+
 ## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
 
 Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
@@ -365,7 +414,7 @@ Alerta EC sera una aplicacion meteorologica profesional, inclusiva y accesible, 
 - Existen archivos de intro y pantallas de alertas; falta probar su funcionamiento completo.
 
 ### Firma, respaldo y distribucion
-- Paquete Debug: com.clicktvdigital.alertaec.debug.
+- Paquete Debug: com.clicktvdigital.alertaec (igual que release; ya no existe app debug separada).
 - Paquete Release: com.clicktvdigital.alertaec.
 - GitHub Actions tiene secretos de JKS Base64, contrasena de almacen y contrasena de clave.
 - Existe workflow local .github/workflows/alerta-ec-release.yml aun sin validacion final.

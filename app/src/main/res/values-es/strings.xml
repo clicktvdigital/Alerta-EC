@@ -806,7 +806,7 @@
     <string name="ephemeris_dusk_at">Anochece a las %s</string>
     <string name="nighttime_details">Comienza al anochecer y abarca hasta el amanecer del día siguiente</string>
     <string name="dew_point_from_to_number">%1$s a %2$s</string>
-    <string name="pressure_rising">Amanecer</string>
+    <string name="pressure_rising">En aumento</string>
     <string name="pressure_steady">Estable</string>
     <string name="pressure_falling">Cayendo</string>
     <string name="pressure_about">Sobre la presión</string>
@@ -903,4 +903,5 @@
     <string name="active_location_evidence_address_title">Dirección devuelta por el geocoder</string>
     <string name="active_location_evidence_address_loading">Dirección no disponible todavía.</string>
     <string name="active_location_evidence_address_unavailable">Dirección no disponible.</string>
+    <string name="pollen_no_data">No disponible para esta ubicación</string>
 </resources>

@@ -28,13 +28,16 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +51,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import android.content.res.Configuration
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -61,6 +66,7 @@ import org.breezyweather.BreezyWeather
 import org.breezyweather.BuildConfig
 import org.breezyweather.R
 import org.breezyweather.background.updater.interactor.GetApplicationRelease
+import org.breezyweather.background.updater.model.Release
 import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.plus
 import org.breezyweather.common.extensions.withIOContext
@@ -73,6 +79,8 @@ import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.common.composables.AlertDialogLink
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
 import org.breezyweather.ui.common.widgets.Material3Scaffold
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
+import org.breezyweather.ui.common.widgets.tvListFocus
 import org.breezyweather.ui.common.widgets.generateCollapsedScrollBehavior
 import org.breezyweather.ui.common.widgets.getCardListItemMarginDp
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
@@ -103,6 +111,11 @@ internal fun AboutScreen(
     val uriHandler = LocalUriHandler.current
     val linkToOpen = rememberSaveable { mutableStateOf("") }
     val dialogLinkOpenState = rememberSaveable { mutableStateOf(false) }
+
+    // Actualización encontrada en GitHub, pendiente de confirmar por el usuario.
+    val pendingUpdate = remember { mutableStateOf<Release?>(null) }
+    val isInstallingUpdate = remember { mutableStateOf(false) }
+    val updateProgress = remember { mutableStateOf(0) }
 
     val showCredits = rememberSaveable { mutableStateOf(false) }
     val locale = context.currentLocale
@@ -177,14 +190,17 @@ internal fun AboutScreen(
             )
         }
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxHeight(),
-            contentPadding = it.plus(
-                PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin))
-            )
-        ) {
-            item {
-                Header()
+        // Same list on phones and TV. On TV the logo/identity stays fixed on the left (Header is not in the list).
+        val isTvLayout = remember {
+            (context.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+                Configuration.UI_MODE_TYPE_TELEVISION ||
+                context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+        val listBody: LazyListScope.() -> Unit = {
+            if (!isTvLayout) {
+                item {
+                    Header()
+                }
             }
             if (isUpdateCheckerEnabled) {
                 item {
@@ -235,14 +251,7 @@ internal fun AboutScreen(
                                                     }
                                                 ) {
                                                     is GetApplicationRelease.Result.NewUpdate -> {
-                                                        SnackbarHelper.showSnackbar(
-                                                            context.getString(
-                                                                R.string.notification_app_update_available
-                                                            ),
-                                                            context.getString(R.string.action_download)
-                                                        ) {
-                                                            uriHandler.openUri(result.release.releaseLink)
-                                                        }
+                                                        pendingUpdate.value = result.release
                                                     }
 
                                                     is GetApplicationRelease.Result.NoNewUpdate -> {
@@ -332,7 +341,8 @@ internal fun AboutScreen(
             }
 
             largeSeparatorItem()
-            item { SupportSection() }
+            // «Acerca de» is drawn on white: use the black-lettered Banco Pichincha mark there.
+            item { SupportSection(onWhiteBackground = true) }
             largeSeparatorItem()
             item { SectionTitle(stringResource(R.string.alertaec_creators_title)) }
             itemsIndexed(appCreators) { index, item ->
@@ -413,11 +423,102 @@ internal fun AboutScreen(
                 extraHeight = getCardListItemMarginDp(context).dp
             )
         }
+        val listPadding = it.plus(PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin)))
+        if (isTvLayout) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.weight(0.36f).fillMaxHeight().padding(it),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Header()
+                }
+                LazyColumn(
+                    modifier = Modifier.weight(0.64f).fillMaxHeight().tvListFocus(),
+                    contentPadding = listPadding,
+                    content = listBody
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxHeight().tvListFocus(),
+                contentPadding = listPadding,
+                content = listBody
+            )
+        }
 
         if (dialogLinkOpenState.value) {
             AlertDialogLink(
                 onClose = { dialogLinkOpenState.value = false },
                 linkToOpen = linkToOpen.value
+            )
+        }
+
+        pendingUpdate.value?.let { release ->
+            AlertDialog(
+                onDismissRequest = {
+                    if (!isInstallingUpdate.value) pendingUpdate.value = null
+                },
+                title = {
+                    Text(stringResource(R.string.notification_app_update_available))
+                },
+                text = {
+                    Text(
+                        if (isInstallingUpdate.value) {
+                            stringResource(R.string.about_update_downloading, updateProgress.value)
+                        } else {
+                            release.version
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isInstallingUpdate.value,
+                        onClick = {
+                            val url = aboutViewModel.getApkUrl(release)
+                            if (url == null) {
+                                SnackbarHelper.showSnackbar(context.getString(R.string.about_update_error))
+                                pendingUpdate.value = null
+                                return@TextButton
+                            }
+                            scope.launch {
+                                isInstallingUpdate.value = true
+                                updateProgress.value = 0
+                                try {
+                                    val apk = withIOContext {
+                                        aboutViewModel.downloadUpdate(context, url) { updateProgress.value = it }
+                                    }
+                                    withUIContext {
+                                        if (aboutViewModel.canInstallUpdates(context)) {
+                                            context.startActivity(aboutViewModel.installIntent(context, apk))
+                                        } else {
+                                            SnackbarHelper.showSnackbar(
+                                                context.getString(R.string.about_update_allow_install)
+                                            )
+                                            context.startActivity(aboutViewModel.unknownSourcesSettingsIntent(context))
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    SnackbarHelper.showSnackbar(
+                                        e.message ?: context.getString(R.string.about_update_error)
+                                    )
+                                } finally {
+                                    isInstallingUpdate.value = false
+                                    pendingUpdate.value = null
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.about_update_install))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        enabled = !isInstallingUpdate.value,
+                        onClick = { pendingUpdate.value = null }
+                    ) {
+                        Text(stringResource(R.string.action_close))
+                    }
+                }
             )
         }
     }
@@ -495,6 +596,7 @@ private fun AboutAppLink(
                     indication = themeRipple(),
                     onClick = onClick
                 )
+                .tvFocusIndicator()
                 .padding(dimensionResource(R.dimen.normal_margin)),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -551,6 +653,7 @@ private fun ContributorView(
                         onClick()
                     }
                 )
+                .tvFocusIndicator()
                 .padding(dimensionResource(R.dimen.normal_margin))
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

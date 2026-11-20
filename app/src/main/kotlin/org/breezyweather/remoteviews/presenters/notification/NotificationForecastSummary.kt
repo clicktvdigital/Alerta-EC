@@ -30,9 +30,11 @@ internal class NotificationForecastSummary(context: Context, location: Location)
     val phenomenon = NotificationWeatherText.nonBlank(current?.weatherText)
         ?: NotificationWeatherText.nonBlank(hour?.weatherText)
         ?: "Condiciones no disponibles"
-    val temperatureText = temperature?.takeIf { it.inCelsius.isFinite() }?.formatMeasure(
-        context, settings.getTemperatureUnit(context), unitWidth = UnitWidth.NARROW
-    ) ?: "—"
+    val temperatureText = NotificationWeatherText.wholeNumbers(
+        temperature?.takeIf { it.inCelsius.isFinite() }?.formatMeasure(
+            context, settings.getTemperatureUnit(context), unitWidth = UnitWidth.NARROW
+        ) ?: "—"
+    )
     val interval = hour?.let { AlertaEcNotificationText.hourlyPeriod(it.date.time, now, location.timeZone) }
         ?: "Hora no disponible"
     val values = listOf(
@@ -47,12 +49,12 @@ internal class NotificationForecastSummary(context: Context, location: Location)
         add("$interval · $compact")
         add("Precipitación: acumulación del intervalo horario.")
         if (settings.isWidgetNotificationUsingFeelsLike) add("Temperatura mostrada: sensación térmica si está disponible.")
-        hour?.wind?.speed?.inKilometersPerHour?.let { add(String.format("Viento: %.1f km/h", it)) }
-        hour?.wind?.gusts?.inKilometersPerHour?.let { add(String.format("Ráfagas: %.1f km/h", it)) }
+        hour?.wind?.speed?.inKilometersPerHour?.let { add(String.format("Viento: %.0f km/h", it)) }
+        hour?.wind?.gusts?.inKilometersPerHour?.let { add(String.format("Ráfagas: %.0f km/h", it)) }
         hour?.wind?.degree?.takeIf { it.isFinite() && it >= 0 }?.let { add("Dirección del viento: $it°") }
         hour?.relativeHumidity?.inPercent?.let { add("Humedad: ${it.roundToInt()}%") }
         hour?.pressure?.inHectopascals?.let { add(String.format("Presión: %.0f hPa", it)) }
-        hour?.visibility?.inKilometers?.let { add(String.format("Visibilidad: %.1f km", it)) }
+        hour?.visibility?.inKilometers?.let { add(String.format("Visibilidad: %.0f km", it)) }
         add("Fuente: ${location.forecastSource}")
         add(hour?.acquiredAt?.time?.takeIf { it in 1..now }?.let {
             val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).apply {

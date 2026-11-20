@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.annotation.CallSuper
 import androidx.compose.runtime.Composable
@@ -40,22 +41,24 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import org.breezyweather.alertaec.accessibility.AlertVoice
+import org.breezyweather.background.location.DetailedLocationProvider
 import org.breezyweather.common.activities.BreezyActivity
 import org.breezyweather.common.bus.EventBus
 import org.breezyweather.common.extensions.hasPermission
-import org.breezyweather.alertaec.accessibility.AlertVoice
 import org.breezyweather.common.utils.helpers.IntentHelper
 import org.breezyweather.common.utils.helpers.PermissionHelper
 import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.sources.RefreshHelper
 import org.breezyweather.sources.SourceManager
+import org.breezyweather.ui.common.widgets.TvScreenFocus
+import org.breezyweather.ui.common.widgets.TvScreenFocusHost
 import org.breezyweather.ui.settings.compose.AppearanceSettingsScreen
-import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
 import org.breezyweather.ui.settings.compose.AutoSupportSettingsScreen
+import org.breezyweather.ui.settings.compose.BackgroundSettingsScreen
 import org.breezyweather.ui.settings.compose.DebugSettingsScreen
 import org.breezyweather.ui.settings.compose.LocationSettingsScreen
-import org.breezyweather.background.location.DetailedLocationProvider
 import org.breezyweather.ui.settings.compose.MainScreenSettingsScreen
 import org.breezyweather.ui.settings.compose.ModulesSettingsScreen
 import org.breezyweather.ui.settings.compose.NotificationsSettingsScreen
@@ -70,6 +73,15 @@ private const val PERMISSION_CODE_POST_NOTIFICATION = 0
 
 @AndroidEntryPoint
 class SettingsActivity : BreezyActivity() {
+
+    /** D-pad routing and option-list focus for the Compose settings screens. */
+    private val tvFocus = TvScreenFocus()
+
+    /** Remote-control D-pad keys move focus inside the Compose settings screens. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (tvFocus.handleKey(window.decorView, event)) return true
+        return super.dispatchKeyEvent(event)
+    }
 
     @Inject lateinit var sourceManager: SourceManager
 
@@ -130,7 +142,9 @@ class SettingsActivity : BreezyActivity() {
 
         setContent {
             BreezyWeatherTheme {
-                ContentView()
+                TvScreenFocusHost(tvFocus) {
+                    ContentView()
+                }
             }
         }
 

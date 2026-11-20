@@ -19,6 +19,7 @@ package org.breezyweather.sources.android
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
@@ -58,8 +59,22 @@ class AndroidLocationService @Inject constructor() : LocationSource {
         }.filter { it in manager.allProviders && manager.isProviderEnabled(it) }
         if (providers.isEmpty()) throw LocationException()
 
+        // Fast path: a recent (< 2 min) and precise last-known point answers instantly.
+        providers.mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
+            .filter { isRecent(it) && it.hasAccuracy() && it.accuracy <= GOOD_ACCURACY_METERS }
+            .maxWithOrNull(LOCATION_COMPARATOR)
+            ?.let { cached ->
+                send(cached.toWrapper())
+                return@rxObservable
+            }
+
+        // Without GPS hardware (TVs, TV boxes) only the network can answer, and it does so within ~1–2 s or not
+        // at all: wait 3 s, not 15 s. With GPS, give it up to 10 s, but finish as soon as a precise fix arrives.
+        val hasGps = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
+        val timeout = if (hasGps) TIMEOUT_WITH_GPS_MILLIS else TIMEOUT_WITHOUT_GPS_MILLIS
+
         var callbackBest: Location? = null
-        val measured = withTimeoutOrNull(TIMEOUT_MILLIS) {
+        val measured = withTimeoutOrNull(timeout) {
             suspendCancellableCoroutine<Location?> { continuation ->
                 val requestedProviders = providers.toMutableSet()
                 val respondedProviders = mutableSetOf<String>()
@@ -70,7 +85,9 @@ class AndroidLocationService @Inject constructor() : LocationSource {
                             if (!continuation.isActive) return
                             if (isBetterLocation(location, callbackBest)) callbackBest = location
                             location.provider?.let(respondedProviders::add)
-                            if (respondedProviders.containsAll(requestedProviders)) {
+                            // A precise fix is enough: do not wait for a GPS that cannot see the sky indoors.
+                            val precise = location.hasAccuracy() && location.accuracy <= GOOD_ACCURACY_METERS
+                            if (precise || respondedProviders.containsAll(requestedProviders)) {
                                 manager.removeUpdates(this)
                                 continuation.resume(callbackBest)
                             }
@@ -114,17 +131,17 @@ class AndroidLocationService @Inject constructor() : LocationSource {
             .maxWithOrNull(LOCATION_COMPARATOR)
             ?: throw LocationException()
 
-        send(
-            LocationPositionWrapper(
-                latitude = selected.latitude,
-                longitude = selected.longitude,
-                altitude = if (selected.hasAltitude()) selected.altitude else null,
-                accuracy = if (selected.hasAccuracy()) selected.accuracy else null,
-                timestampMillis = selected.time,
-                provider = selected.provider
-            )
-        )
+        send(selected.toWrapper())
     }
+
+    private fun Location.toWrapper() = LocationPositionWrapper(
+        latitude = latitude,
+        longitude = longitude,
+        altitude = if (hasAltitude()) altitude else null,
+        accuracy = if (hasAccuracy()) accuracy else null,
+        timestampMillis = time,
+        provider = provider
+    )
 
     override val permissions: Array<String>
         get() = arrayOf(
@@ -133,7 +150,11 @@ class AndroidLocationService @Inject constructor() : LocationSource {
         )
 
     companion object {
-        private val TIMEOUT_MILLIS = 15.seconds.inWholeMilliseconds
+        private val TIMEOUT_WITH_GPS_MILLIS = 10.seconds.inWholeMilliseconds
+        private val TIMEOUT_WITHOUT_GPS_MILLIS = 3.seconds.inWholeMilliseconds
+
+        /** A fix this precise ends the wait (and a cached one this precise is used directly). */
+        private const val GOOD_ACCURACY_METERS = 50f
 
         private val LOCATION_COMPARATOR = Comparator<Location> { first, second ->
             val firstElapsed = first.elapsedRealtimeNanos

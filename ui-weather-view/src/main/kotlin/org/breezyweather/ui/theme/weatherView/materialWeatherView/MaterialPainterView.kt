@@ -201,6 +201,7 @@ class MaterialPainterView(
         mDeviceOrientation = DeviceOrientation.TOP
 
         background = getWeatherBackgroundDrawable(weatherKind, daylight)
+        applyNightVeil(weatherKind, daylight)
     }
 
     fun update(
@@ -221,6 +222,7 @@ class MaterialPainterView(
         }
 
         background = getWeatherBackgroundDrawable(weatherKind, daylight)
+        applyNightVeil(weatherKind, daylight)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -318,11 +320,28 @@ class MaterialPainterView(
     private fun getWeatherBackgroundDrawable(
         weatherKind: Int,
         daylight: Boolean,
-    ) = ResourcesCompat.getDrawable(
-        resources,
-        WeatherImplementorFactory.getBackgroundId(weatherKind, daylight),
-        null
-    )
+    ): android.graphics.drawable.Drawable? =
+        if (!daylight && weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR) {
+            // Clear night: deep-space black instead of the dark-blue image; the stars are drawn on top unveiled.
+            android.graphics.drawable.ColorDrawable(NIGHT_SKY)
+        } else {
+            ResourcesCompat.getDrawable(resources, WeatherImplementorFactory.getBackgroundId(weatherKind, daylight), null)
+        }
+
+    /**
+     * Night veil drawn OVER the animation: only «clear» has a night background image, and at night the fog/rain/
+     * cloud implementors paint large light translucent shapes on top of the background, so a background-only veil
+     * still read as medium blue on the TV (2026-11-20). Day and afternoon (until sunset) stay unchanged.
+     */
+    private fun applyNightVeil(weatherKind: Int, daylight: Boolean) {
+        // «Negro universo» at night (user request 2026-11-20): 85 % black over fog/cloud/rain; clear nights keep
+        // their stars on a deep-space black background (no veil).
+        foreground = when {
+            daylight -> null
+            weatherKind == org.breezyweather.ui.theme.weatherView.WeatherView.WEATHER_KIND_CLEAR -> null
+            else -> android.graphics.drawable.ColorDrawable(android.graphics.Color.argb(217, 0, 0, 0))
+        }
+    }
 
     private fun setWeatherImplementor() {
         hasDrawn = false
@@ -350,5 +369,10 @@ class MaterialPainterView(
         } else {
             intervalComputer!!.reset()
         }
+    }
+
+    private companion object {
+        /** «Negro universo»: background of clear nights. */
+        const val NIGHT_SKY = 0xFF05070D.toInt()
     }
 }

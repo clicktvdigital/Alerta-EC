@@ -91,6 +91,12 @@ class MoonViewHolder(parent: ViewGroup) : AstroViewHolder(parent, isSun = false)
                 riseTimeView.contentDescription = context.getString(R.string.ephemeris_moonrise_at, moonriseTime)
                 setTimeView.text = moonsetTime
                 setTimeView.contentDescription = context.getString(R.string.ephemeris_moonset_at, moonsetTime)
+            } else {
+                // Día sin salida ni puesta de la luna: se muestra el hueco en lugar de esconder la tarjeta.
+                riseTimeView.text = "--"
+                riseTimeView.contentDescription = null
+                setTimeView.text = "--"
+                setTimeView.contentDescription = null
             }
         }
     }

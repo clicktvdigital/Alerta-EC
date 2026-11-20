@@ -27,12 +27,15 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import breezyweather.domain.location.model.Location
+import breezyweather.domain.weather.reference.WeatherCode
 import org.breezyweather.BreezyWeather
 import org.breezyweather.R
 import org.breezyweather.common.extensions.currentLocale
 import org.breezyweather.common.extensions.formatMeasure
+import org.breezyweather.domain.location.model.isDaylight
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.getTemperatureRangeSummary
+import org.breezyweather.ui.common.widgets.AnimatableIconView
 import org.breezyweather.ui.common.widgets.NumberAnimTextView
 import org.breezyweather.ui.main.widgets.TextRelativeClock
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
@@ -51,6 +54,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
     private val mTemperature: NumberAnimTextView = itemView.findViewById(R.id.container_main_header_temperature_value)
     private val mTemperatureUnitView: TextView = itemView.findViewById(R.id.container_main_header_temperature_unit)
     private val mWeatherText: TextView = itemView.findViewById(R.id.container_main_header_weather_condition_description)
+    private val mSkyIcon: AnimatableIconView = itemView.findViewById(R.id.container_main_header_sky_icon)
     private val mFeelsLike: TextView = itemView.findViewById(R.id.container_main_header_feels_like)
     private val mTemperatureRange: TextView = itemView.findViewById(R.id.container_main_header_temperature_range)
     private var mTemperatureFrom = 0
@@ -82,9 +86,10 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
 
         val temperatureUnit = SettingsManager.getInstance(context).getTemperatureUnit(context)
         location.weather?.current?.let { current ->
+            bindSkyIcon(context, location, provider, current.weatherCode, current.weatherText, itemAnimationEnabled)
             if (!current.weatherText.isNullOrEmpty()) {
                 mWeatherText.visibility = View.VISIBLE
-                mWeatherText.text = current.weatherText
+                mWeatherText.text = current.weatherText + precipitationModelNote(location, current.weatherCode)
             } else {
                 mWeatherText.visibility = View.GONE
             }
@@ -159,5 +164,57 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             mTemperatureFrom.format(decimals = 0, locale = context.currentLocale),
             mTemperatureTo.format(decimals = 0, locale = context.currentLocale)
         )
+    }
+
+    /**
+     * Big sky icon for the current moment: day/night variant of the current condition (sun, sun with
+     * clouds, moon, rain or storm clouds), so the time of day and the weather read at a glance on a TV.
+     */
+    private fun bindSkyIcon(
+        context: Context,
+        location: Location,
+        provider: ResourceProvider,
+        code: WeatherCode?,
+        weatherText: String?,
+        animate: Boolean,
+    ) {
+        if (code == null) {
+            mSkyIcon.visibility = View.GONE
+            return
+        }
+        val daylight = location.isDaylight
+        mSkyIcon.visibility = View.VISIBLE
+        mSkyIcon.setAnimatableIcon(
+            provider.getWeatherIcons(code, daylight),
+            provider.getWeatherAnimators(code, daylight)
+        )
+        mSkyIcon.contentDescription = listOfNotNull(
+            context.getString(if (daylight) R.string.daytime else R.string.nighttime),
+            weatherText?.takeIf { it.isNotEmpty() }
+        ).joinToString(context.getString(R.string.dot_separator))
+        if (animate) mSkyIcon.post { mSkyIcon.startAnimators() }
+    }
+
+    /**
+     * «Llovizna ligera» comes from the forecast model for the whole grid cell, not from an observation at the point.
+     * When the minute-by-minute forecast shows no precipitation right now (or there is none), say so instead of
+     * presenting rain as confirmed at the user's place.
+     */
+    private fun precipitationModelNote(
+        location: breezyweather.domain.location.model.Location,
+        code: breezyweather.domain.weather.reference.WeatherCode?,
+    ): String {
+        val wet = code in setOf(
+            breezyweather.domain.weather.reference.WeatherCode.RAIN,
+            breezyweather.domain.weather.reference.WeatherCode.SLEET,
+            breezyweather.domain.weather.reference.WeatherCode.SNOW,
+            breezyweather.domain.weather.reference.WeatherCode.HAIL,
+            breezyweather.domain.weather.reference.WeatherCode.THUNDERSTORM,
+        )
+        if (!wet) return ""
+        val now = System.currentTimeMillis()
+        val minute = location.weather?.minutelyForecast?.firstOrNull { now >= it.date.time && now < it.endingDate.time }
+        val raining = (minute?.precipitationIntensity?.inMillimeters ?: 0.0) > 0.0
+        return if (raining) "" else " · según el modelo"
     }
 }

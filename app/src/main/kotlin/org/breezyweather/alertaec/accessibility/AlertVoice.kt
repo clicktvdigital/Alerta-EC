@@ -74,6 +74,20 @@ object AlertVoice {
         }
     }
 
+    /**
+     * Reads a daily forecast or clothing recommendation aloud when the app is on screen (same safety checks as the
+     * voice test: unlocked, normal ringer, notification volume on, no call or music). The forecast channel is silent
+     * by design, so the alert-channel checks do not apply here.
+     */
+    fun announce(text: String) {
+        handler.post {
+            val activity = screen.get() ?: return@post
+            if (!ready) return@post
+            if (!SettingsManager.getInstance(activity).isAlertVoiceEnabled) return@post
+            speak(activity, null, text, true) { }
+        }
+    }
+
     fun test(activity: Activity, result: (String) -> Unit) {
         speak(activity, null, "Esta es una prueba de voz de ALERTA EC. No es una alerta real.", true, result)
     }

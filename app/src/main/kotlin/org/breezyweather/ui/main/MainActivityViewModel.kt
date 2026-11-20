@@ -277,6 +277,12 @@ class MainActivityViewModel @Inject constructor(
         postUpdate(locationList)
     }
 
+    fun broadcastLauncherWeatherNow(context: Context) {
+        viewModelScope.launchIO {
+            refreshHelper.broadcastDataIfNecessary(context, sourceId = "gadgetbridge")
+        }
+    }
+
     private fun setCurrentLocation(location: Location?) {
         _currentLocation.value = location?.let {
             DayNightLocation(location = it)
@@ -305,11 +311,18 @@ class MainActivityViewModel @Inject constructor(
         updating = false
     }
 
+    /** The current position is re-resolved once per app launch, even if its cached weather is still valid. */
+    private var currentPositionResolvedThisLaunch = false
+
     private fun checkToUpdateCurrentLocation() {
         // is not loading
         if (!updating) {
-            // if already valid, just return.
-            if (currentLocationIsValid()) return
+            // if already valid, just return — except the current position, which is re-resolved once per launch
+            // (the user may have moved to another neighbourhood or province since the cached weather).
+            if (currentLocationIsValid()) {
+                val isCurrentPosition = currentLocation.value?.location?.isCurrentPosition == true
+                if (!isCurrentPosition || currentPositionResolvedThisLaunch) return
+            }
 
             // If we don't have any location yet, just return
             if (currentLocation.value?.location == null) {
@@ -321,6 +334,7 @@ class MainActivityViewModel @Inject constructor(
             // update if init completed.
             // otherwise, mark a loading state and wait the init progress complete.
             if (initCompleted.value) {
+                if (currentLocation.value?.location?.isCurrentPosition == true) currentPositionResolvedThisLaunch = true
                 if (dialogRefreshErrorDetails.value) {
                     // When refreshing, some of the errors shown in the dialog might be outdated. We should close it,
                     // so users can directly see new errors if any occur.
@@ -358,7 +372,9 @@ class MainActivityViewModel @Inject constructor(
             return
         }
 
-        if (SettingsManager.getInstance(getApplication()).weatherManualUpdateLastLocationId ==
+        // Anti-spam guard for manual refreshes only; automatic ones (startup, new current location) must run.
+        if (triggeredByUser &&
+            SettingsManager.getInstance(getApplication()).weatherManualUpdateLastLocationId ==
             locationToCheck.formattedId &&
             SettingsManager.getInstance(getApplication()).weatherManualUpdateLastTimestamp +
             DELAY_BEFORE_NEXT_MANUAL_REFRESH >
@@ -543,6 +559,13 @@ class MainActivityViewModel @Inject constructor(
 
         _locationListLoading.value = false
 
+        // A new current-position place resolves itself right away (GPS -> address -> weather), with no yellow
+        // button or pull-to-refresh. It used to refresh *before* being added, i.e. the previously shown place.
+        if (location.isCurrentPosition) {
+            setLocation(locationWithValidTimeZone.formattedId)
+            updateWithUpdatingChecking(triggeredByUser = false, checkPermissions = true)
+        }
+
         return true
     }
 
@@ -553,8 +576,13 @@ class MainActivityViewModel @Inject constructor(
         context: Context,
         latitude: Double,
         longitude: Double,
+        customName: String? = null,
     ) {
-        val location = Location(latitude = latitude, longitude = longitude)
+        val location = Location(
+            latitude = latitude,
+            longitude = longitude,
+            customName = customName
+        )
         if (validLocationList.value.firstOrNull { it.isCloseTo(location) } != null) {
             SnackbarHelper.showSnackbar(context.getString(R.string.location_message_already_exists))
         } else {

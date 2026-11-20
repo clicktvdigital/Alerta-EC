@@ -15,9 +15,16 @@
         android:icon="@drawable/ic_open_in_new"
         app:showAsAction="never" />
 
+    <!-- Ajustes visible en la barra: en TV la tecla MENÚ suele quedar capturada por el televisor
+         (p. ej. paneles MStar), así que se llega con ARRIBA desde Home y OK. -->
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="200"
+        android:icon="@drawable/ic_settings"
+        app:showAsAction="always" />
+
     <item android:id="@+id/action_emergency_center"
         android:title="Centro de Emergencias"
         android:orderInCategory="250"
         app:showAsAction="never" />
-    <item android:id="@+id/action_gps_security" android:title="GPS y seguridad" android:orderInCategory="200" app:showAsAction="never" />
 </menu>

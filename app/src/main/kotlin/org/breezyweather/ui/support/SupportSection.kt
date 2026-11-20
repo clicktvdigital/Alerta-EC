@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.R
 
 // ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2
@@ -85,8 +86,12 @@ private val otrosApoyos = listOf(
     Triple("GitHub Sponsors", "https://github.com/sponsors/clicktvdigital", R.drawable.alertaec_marca_githubsponsors)
 )
 
+/**
+ * @param onWhiteBackground «Acerca de» draws this on white: Banco Pichincha then uses its black-lettered mark
+ * (the default one has white letters with a grey outline and a white inner mark, made for dark cards).
+ */
 @Composable
-internal fun SupportSection() {
+internal fun SupportSection(onWhiteBackground: Boolean = false) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var qrSeleccionado by rememberSaveable { mutableIntStateOf(-1) }
@@ -174,7 +179,7 @@ internal fun SupportSection() {
                     val seleccionado = montoSeleccionado == monto
                     Button(
                         onClick = { montoSeleccionado = monto },
-                        modifier = Modifier.weight(1f).heightIn(min = 96.dp),
+                        modifier = Modifier.weight(1f).tvFocusIndicator().heightIn(min = 96.dp),
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = if (seleccionado) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.secondaryContainer,
@@ -212,7 +217,11 @@ internal fun SupportSection() {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (apoyo.marca != null) {
                         PaymentBrand(
-                            resource = apoyo.marca,
+                            resource = if (onWhiteBackground && apoyo.marca == R.drawable.alertaec_marca_pichincha_profesional) {
+                                R.drawable.alertaec_marca_pichincha_sobre_blanco
+                            } else {
+                                apoyo.marca
+                            },
                             // Reservar un area comun evita comprimir los textos de marca y
                             // deja que ContentScale.Fit conserve la proporcion de cada logo.
                             modifier = Modifier.fillMaxWidth().height(88.dp)
@@ -225,11 +234,11 @@ internal fun SupportSection() {
                     Text(apoyo.explicacion, style = MaterialTheme.typography.bodyLarge)
                     Button(
                         onClick = { abrirPago(apoyo.url) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 54.dp)
                     ) { Text("💚 Continuar con ${apoyo.nombre}", style = MaterialTheme.typography.labelLarge) }
                     OutlinedButton(
                         onClick = { qrSeleccionado = indice },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 52.dp)
                     ) { Text("📷 Ver QR y copiar enlace", style = MaterialTheme.typography.labelLarge) }
                 }
             }
@@ -239,7 +248,7 @@ internal fun SupportSection() {
         otrosApoyos.forEach { (nombre, url, marca) ->
             OutlinedButton(
                 onClick = { abrirPago(url) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 64.dp)
             ) {
                 Image(
                     painter = painterResource(marca),
@@ -257,7 +266,7 @@ internal fun SupportSection() {
         }
         Button(
             onClick = { compartirAplicacion(context) },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)
+            modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 54.dp)
         ) { Text("Compartir ALERTA EC con familiares y amigos", style = MaterialTheme.typography.labelLarge) }
     }
 
@@ -279,7 +288,7 @@ internal fun SupportSection() {
                         onClick = {
                             copiarEnlace(context, seleccionado.url)
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        modifier = Modifier.fillMaxWidth().tvFocusIndicator().heightIn(min = 48.dp)
                     ) { Text("Copiar enlace de cobro") }
                 }
             },

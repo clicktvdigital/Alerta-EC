@@ -20,7 +20,7 @@ jobs:
       - name: Validar etiqueta y version de Gradle
         id: version
         env:
-          RELEASE_TAG: "v0.1.11"
+          RELEASE_TAG: "v0.1.15"
         run: |
           python3 - <<'PYVERSION'
           import os
@@ -41,8 +41,8 @@ jobs:
               raise SystemExit("La etiqueta no coincide con versionName de app/build.gradle.kts")
           if package.group(1) != "com.clicktvdigital.alertaec":
               raise SystemExit("applicationId no coincide con el paquete de produccion esperado")
-          if int(code.group(1)) != 111:
-              raise SystemExit("versionCode debe ser 111 para v0.1.11")
+          if int(code.group(1)) <= 0:
+              raise SystemExit("versionCode debe ser un entero positivo")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={tag_version}\n")
               output.write(f"version_code={code.group(1)}\n")
@@ -92,37 +92,38 @@ jobs:
           EXPECTED_VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: |
           set -eu
-          apk="app/build/outputs/apk/basic/release/app-basic-universal-release.apk"
-          test -s "$apk" || { echo "No se encontro el APK universal de Release." >&2; exit 1; }
+          # Un APK por arquitectura (armeabi-v7a para TV Box de 32 bits, arm64-v8a); no hay APK universal.
           build_tools="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools"
           apksigner="$(find "$build_tools" -type f -name apksigner -perm -u+x | sort -V | tail -n 1)"
           aapt="$(find "$build_tools" -type f -name aapt -perm -u+x | sort -V | tail -n 1)"
           test -x "$apksigner" && test -x "$aapt" || { echo "Faltan apksigner/aapt del Android SDK." >&2; exit 1; }
-          "$apksigner" verify --verbose "$apk" >/dev/null
-          cert_sha256="$("$apksigner" verify --print-certs "$apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          if [ "$cert_sha256" != "$EXPECTED_CERT_SHA256" ]; then
-            echo "El certificado del APK no coincide con el SHA-256 de produccion." >&2
-            exit 1
-          fi
-          badging="$("$aapt" dump badging "$apk")"
-          package_line="$(printf '%s\n' "$badging" | sed -n '1p')"
-          printf '%s\n' "$package_line" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId del APK no coincide con produccion." >&2; exit 1; }
-          apk_version="$(printf '%s\n' "$package_line" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
-          apk_code="$(printf '%s\n' "$package_line" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
-          test "$apk_version" = "$EXPECTED_VERSION" || { echo "versionName del APK no coincide con la etiqueta." >&2; exit 1; }
-          test "$apk_code" = "$EXPECTED_VERSION_CODE" || { echo "versionCode del APK no coincide con Gradle." >&2; exit 1; }
           mkdir -p release-assets
-          cp "$apk" "release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk"
-          (cd release-assets && sha256sum "Alerta-EC-v${EXPECTED_VERSION}.apk" > "Alerta-EC-v${EXPECTED_VERSION}.apk.sha256")
-          echo "apk=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk" >> "$GITHUB_OUTPUT"
-          echo "checksum=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk.sha256" >> "$GITHUB_OUTPUT"
+          for abi in armeabi-v7a arm64-v8a; do
+            apk="app/build/outputs/apk/basic/release/app-basic-${abi}-release.apk"
+            test -s "$apk" || { echo "No se encontro el APK Release de $abi." >&2; exit 1; }
+            "$apksigner" verify --verbose "$apk" >/dev/null
+            cert_sha256="$("$apksigner" verify --print-certs "$apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+            if [ "$cert_sha256" != "$EXPECTED_CERT_SHA256" ]; then
+              echo "El certificado del APK $abi no coincide con el SHA-256 de produccion." >&2
+              exit 1
+            fi
+            package_line="$("$aapt" dump badging "$apk" | sed -n '1p')"
+            printf '%s\n' "$package_line" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId del APK $abi no coincide con produccion." >&2; exit 1; }
+            apk_version="$(printf '%s\n' "$package_line" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
+            apk_code="$(printf '%s\n' "$package_line" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+            test "$apk_version" = "$EXPECTED_VERSION" || { echo "versionName del APK $abi no coincide con la etiqueta." >&2; exit 1; }
+            test "$apk_code" = "$EXPECTED_VERSION_CODE" || { echo "versionCode del APK $abi no coincide con Gradle." >&2; exit 1; }
+            cp "$apk" "release-assets/Alerta-EC-v${EXPECTED_VERSION}-${abi}.apk"
+          done
+          (cd release-assets && sha256sum Alerta-EC-v*.apk > "Alerta-EC-v${EXPECTED_VERSION}.sha256")
+          echo "checksum=release-assets/Alerta-EC-v${EXPECTED_VERSION}.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Entregar APK de prueba sin publicar Release
         uses: actions/upload-artifact@v4
         with:
-          name: ALERTA-EC-v0.1.11-RELEASE-PRUEBA
+          name: ALERTA-EC-v${{ steps.version.outputs.version }}-RELEASE-PRUEBA
           path: |
-            release-assets/Alerta-EC-v0.1.11.apk
-            release-assets/Alerta-EC-v0.1.11.apk.sha256
+            release-assets/*.apk
+            release-assets/*.sha256
           if-no-files-found: error
           retention-days: 7

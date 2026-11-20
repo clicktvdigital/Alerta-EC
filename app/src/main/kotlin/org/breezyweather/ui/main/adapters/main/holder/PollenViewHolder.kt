@@ -120,8 +120,16 @@ class PollenViewHolder(parent: ViewGroup) : AbstractMainCardViewHolder(
                 pollen2Container.visibility = View.GONE
             }
         } ?: run {
+            // No pollen data for this location (the current sources only cover Europe). Say so instead of an empty card.
             talkBackBuilder.append(context.getString(R.string.pollen))
-            pollen1Container.visibility = View.GONE
+            talkBackBuilder.append(context.getString(R.string.colon_separator))
+            talkBackBuilder.append(context.getString(R.string.pollen_no_data))
+            pollen1Container.visibility = View.VISIBLE
+            pollen1Title.visibility = View.VISIBLE
+            pollen1Title.text = context.getString(R.string.pollen)
+            pollen1Title.setTextColor(context.getThemeColor(R.attr.colorTitleText))
+            pollen1Content.text = context.getString(R.string.pollen_no_data)
+            pollen1Content.setTextColor(context.getThemeColor(R.attr.colorBodyText))
             pollen2Container.visibility = View.GONE
         }
 

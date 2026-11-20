@@ -13,7 +13,11 @@ import org.breezyweather.background.location.ActiveLocationController
 import org.breezyweather.background.location.LocationHumanFormatter
 import org.breezyweather.common.extensions.setSystemBarStyle
 import org.breezyweather.ui.main.fragments.MainModuleFragment
+import org.breezyweather.ui.support.applyTvFocusRing
+import org.breezyweather.ui.support.isTelevisionDevice
+import androidx.activity.OnBackPressedCallback
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import androidx.lifecycle.lifecycleScope
@@ -153,7 +157,7 @@ class MapFragment : MainModuleFragment() {
         val b = datos.getString("lon", null)?.toDoubleOrNull() ?: return null
         val distancia = FloatArray(1)
         android.location.Location.distanceBetween(a, b, latitud, longitud, distancia)
-        if (distancia[0] > 75f) return null
+        if (distancia[0] > org.breezyweather.background.location.DetailedLocationProvider.USER_ZONE_RADIUS_M) return null
         val postal = datos.getString("postal", "")?.trim().orEmpty()
         val sector = datos.getString("sector", "")?.trim().orEmpty()
         if (!Regex("[0-9]{6}").matches(postal) || sector.isBlank()) return null
@@ -184,7 +188,37 @@ class MapFragment : MainModuleFragment() {
             setSingleLine(true)
             setText(previa?.second.orEmpty())
         }
-        caja.addView(postal); caja.addView(sector)
+        val transversal = android.widget.EditText(contexto).apply {
+            hint = "Calle secundaria o transversal (opcional)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setSingleLine(true)
+            setText(contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).getString("cruce", "").orEmpty())
+        }
+        val referencia = android.widget.EditText(contexto).apply {
+            hint = "Referencia local (opcional): sector, casa comunal, tienda…"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(true)
+            setText(contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).getString("referencia", "").orEmpty())
+        }
+        val guardado = contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0)
+        val parroquiaEclesiastica = android.widget.EditText(contexto).apply {
+            hint = "Parroquia eclesiástica (opcional)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setSingleLine(true)
+            setText(guardado.getString("parroquia_eclesiastica", "").orEmpty())
+        }
+        val posicion = android.widget.EditText(contexto).apply {
+            hint = "Posición (opcional): p. ej. ladera occidental, noroccidente de la ciudad"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(true)
+            setText(guardado.getString("posicion", "").orEmpty())
+        }
+        caja.addView(postal); caja.addView(sector); caja.addView(transversal); caja.addView(referencia)
+        caja.addView(parroquiaEclesiastica); caja.addView(posicion)
         android.app.AlertDialog.Builder(contexto)
             .setTitle("Corregir mi zona en este punto GPS")
             .setMessage("Información voluntaria. Se mostrará como aportada por ti; " +
@@ -203,6 +237,10 @@ class MapFragment : MainModuleFragment() {
                         .putString("lon", ubicacion.longitude.toString())
                         .putString("postal", codigo)
                         .putString("sector", nombre)
+                        .putString("cruce", transversal.text.toString().trim())
+                        .putString("referencia", referencia.text.toString().trim())
+                        .putString("parroquia_eclesiastica", parroquiaEclesiastica.text.toString().trim())
+                        .putString("posicion", posicion.text.toString().trim())
                         .apply()
                     addressLabel?.text = "✏️ Datos aportados por ti · GPS cercano\n" +
                         "Sector: $nombre · Código postal: $codigo\n" +
@@ -273,9 +311,22 @@ class MapFragment : MainModuleFragment() {
 
     private var mapView: MapView? = null
     private var satellitePlayer: NoaaSatellitePlayer? = null
+    // Estado del panel NOAA: controles del mapa ocultos mientras está abierto, y foco de regreso.
+    private var satellitePanel: View? = null
+    private var satelliteOpenButton: View? = null
+    private var satelliteHiddenViews: List<View> = emptyList()
+    private var satelliteBackCallback: OnBackPressedCallback? = null
+    /** BACK with the «Capas» panel open closes the panel (focus back on «Capas») instead of leaving the map. */
+    private var layersBackCallback: OnBackPressedCallback? = null
+    private var layersPanel: View? = null
+    private var layersButton: View? = null
     private var addressLabel: android.widget.TextView? = null
     private var gpsInfoLabel: android.widget.TextView? = null
     private var inamhiStatusLabel: android.widget.TextView? = null
+    /** Always-visible colour key of the active INAMHI layers, over the map (not only inside «Información INAMHI»). */
+    private var inamhiLegendOverlay: android.widget.LinearLayout? = null
+    /** 8-point compass (N, NE, E, SE, S, SO, O, NO); rotates with the map bearing. */
+    private var compassRose: android.widget.TextView? = null
 
     private val gpsHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPosition: Pair<Double, Double>? = null
@@ -359,7 +410,10 @@ class MapFragment : MainModuleFragment() {
                                     it.startsWith("Sector:") || it.startsWith("Código postal:")
                                 }
                         } else address.completeAddressLines
-                        addressLabel?.text = addressLines
+                        // Full coordinates in the zone card, not only inside «Datos GPS».
+                        val conCoordenadas = addressLines +
+                            "Coordenadas: ${LocationHumanFormatter.decimalCoordinates(latitude, longitude)}"
+                        addressLabel?.text = conCoordenadas
                             .takeIf { it.isNotEmpty() }
                             ?.joinToString("\n")
                             ?: "📍 Dirección detallada no disponible para estas coordenadas"
@@ -421,9 +475,19 @@ class MapFragment : MainModuleFragment() {
         }
     }
 
+    private val inamhiLegendRequested = mutableSetOf<String>()
+
+    /** Fetches the official INAMHI colour scale of [layer] once, then redraws the status with it. */
+    private fun requestInamhiLegend(layer: String) {
+        if (!inamhiLegendRequested.add(layer)) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (InamhiLegend.load(layer) != null) renderInamhiStatus() else inamhiLegendRequested.remove(layer)
+        }
+    }
+
     private fun renderInamhiStatus() {
         val now = Instant.now()
-        inamhiStatusLabel?.text = buildList {
+        inamhiStatusLabel?.text = buildList<CharSequence> {
             if (!styleReady) add(styleMessage)
             add("🇪🇨 Fuente configurada: INAMHI · Pronósticos WRF")
             InamhiLayers.all.forEach { layer ->
@@ -437,6 +501,11 @@ class MapFragment : MainModuleFragment() {
                     InamhiLayers.title(layer), enabled,
                     inamhiStates[layer] ?: InamhiLayerStatus.State(), now
                 ))
+                if (enabled) {
+                    InamhiLegend.cached(layer)?.let {
+                        add(InamhiLegend.strip("Escala oficial INAMHI", InamhiLegend.unit(layer), it))
+                    } ?: requestInamhiLegend(layer)
+                }
             }
             add("Dominio WRF configurado: continental; no cubre Galápagos. " +
                 "La cobertura nacional de ALERTA EC depende de otras fuentes.")
@@ -445,11 +514,44 @@ class MapFragment : MainModuleFragment() {
                     add("Centro del mapa fuera del dominio continental configurado para WRF.")
                 }
             }
-            add("La disponibilidad por punto, unidades y leyenda no están verificadas. " +
+            add("Colores y valores: leyenda oficial del servicio WMS de INAMHI. " +
                 "Una tesela blanca no confirma ausencia de lluvia.")
             add("Fecha WMS de pronóstico, no de emisión ni de observación. " +
                 "Pronóstico de modelo, no alerta oficial ni radar.")
-        }.joinToString("\n")
+        }.fold(android.text.SpannableStringBuilder()) { text, line ->
+            if (text.isNotEmpty()) text.append("\n")
+            text.append(line)
+        }
+        val legends = InamhiLayers.all.filter { inamhiSelection.enabled(it) }.mapNotNull { layer ->
+            InamhiLegend.cached(layer)?.let {
+                // TV: vertical column at the side. Phone: thin horizontal strip (a column took half the screen).
+                if (requireContext().isTelevisionDevice()) {
+                    InamhiLegend.column(InamhiLayers.title(layer), InamhiLegend.unit(layer), it)
+                } else {
+                    InamhiLegend.strip(InamhiLayers.title(layer), InamhiLegend.unit(layer), it)
+                }
+            }
+        }
+        inamhiLegendOverlay?.apply {
+            removeAllViews()
+            legends.forEach { legend ->
+                addView(android.widget.TextView(context).apply {
+                    text = legend
+                    textSize = if (context.isTelevisionDevice()) 13f else 10f
+                    typeface = android.graphics.Typeface.MONOSPACE
+                    setTextColor(android.graphics.Color.WHITE)
+                    setPadding(10, 6, 10, 6)
+                })
+            }
+            val show = legends.isNotEmpty()
+            if (show && visibility != View.VISIBLE) {
+                alpha = 0f
+                visibility = View.VISIBLE
+                animate().alpha(1f).setDuration(150).start()
+            } else if (!show) {
+                visibility = View.GONE
+            }
+        }
     }
 
     private fun invalidateInamhiRequest() {
@@ -590,6 +692,9 @@ class MapFragment : MainModuleFragment() {
             mapView = view
             styleReady = false
             lastPosition = null
+            // El mapa no debe robar el foco del D-pad: el mando solo se mueve por los controles.
+            view.isFocusable = false
+            view.isFocusableInTouchMode = false
             view.onCreate(savedInstanceState)
         }
         return android.widget.FrameLayout(requireContext()).apply {
@@ -603,6 +708,8 @@ class MapFragment : MainModuleFragment() {
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 setOnClickListener { maxLines = if (maxLines == 2) 16 else 2 }
+                // Recibe el foco inicial del mando: sin anillo no se sabía dónde estaba el foco.
+                applyTvFocusRing()
             }
             addView(addressLabel, android.widget.FrameLayout.LayoutParams(
                 -1, -2, android.view.Gravity.TOP
@@ -618,6 +725,36 @@ class MapFragment : MainModuleFragment() {
                 insets
             }
             androidx.core.view.ViewCompat.requestApplyInsets(this)
+            // Legend on the left side, one vertical column per active layer, so it no longer covers the map centre.
+            val tv = context.isTelevisionDevice()
+            inamhiLegendOverlay = android.widget.LinearLayout(context).apply {
+                orientation = if (tv) android.widget.LinearLayout.HORIZONTAL else android.widget.LinearLayout.VERTICAL
+                setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
+                setPadding(6, 6, 6, 6)
+                visibility = View.GONE
+            }
+            addView(inamhiLegendOverlay, if (tv) {
+                android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL)
+                    .apply { marginStart = 12 }
+            } else {
+                android.widget.FrameLayout.LayoutParams(-1, -2, android.view.Gravity.TOP)
+                    .apply { topMargin = (110f * resources.displayMetrics.density).toInt() }
+            })
+            compassRose = android.widget.TextView(context).apply {
+                text = "NO   N   NE\n\nO    ✛    E\n\nSO   S   SE"
+                typeface = android.graphics.Typeface.MONOSPACE
+                textSize = 12f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(android.graphics.Color.WHITE)
+                setBackgroundColor(android.graphics.Color.argb(200, 20, 30, 42))
+                setPadding(14, 10, 14, 10)
+                contentDescription = "Rosa de los vientos: norte arriba"
+            }
+            // Phone: MapLibre's own compass (Google Maps style, follows touch rotation); text rose only on TV.
+            if (!tv) compassRose?.visibility = View.GONE
+            addView(compassRose, android.widget.FrameLayout.LayoutParams(
+                -2, -2, android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+            ).apply { marginEnd = 12 })
             val root = this
             val mapButtons = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -724,6 +861,17 @@ class MapFragment : MainModuleFragment() {
                         }
                     }
                     contentDescription = "Capa meteorológica ${InamhiLayers.title(layer)}"
+                    // Foco visible al navegar con un mando Android TV.
+                    if (context.isTelevisionDevice()) {
+                        isFocusable = true
+                        isFocusableInTouchMode = false
+                        setOnFocusChangeListener { view, focused ->
+                            view.setBackgroundColor(
+                                if (focused) android.graphics.Color.rgb(35, 115, 190)
+                                else android.graphics.Color.rgb(31, 43, 60)
+                            )
+                        }
+                    }
                 }
                 inamhiButtons[layer] = toggle
                 mapButtons.addView(toggle, android.widget.LinearLayout.LayoutParams(-1, -2))
@@ -737,30 +885,8 @@ class MapFragment : MainModuleFragment() {
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             mapButtons.addView(android.widget.Button(context).apply {
                 text = "🛰️ Satélite y rayos"
-                setOnClickListener {
-                    if (satellitePlayer != null) return@setOnClickListener
-                    val panel = android.widget.LinearLayout(context).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
-                    }
-                    val gpsPosition = latestMapLocation()
-                    val galapagosTime = gpsPosition != null &&
-                        EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
-                    val player = NoaaSatellitePlayer(context, galapagosTime)
-                    satellitePlayer = player
-                    panel.addView(android.widget.Button(context).apply {
-                        text = "← Volver al mapa"
-                        setOnClickListener {
-                            player.release()
-                            satellitePlayer = null
-                            root.removeView(panel)
-                        }
-                    })
-                    panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
-                    root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
-                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
-                    player.resume()
-                }
+                applyTvFocusRing()
+                setOnClickListener { openSatellitePanel(it, root, gpsMap) }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             // Limitar todos los controles juntos para conservar mapa visible con paneles abiertos.
             val controlsScroll = object : android.widget.ScrollView(context) {
@@ -787,16 +913,49 @@ class MapFragment : MainModuleFragment() {
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
                     text = "☰ Capas"
+                    layersButton = this
+                    layersPanel = controlsScroll
                     setOnClickListener {
-                        controlsScroll.visibility = if (controlsScroll.visibility ==
-                            android.view.View.VISIBLE) android.view.View.GONE
-                        else android.view.View.VISIBLE
+                        val open = controlsScroll.visibility != android.view.View.VISIBLE
+                        controlsScroll.visibility = if (open) android.view.View.VISIBLE else android.view.View.GONE
+                        layersBackCallback?.isEnabled = open
                     }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
                     text = "✏️ Zona"
                     setOnClickListener { editarMiSector() }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                // Zoom con mando: el mapa no tiene otra forma de acercarse sin pantalla táctil.
+                if (context.isTelevisionDevice()) {
+                    listOf("＋ Zoom" to 1.0, "－ Zoom" to -1.0).forEach { (label, delta) ->
+                        addView(android.widget.Button(context).apply {
+                            text = label
+                            setOnClickListener {
+                                currentMap?.animateCamera(CameraUpdateFactory.zoomBy(delta))
+                            }
+                        }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                    }
+                }
+                // Flechas para desplazar el mapa con el mando, como en el panel NOAA (el mapa no toma el foco).
+                if (context.isTelevisionDevice()) {
+                    val step = 160f * resources.displayMetrics.density
+                    // Natural sense requested on the TV: ▶ moves the map to the right, ▲ up (scrollBy moves the content).
+                    listOf("◀" to (-step to 0f), "▲" to (0f to -step), "▼" to (0f to step), "▶" to (step to 0f))
+                        // Measured on the TV: inverting X makes ▶ move the map right; Y already moved it in the
+                        // natural sense (▲ up), so only X is inverted.
+                        .map { (label, d) -> label to (-d.first to d.second) }
+                        .forEach { (label, delta) ->
+                            addView(android.widget.Button(context).apply {
+                                text = label
+                                contentDescription = "Mover mapa " + when (label) {
+                                    "◀" -> "a la izquierda"; "▲" -> "arriba"; "▼" -> "abajo"; else -> "a la derecha"
+                                }
+                                setOnClickListener { currentMap?.scrollBy(delta.first, delta.second) }
+                            }, android.widget.LinearLayout.LayoutParams(0, -2, 0.6f))
+                        }
+                }
+                // Borde de foco visible en cada control del mando (solo TV).
+                for (i in 0 until childCount) getChildAt(i).applyTvFocusRing()
             }
             val panel = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -811,12 +970,34 @@ class MapFragment : MainModuleFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Registered first so the NOAA panel callback below keeps priority: BACK closes NOAA, then «Capas», then the map.
+        val layersBack = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                layersPanel?.visibility = View.GONE
+                isEnabled = false
+                layersButton?.requestFocus()
+            }
+        }
+        layersBackCallback = layersBack
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, layersBack)
+        // Atrás (botón del mando) cierra primero el panel NOAA; sin panel, se comporta como siempre.
+        val backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() = closeSatellitePanel()
+        }
+        satelliteBackCallback = backCallback
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
         inamhiSelection = InamhiMapPreferences.read(requireContext())
         renderInamhiStatus()
         val requestedMapView = mapView ?: return
         requestedMapView.getMapAsync { map ->
             if (this.view !== view || mapView !== requestedMapView || !isAdded) return@getMapAsync
             currentMap = map
+            if (!requireContext().isTelevisionDevice()) {
+                map.uiSettings.isCompassEnabled = true
+                map.uiSettings.setCompassFadeFacingNorth(false)
+            }
+            // The compass follows the map bearing (fixed north-up on TV; rotates on touch devices).
+            map.addOnCameraMoveListener { compassRose?.rotation = -map.cameraPosition.bearing.toFloat() }
             if (savedInstanceState == null) {
                 val location = latestMapLocation()
                 map.cameraPosition = CameraPosition.Builder()
@@ -931,6 +1112,52 @@ class MapFragment : MainModuleFragment() {
         mapView?.onStart()
     }
 
+    /** Abre el panel NOAA a pantalla completa y oculta los controles del mapa que quedan debajo. */
+    private fun openSatellitePanel(openButton: View, root: android.widget.FrameLayout, gpsMap: MapView) {
+        if (satellitePlayer != null) return
+        val context = requireContext()
+        val panel = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
+        }
+        val gpsPosition = latestMapLocation()
+        val galapagosTime = gpsPosition != null &&
+            EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
+        val player = NoaaSatellitePlayer(context, galapagosTime)
+        satellitePlayer = player
+        satellitePanel = panel
+        satelliteOpenButton = openButton
+        panel.addView(android.widget.Button(context).apply {
+            text = "← Volver al mapa"
+            applyTvFocusRing()
+            setOnClickListener { closeSatellitePanel() }
+        })
+        panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+        // Solo se ocultan los hermanos que estaban visibles; el MapView queda fuera del foco.
+        satelliteHiddenViews = (0 until root.childCount)
+            .map { root.getChildAt(it) }
+            .filter { it !== gpsMap && it !== panel && it.visibility == View.VISIBLE }
+        satelliteHiddenViews.forEach { it.visibility = View.GONE }
+        satelliteBackCallback?.isEnabled = true
+        panel.getChildAt(0)?.requestFocus()
+        // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
+        player.resume()
+    }
+
+    /** Cierra el panel NOAA, libera sus imágenes y devuelve el foco al botón que lo abrió. */
+    private fun closeSatellitePanel() {
+        satellitePlayer?.release()
+        satellitePlayer = null
+        satellitePanel?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        satellitePanel = null
+        satelliteHiddenViews.forEach { it.visibility = View.VISIBLE }
+        satelliteHiddenViews = emptyList()
+        satelliteBackCallback?.isEnabled = false
+        satelliteOpenButton?.requestFocus()
+        satelliteOpenButton = null
+    }
+
     override fun onResume() {
         super.onResume()
         context?.let { permissionContext ->
@@ -1019,6 +1246,13 @@ class MapFragment : MainModuleFragment() {
         inamhiStatusLabel = null
         satellitePlayer?.release()
         satellitePlayer = null
+        satellitePanel = null
+        satelliteOpenButton = null
+        satelliteHiddenViews = emptyList()
+        satelliteBackCallback = null
+        layersBackCallback = null
+        layersPanel = null
+        layersButton = null
         val destroyedMapView = mapView
         mapView = null
         destroyedMapView?.onDestroy()

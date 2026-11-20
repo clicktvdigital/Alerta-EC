@@ -6,6 +6,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Button
 import android.widget.SeekBar
+import org.breezyweather.ui.support.applyTvFocusRing
+import org.breezyweather.ui.support.isTelevisionDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,9 +59,10 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         modeJob = scope.launch {
             val result = runCatching {
                 when (position) {
-                    1 -> NoaaSatelliteFrames.lightningRecent()
-                    2 -> NoaaSatelliteFrames.fullDiskRecent()
-                    else -> NoaaSatelliteFrames.recent()
+                    1 -> NoaaSatelliteFrames.lightningEcuador()
+                    2 -> NoaaSatelliteFrames.rainCloudsEcuador()
+                    3 -> NoaaSatelliteFrames.fullMapRegion()
+                    else -> NoaaSatelliteFrames.cloudsEcuador()
                 }
             }.onFailure { if (it is CancellationException) throw it }
             if (request == modeRequestId) {
@@ -75,14 +78,6 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
                     }
                 } else {
                     retryAfterFailure = true
-                    val now = java.time.Instant.now()
-                    val validFrames = frames.filter { frame ->
-                        val age = java.time.Duration.between(frame.observedAt, now)
-                        !age.isNegative && age.toMinutes() < 360
-                    }
-                    if (validFrames.size != frames.size) {
-                        setFrames(validFrames)
-                    }
                     timeLabel.text = if (frames.isNotEmpty()) {
                         "No se pudo actualizar NOAA. Se conservan las imágenes anteriores."
                     } else if (result.isFailure) {
@@ -133,7 +128,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val choices = android.widget.LinearLayout(context).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
         }
-        listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia").forEachIndexed { position, label ->
+        listOf("☁ Nubes", "⚡ Rayos", "🌧 Lluvia", "🗺 Mapa completo").forEachIndexed { position, label ->
             val button = Button(context).apply {
                 textSize = 12f
                 isAllCaps = false
@@ -150,17 +145,30 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             choices.addView(button, android.widget.LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         }
         addView(choices)
+        // Foco visible para el mando D-pad en TV (no hace nada en teléfono).
+        modeButtons.forEach { it.applyTvFocusRing() }
         addView(TextView(context).apply {
-            text = "NOAA GOES-19 · Norte de Sudamérica (incluye Ecuador). Imágenes regionales, no de calles."
+            text = "NOAA GOES-19 · Nubes, rayos y lluvia encuadrados en Ecuador continental; " +
+                "Mapa completo: norte de Sudamérica. Lluvia = nubes de tormenta, no milímetros medidos. " +
+                "Galápagos queda fuera del sector." +
+                if (context.isTelevisionDevice()) TV_ZOOM_HINT else ""
             textSize = 12f
             setPadding(12, 6, 12, 9)
         })
         refreshModeButtons()
+        // En TV la imagen es un destino del D-pad: OK acerca y las flechas desplazan (sin pellizco).
+        if (context.isTelevisionDevice()) {
+            image.isFocusable = true
+            image.isFocusableInTouchMode = false
+            image.applyTvFocusRing()
+        }
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
+        playButton.applyTvFocusRing()
         addView(playButton)
         retryButton.text = "↻ Reintentar NOAA"
+        retryButton.applyTvFocusRing()
         retryButton.setOnClickListener {
             frames.getOrNull(index)?.imageUrl?.let(failedFrameUrls::remove)
             loadSelectedMode(selectedMode, force = true)
@@ -190,7 +198,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     }
 
     private fun refreshModeButtons() {
-        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia")
+        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌧 Lluvia", "🗺 Mapa completo")
         modeButtons.forEachIndexed { index, button ->
             button.text = if (selectedMode == index) "✓ ${labels[index]}" else labels[index]
             button.contentDescription = "${labels[index]}" +
@@ -223,29 +231,6 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             image.setImageDrawable(null)
             return
         }
-        val age = java.time.Duration.between(frame.observedAt, java.time.Instant.now())
-        if (age.isNegative || age.toMinutes() >= 360) {
-            playing = false
-            handler.removeCallbacks(advance)
-            playButton.text = "▶ Reproducir"
-            val validFrames = frames.filter {
-                val frameAge = java.time.Duration.between(it.observedAt, java.time.Instant.now())
-                !frameAge.isNegative && frameAge.toMinutes() < 360
-            }
-            if (validFrames.size != frames.size) {
-                setFrames(validFrames)
-            }
-            if (validFrames.isEmpty()) {
-                timeLabel.text = "Imágenes NOAA caducadas. Esperando actualización."
-            }
-            val nowElapsed = android.os.SystemClock.elapsedRealtime()
-            if (modeJob?.isActive != true &&
-                (lastModeRefreshAt == 0L || nowElapsed - lastModeRefreshAt >= if (retryAfterFailure) retryIntervalMs else refreshIntervalMs)
-            ) {
-                loadSelectedMode(selectedMode)
-            }
-            return
-        }
         timeline.progress = index
         if (isCurrentFrameVisibleAndValid()) {
             timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime)
@@ -259,7 +244,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         loadingFrameUrl = frame.imageUrl
         val request = ++requestId
         loadJob = scope.launch {
-            val bitmap = runCatching { NoaaImageLoader.load(frame.imageUrl) }
+            val bitmap = runCatching { NoaaImageLoader.load(frame.imageUrl, frame.crop) }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrNull()
             if (request == requestId) {
@@ -304,11 +289,9 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
 
     private fun isCurrentFrameVisibleAndValid(): Boolean {
         val frame = frames.getOrNull(index) ?: return false
-        val age = java.time.Duration.between(frame.observedAt, java.time.Instant.now())
         return displayedFrameVersion == framesVersion &&
             displayedFrameUrl == frame.imageUrl &&
-            frame.imageUrl !in failedFrameUrls &&
-            !age.isNegative && age.toMinutes() < 360
+            frame.imageUrl !in failedFrameUrls
     }
 
     fun pause() {
@@ -331,6 +314,12 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         loadingFrameUrl = null
         scope.coroutineContext[Job]?.cancel()
         playing = false
-        handler.removeCallbacks(advance)
+        handler.removeCallbacksAndMessages(null)
+        // Soltar el bitmap del fotograma visible: a pantalla completa pesa varios MB.
+        image.setImageDrawable(null)
+    }
+
+    private companion object {
+        const val TV_ZOOM_HINT = " Mando: OK sobre la imagen acerca 2× / 4×; las flechas la mueven."
     }
 }

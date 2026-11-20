@@ -54,7 +54,10 @@ class HourlyTrendAdapter(
         }
     private var selectedIndexCache = -1
 
+    private var boundLocation: Location? = null
+
     fun bindData(location: Location) {
+        boundLocation = location
         val provider = ResourcesProviderFactory.newInstance
         val tempUnit = SettingsManager.getInstance(activity).getTemperatureUnit(activity)
 
@@ -85,6 +88,50 @@ class HourlyTrendAdapter(
 
     override fun onBindViewHolder(holder: AbsHourlyTrendAdapter.ViewHolder, position: Int) {
         adapters[selectedIndex].onBindViewHolder(holder, position)
+        bindRemoteFocus(holder.itemView)
+        bindTelevisionDetail(holder)
+    }
+
+    /**
+     * On Android TV, OK on an hour opens that hour's full detail (replaces the day shortcut).
+     */
+    private fun bindTelevisionDetail(holder: AbsHourlyTrendAdapter.ViewHolder) {
+        val context = holder.itemView.context
+        val isTelevision = (context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        if (!isTelevision) return
+        holder.itemView.setOnClickListener {
+            val position = holder.bindingAdapterPosition
+            val location = boundLocation
+            if (position != RecyclerView.NO_POSITION && location != null) {
+                HourlyDetailDialog.show(activity, location, position)
+            }
+        }
+    }
+
+    /**
+     * On Android TV every hourly cell takes D-pad focus (same behaviour as the daily forecast),
+     * with a visible white ring so the selected hour is readable from a distance.
+     */
+    private fun bindRemoteFocus(view: android.view.View) {
+        val context = view.context
+        val isTelevision = (context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+            android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        if (!isTelevision) return
+        view.isFocusable = true
+        view.isFocusableInTouchMode = false
+        if (view.foreground == null) {
+            val density = context.resources.displayMetrics.density
+            view.foreground = android.graphics.drawable.GradientDrawable().apply {
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke((3 * density).toInt(), android.graphics.Color.WHITE)
+                cornerRadius = 8 * density
+            }
+        }
     }
 
     override fun getItemCount() = adapters.getOrNull(selectedIndex)?.itemCount ?: 0

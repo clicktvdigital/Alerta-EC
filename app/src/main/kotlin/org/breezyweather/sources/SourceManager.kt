@@ -394,7 +394,7 @@ class SourceManager @Inject constructor(
 
     fun isBroadcastSourcesEnabled(context: Context): Boolean {
         return getBroadcastSources().any {
-            (SourceConfigStore(context, it.id).getString("packages", null) ?: "").isNotEmpty()
+            (SourceConfigStore(context, it.id).getString("packages", null) ?: SourceConfigStore.defaultPackages(it.id)).isNotEmpty()
         }
     }
 
@@ -514,7 +514,16 @@ class SourceManager @Inject constructor(
                 it.isFeatureSupportedForLocation(location, feature) && BuildConfig.FLAVOR != "freenet"
             }
 
-            SourceFeature.ALERT -> if (BuildConfig.FLAVOR != "freenet") getWeatherSource("accu") else null
+            // Ecuador: INAMHI publishes its CAP warnings to the WMO Severe Weather centre, which needs no API key.
+            // AccuWeather (the generic default) needs a key, so new places in Ecuador ended up with no alerts.
+            SourceFeature.ALERT -> when {
+                BuildConfig.FLAVOR == "freenet" -> null
+                location.countryCode.equals("EC", ignoreCase = true) ||
+                    (location.countryCode.isNullOrBlank() &&
+                        org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude)) ->
+                    getWeatherSource("wmosevereweather")
+                else -> getWeatherSource("accu")
+            }
             SourceFeature.NORMALS -> if (!location.countryCode.equals("CN", ignoreCase = true) &&
                 BuildConfig.FLAVOR != "freenet"
             ) {

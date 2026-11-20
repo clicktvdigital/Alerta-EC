@@ -23,6 +23,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -87,6 +88,7 @@ import org.breezyweather.common.utils.helpers.LogHelper
 import org.breezyweather.common.utils.helpers.SnackbarHelper
 import org.breezyweather.databinding.ActivityMainBinding
 import org.breezyweather.ui.main.intro.AlertaEcIntroController
+import org.breezyweather.ui.main.intro.AlertaEcVideoIntro
 import org.breezyweather.domain.settings.SettingsChangedMessage
 import org.breezyweather.sources.SourceManager
 import org.breezyweather.ui.common.composables.AlertDialogConfirmOnly
@@ -97,6 +99,7 @@ import org.breezyweather.ui.main.fragments.HomeFragment
 import org.breezyweather.ui.main.fragments.ManagementFragment
 import org.breezyweather.ui.main.fragments.PushedManagementFragment
 import org.breezyweather.ui.search.SearchActivity
+import org.breezyweather.ui.support.isTelevisionDevice
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import javax.inject.Inject
@@ -122,6 +125,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isLocationBasedLightTheme = _isLocationBasedLightTheme.asStateFlow()
 
     companion object {
+        private const val HOLD_REFRESH_MS = 2000L
         const val SEARCH_ACTIVITY = 4
 
         const val ACTION_MAIN = "${BuildConfig.APPLICATION_ID}.Main"
@@ -159,8 +163,16 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                     if (viewModel.locationExists(location)) {
                         SnackbarHelper.showSnackbar(getString(R.string.location_message_already_exists))
                     } else {
+                        val isFirstPlace = viewModel.validLocationList.value.isEmpty()
                         viewModel.addLocation(location, null, this)
                         SnackbarHelper.showSnackbar(getString(R.string.location_message_added))
+                        // On TV, the open "Places" panel kept the remote focus after adding the first place, so
+                        // the Home D-pad navigation (blocks, hours, days) did not run. Fold it, as startup does.
+                        if (isFirstPlace && isLandscape && isDrawerLayoutVisible &&
+                            isTelevisionDevice()
+                        ) {
+                            setManagementFragmentVisibility(false)
+                        }
                     }
                 }
             }
@@ -225,41 +237,101 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         }
     }
 
+    private var tvIntroPending = false
+
+    private fun playAlertaEcIntro() {
+        AlertaEcIntroController.play(
+            findViewById(R.id.alerta_ec_intro_layer),
+            findViewById(R.id.alerta_ec_intro_terrain),
+            findViewById(R.id.alerta_ec_intro_volcano),
+            findViewById(R.id.alerta_ec_intro_wildfire),
+            findViewById(R.id.alerta_ec_intro_water_hazard),
+            findViewById(R.id.alerta_ec_intro_landslide),
+            findViewById(R.id.alerta_ec_intro_storm),
+            findViewById(R.id.alerta_ec_intro_seismic_ring),
+            findViewById(R.id.alerta_ec_intro_flash),
+            findViewById(R.id.alerta_ec_intro_condor),
+            findViewById(R.id.alerta_ec_intro_logo),
+            findViewById(R.id.alerta_ec_intro_title),
+            findViewById(R.id.alerta_ec_intro_brand),
+            findViewById(R.id.alerta_ec_intro_skip),
+            findViewById(R.id.alerta_ec_intro_motion),
+            findViewById(R.id.alerta_ec_intro_sound)
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // A launcher intent over an existing task (opened before from a notification, `am start` or the other
+        // launcher category) created one more MainActivity per relaunch: 9 stacked copies were seen on the TV,
+        // each with its own Home (RAM on 1 GB devices) and its own intro, whose keys could reach a hidden copy.
+        // Close the duplicate so the existing task shows exactly as it was (map or panels included).
+        if (!isTaskRoot && intent?.action == Intent.ACTION_MAIN &&
+            (intent.hasCategory(Intent.CATEGORY_LAUNCHER) || intent.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER))
+        ) {
+            super.onCreate(savedInstanceState)
+            finish()
+            return
+        }
+        val startupT0 = System.nanoTime()
+        if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            packageManager.hasSystemFeature("android.software.leanback") ||
+            packageManager.hasSystemFeature("android.hardware.type.television") ||
+            resources.configuration.smallestScreenWidthDp >= 600) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         installSplashScreen()
 
         val isLaunch = savedInstanceState == null
+        tvIntroPending = isLaunch && (
+            (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                packageManager.hasSystemFeature("android.software.leanback") ||
+                packageManager.hasSystemFeature("android.hardware.type.television")
+            )
 
         super.onCreate(savedInstanceState)
+        android.util.Log.i("AlertaEcStartup", "super.onCreate: ${(System.nanoTime() - startupT0) / 1_000_000} ms")
 
         if (isLaunch) {
+            val tMigrations = System.nanoTime()
             Migrations.upgrade(applicationContext, sourceManager, locationRepository, weatherRepository)
+            android.util.Log.i("AlertaEcStartup", "migrations: ${(System.nanoTime() - tMigrations) / 1_000_000} ms")
         }
+        android.util.Log.i("AlertaEcStartup", "onCreate before layout: ${(System.nanoTime() - startupT0) / 1_000_000} ms")
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentsLifecycleCallback, false)
         setContentView(binding.root)
 
-        if (isLaunch) {
-            AlertaEcIntroController.play(
-                findViewById(R.id.alerta_ec_intro_layer),
-                findViewById(R.id.alerta_ec_intro_terrain),
-                findViewById(R.id.alerta_ec_intro_volcano),
-                findViewById(R.id.alerta_ec_intro_wildfire),
-                findViewById(R.id.alerta_ec_intro_water_hazard),
-                findViewById(R.id.alerta_ec_intro_landslide),
-                findViewById(R.id.alerta_ec_intro_storm),
-                findViewById(R.id.alerta_ec_intro_seismic_ring),
-                findViewById(R.id.alerta_ec_intro_flash),
-                findViewById(R.id.alerta_ec_intro_condor),
-                findViewById(R.id.alerta_ec_intro_logo),
-                findViewById(R.id.alerta_ec_intro_title),
-                findViewById(R.id.alerta_ec_intro_brand),
-                findViewById(R.id.alerta_ec_intro_skip),
-                findViewById(R.id.alerta_ec_intro_motion),
-                findViewById(R.id.alerta_ec_intro_sound)
-            )
-        } else {
+        // Atrás (control remoto o gesto) cierra primero lo que esté abierto y solo después sale.
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val introLayer = findViewById<android.view.View>(R.id.alerta_ec_intro_layer)
+                when {
+                    introLayer.visibility == android.view.View.VISIBLE -> AlertaEcIntroController.stop()
+                    _dialogPerLocationSettingsOpen.value -> _dialogPerLocationSettingsOpen.value = false
+                    viewModel.dialogRefreshErrorDetails.value ->
+                        viewModel.setRefreshErrorDetailsDialogVisible(false)
+                    // TV: an open Places panel folds first (when there is a place to show behind it).
+                    isTelevisionDevice() && isLandscape && isDrawerLayoutVisible &&
+                        isManagementFragmentVisible && viewModel.validLocationList.value.isNotEmpty() ->
+                        setManagementFragmentVisibility(false)
+                    // Inside Home with a selection or scrolled down: back to the top, not out of the app.
+                    !isManagementFragmentVisible && findHomeFragment()?.handleRemoteBack() == true -> Unit
+                    else -> {
+                        // Sin nada abierto: pasar el evento al resto de callbacks (p. ej. la pila de fragmentos)
+                        // y, si no hay ninguno, al comportamiento normal de salir.
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
+
+        if (isLaunch && !tvIntroPending) {
+            playAlertaEcIntro()
+        } else if (!isLaunch) {
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE
         }
 
@@ -268,7 +340,11 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
 
         if (viewModel.validLocationList.value.isEmpty()) {
             setManagementFragmentVisibility(true)
-        } else if (viewModel.validLocationList.value.size == 1 && isLandscape && isDrawerLayoutVisible) {
+        } else if ((viewModel.validLocationList.value.size == 1 || isTelevisionDevice()) &&
+            isLandscape && isDrawerLayoutVisible
+        ) {
+            // TV: always start with Places folded once there is a place. Open, it took the real focus at launch:
+            // UP reached its gear (→ Settings) and the Home menu was unreachable (TV test 2026-11-20, 2 places).
             setManagementFragmentVisibility(false)
         }
 
@@ -333,8 +409,98 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         }
     }
 
+    /**
+     * Remote-control support on the home screen: arrows move the focus ring
+     * between cards and OK activates the focused card. Input fields and the
+     * settings overlay keep their own key handling.
+     */
+    private var holdRefreshFired = false
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Intro on screen: the arrows only bring focus to "Skip" (they used to scroll Home behind the intro) and
+        // OK/ENTER always skips, even if focus was lost. BACK is handled by the back callback.
+        val introLayer = findViewById<android.view.View>(R.id.alerta_ec_intro_layer)
+        if (introLayer?.visibility == android.view.View.VISIBLE) {
+            val skip = findViewById<android.view.View>(R.id.alerta_ec_intro_skip)
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                -> {
+                    if (event.action == KeyEvent.ACTION_DOWN) skip?.requestFocus()
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                    if (skip != null && skip.isShown && !skip.isFocused) {
+                        if (event.action == KeyEvent.ACTION_UP) {
+                            skip.requestFocus()
+                            skip.performClick()
+                        }
+                        return true
+                    }
+                }
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        if (!isManagementFragmentVisible &&
+            currentFocus !is android.widget.EditText &&
+            findHomeFragment()?.handleRemoteKey(event) == true
+        ) {
+            return true
+        }
+        // Places open but the real focus still outside it (e.g. on the menu button, whose DOWN points into Home):
+        // the first arrow only brings the focus into Places, so the arrows never walk Home behind it.
+        if (isManagementFragmentVisible && binding.drawerLayout != null &&
+            event.action == KeyEvent.ACTION_DOWN &&
+            event.keyCode in intArrayOf(
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT
+            )
+        ) {
+            val places = findManagementFragment()?.view
+            if (places != null && !places.hasFocus()) {
+                focusIntoPlaces(places)
+                return true
+            }
+        }
+        // Holding DOWN for about 2 seconds refreshes the home screen (same as pull-to-refresh).
+        if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isManagementFragmentVisible) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                holdRefreshFired = false
+            } else if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount > 0 &&
+                event.eventTime - event.downTime >= HOLD_REFRESH_MS
+            ) {
+                if (!holdRefreshFired) {
+                    holdRefreshFired = true
+                    findHomeFragment()?.refreshFromRemote()
+                }
+                return true
+            }
+        }
+        // Yellow remote key refreshes the home screen.
+        if (event.action == KeyEvent.ACTION_DOWN && !isManagementFragmentVisible &&
+            (event.keyCode == KeyEvent.KEYCODE_PROG_YELLOW || event.keyCode == KeyEvent.KEYCODE_BUTTON_Y) &&
+            findHomeFragment()?.refreshFromRemote() == true
+        ) {
+            return true
+        }
+        // Remote Menu key opens Settings from the home screen.
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            event.keyCode == KeyEvent.KEYCODE_MENU &&
+            !isManagementFragmentVisible
+        ) {
+            IntentHelper.startSettingsActivity(this)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onResume() {
         super.onResume()
+        // Start the intro as soon as the activity resumes; waiting for window focus could skip it on cold start.
+        if (tvIntroPending) {
+            tvIntroPending = false
+            playAlertaEcIntro()
+        }
         // Resume enabled forecasts after the notification permission is granted.
         if (hasNotificationPermission) {
             TodayForecastNotificationJob.setupTask(this, false, keepExisting = true)
@@ -343,8 +509,29 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     override fun onPause() {
+        val isTvDevice =
+            (resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_TYPE_MASK) ==
+                android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+                packageManager.hasSystemFeature("android.software.leanback") ||
+                packageManager.hasSystemFeature("android.hardware.type.television")
+
+        // Evitar reiniciar el video al regresar a la aplicacion.
+        if (isTvDevice && AlertaEcVideoIntro.isActive()) {
+            tvIntroPending = false
+        }
         AlertaEcIntroController.stop()
         super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && tvIntroPending &&
+            lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+        ) {
+            tvIntroPending = false
+            playAlertaEcIntro()
+        }
     }
 
     override fun onDestroy() {
@@ -867,10 +1054,28 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isDrawerLayoutVisible: Boolean
         get() = binding.drawerLayout?.isVisible ?: false
 
+    /** Puts the real focus on the first focusable control of Places (requestFocus on its root alone was not enough). */
+    private fun focusIntoPlaces(places: View): Boolean {
+        if (places.requestFocus(View.FOCUS_DOWN)) return true
+        val focusables = ArrayList<View>()
+        places.addFocusables(focusables, View.FOCUS_DOWN)
+        return focusables.firstOrNull { it.isShown }?.requestFocus() == true
+    }
+
     fun setManagementFragmentVisibility(visible: Boolean) {
         val drawerLayout = binding.drawerLayout
         if (drawerLayout != null) {
             drawerLayout.isUnfold = visible
+            // TV: move the real focus into Places when it opens. Otherwise it stayed on a Home card behind it and
+            // the arrows walked Home (Presión, Humedad…) instead of the places and the +, GPS and Clima TV buttons
+            // (TV test 2026-11-20). When it closes, Home's own remote selection takes over again.
+            drawerLayout.post {
+                if (visible) {
+                    findManagementFragment()?.view?.let(::focusIntoPlaces)
+                } else {
+                    currentFocus?.clearFocus()
+                }
+            }
             return
         }
         if (visible == isOrWillManagementFragmentVisible) return

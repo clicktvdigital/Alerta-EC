@@ -4,6 +4,7 @@
     android:id="@+id/container_main_header"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:focusable="false"
     android:orientation="vertical"
     android:background="@android:color/transparent"
     android:foreground="@drawable/selectable_item_background"
@@ -21,13 +22,13 @@
         <org.breezyweather.ui.main.widgets.TextRelativeClock
             android:id="@+id/refreshTimeText"
             android:textSize="@dimen/content_text_size"
-            android:textColor="?attr/colorSurfaceInverse"
+            android:textColor="@android:color/white"
             android:maxLines="1"
             android:ellipsize="end"
             android:drawablePadding="6dp"
             android:gravity="center_vertical"
             android:drawableStart="@drawable/ic_time"
-            android:backgroundTint="?attr/colorSurfaceInverse"
+            android:drawableTint="@android:color/white"
             android:layout_marginBottom="@dimen/small_margin"
             android:layout_gravity="start"
             android:layout_width="0dp"
@@ -54,6 +55,16 @@
             tools:ignore="RelativeOverlap,RtlHardcoded" />
 
     </LinearLayout>
+
+    <!-- Cielo de un vistazo: sol de día, sol con nubes, luna de noche, nubes con lluvia/tormenta.
+         Ícono grande (128 dp ≈ 256 px en un TV 1080p) con su animación corta, sin redibujo continuo. -->
+    <org.breezyweather.ui.common.widgets.AnimatableIconView
+        android:id="@+id/container_main_header_sky_icon"
+        android:layout_width="@dimen/current_weather_icon_container_size"
+        android:layout_height="@dimen/current_weather_icon_container_size"
+        android:layout_gravity="center"
+        android:layout_marginTop="@dimen/small_margin"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/container_main_header_weather_condition_description"

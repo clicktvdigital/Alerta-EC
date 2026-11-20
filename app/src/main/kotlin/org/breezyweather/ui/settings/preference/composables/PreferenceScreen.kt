@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.breezyweather.ui.common.widgets.tvListFocus
 
 @Composable
 fun PreferenceScreen(
@@ -30,8 +31,9 @@ fun PreferenceScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     content: LazyListScope.() -> Unit,
 ) {
+    // Sin focusRestorer: el grupo capturaba el foco y las opciones no lo recibían.
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().tvListFocus(),
         contentPadding = paddingValues,
         content = content
     )

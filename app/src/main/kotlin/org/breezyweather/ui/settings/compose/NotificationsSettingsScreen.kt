@@ -16,6 +16,7 @@
 
 package org.breezyweather.ui.settings.compose
 
+import org.breezyweather.ui.support.isTelevisionDevice
 import android.content.Context
 import android.os.Build
 import androidx.lifecycle.Lifecycle
@@ -228,6 +229,38 @@ fun NotificationsSettingsScreen(
                         }
                     }
                 )
+            }
+            if (context.isTelevisionDevice()) {
+                smallSeparatorItem()
+                item(key = "alertaec_tv_overlay") {
+                    // TV: brief WARNING/EMERGENCY banner over other apps (e.g. while watching video). Opt-in: Android
+                    // requires the user to allow «Mostrar sobre otras apps» for ALERTA EC.
+                    PreferenceViewWithCard(
+                        title = "Avisos graves sobre otras apps",
+                        summary = if (org.breezyweather.alertaec.tv.AlertaEcTvOverlay.canShow(context)) {
+                            "Activado: las alertas graves y extremas aparecen arriba unos segundos, sin interrumpir el video."
+                        } else {
+                            "Desactivado. Pulsa para permitir «Mostrar sobre otras apps» a ALERTA EC."
+                        },
+                        isLast = true,
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        android.net.Uri.parse("package:" + context.packageName)
+                                    )
+                                )
+                            }.onFailure {
+                                runCatching {
+                                    context.startActivity(
+                                        android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
             }
             sectionFooterItem(R.string.settings_notifications_section_general)
 

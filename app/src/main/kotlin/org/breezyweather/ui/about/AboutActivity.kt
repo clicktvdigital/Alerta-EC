@@ -17,24 +17,37 @@
 package org.breezyweather.ui.about
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import dagger.hilt.android.AndroidEntryPoint
 import org.breezyweather.common.activities.BreezyActivity
+import org.breezyweather.ui.common.widgets.TvScreenFocus
+import org.breezyweather.ui.common.widgets.TvScreenFocusHost
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 
 @AndroidEntryPoint
 class AboutActivity : BreezyActivity() {
+
+    /** D-pad routing: DOWN from the top bar enters the About list, and the list stays re-enterable. */
+    private val tvFocus = TvScreenFocus()
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (tvFocus.handleKey(window.decorView, event)) return true
+        return super.dispatchKeyEvent(event)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             BreezyWeatherTheme {
-                AboutScreen(
-                    onBackPressed = {
-                        finish()
-                    }
-                )
+                TvScreenFocusHost(tvFocus) {
+                    AboutScreen(
+                        onBackPressed = {
+                            finish()
+                        }
+                    )
+                }
             }
         }
     }

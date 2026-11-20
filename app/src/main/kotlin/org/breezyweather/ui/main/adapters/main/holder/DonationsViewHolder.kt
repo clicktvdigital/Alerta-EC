@@ -15,11 +15,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import org.breezyweather.ui.support.TvCardActions
 import androidx.compose.ui.unit.dp
 import breezyweather.domain.location.model.Location
+import org.breezyweather.ui.common.widgets.tvFocusIndicator
 import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
@@ -29,6 +31,36 @@ import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 class DonationsViewHolder(
     private val composeView: ComposeView,
 ) : AbstractMainViewHolder(composeView) {
+
+    /** Held here (not in remember) so OK on TV can open/close the options in place, without another window. */
+    private val expanded = mutableStateOf(false)
+
+    init {
+        composeView.tag = TvCardActions.TAG_DONATIONS
+    }
+
+    /** Asks Compose to move the real focus onto the toggle button (first control of the card). */
+    private val focusToggle = mutableStateOf(0)
+    private val toggleFocus = androidx.compose.ui.focus.FocusRequester()
+
+    /** The ComposeView of this card (to know whether the real focus is still inside it). */
+    val cardView: ComposeView get() = composeView
+
+    /**
+     * OK on the card (TV remote): opens the options and hands the D-pad to the card's own buttons (Compose moves
+     * focus between them and OK presses the focused one). Returns true when the card is now open.
+     */
+    fun openFromRemote(): Boolean {
+        expanded.value = true
+        composeView.requestFocus()
+        focusToggle.value++
+        return true
+    }
+
+    /** BACK while inside the card: folds the options. */
+    fun collapseFromRemote() {
+        expanded.value = false
+    }
 
     override fun onBindView(
         context: Context,
@@ -47,7 +79,6 @@ class DonationsViewHolder(
 
     @Composable
     private fun DonationsPanel() {
-        val expanded = rememberSaveable { mutableStateOf(false) }
         ElevatedCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
@@ -70,9 +101,13 @@ class DonationsViewHolder(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                androidx.compose.runtime.LaunchedEffect(focusToggle.value) {
+                    if (focusToggle.value > 0) runCatching { toggleFocus.requestFocus() }
+                }
                 Button(
                     onClick = { expanded.value = !expanded.value },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().tvFocusIndicator()
+                        .then(androidx.compose.ui.Modifier.focusRequester(toggleFocus)),
                 ) {
                     Text(if (expanded.value) "Ocultar opciones de apoyo ▲" else "Ver formas de colaborar ▼")
                 }

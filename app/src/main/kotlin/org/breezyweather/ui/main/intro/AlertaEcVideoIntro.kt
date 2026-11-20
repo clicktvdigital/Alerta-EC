@@ -15,10 +15,11 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.VideoView
+
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.breezyweather.R
+import org.breezyweather.ui.support.isTelevisionDevice
 
 /**
  * Reproduce un vídeo local con sonido de forma predeterminada.
@@ -27,18 +28,37 @@ import org.breezyweather.R
  */
 internal object AlertaEcVideoIntro {
     private const val BLACK = Color.BLACK
-    private const val PREPARE_TIMEOUT_MS = 5_000L
+    private const val PREPARE_TIMEOUT_MS = 12_000L
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
     private const val COMPLETION_FADE_MS = 250L
     private const val COMPLETION_GRACE_MS = 1_000L
+    /**
+     * The start image stays on screen this long before the video begins.
+     * Was 5 s: that fixed hold was most of the 11 s between "intro play" and "intro video start".
+     */
+    private const val START_IMAGE_MS = 1_500L
+    /**
+     * Logos horizontales Full HD del intro de TV, reemplazables sin tocar código:
+     *  - Inicio: app/src/main/res/drawable-nodpi/alertaec_tv_intro_start.jpg
+     *  - Cierre: app/src/main/res/drawable-nodpi/alertaec_tv_intro_end.jpg
+     * Conservar el mismo nombre base. Si cambia la extensión (p. ej. .png), borrar el archivo anterior.
+     */
+    private val TV_START_LOGO = R.drawable.alertaec_tv_intro_start
+    private val TV_END_LOGO = R.drawable.alertaec_tv_intro_end
+    /** The end image stays on screen this long after the video ends. */
+    private const val END_IMAGE_MS = 1_200L
     private const val AUDIO_FALLBACK_MS = 1_500L
     private val handler = Handler(Looper.getMainLooper())
-    private var activeVideo: VideoView? = null
+    private var activeVideo: IntroVideoView? = null
+
+    fun isActive(): Boolean = activeVideo != null
     private var activeRoot: FrameLayout? = null
     private var pendingTimeout: Runnable? = null
     private var pendingAudioFallback: Runnable? = null
     private var previousWindowState: WindowState? = null
     private var previousRootPadding: IntArray? = null
+    /** Fondo original del contenedor; se restaura al terminar para soltar el logo de TV de memoria. */
+    private var previousRootBackground: android.graphics.drawable.Drawable? = null
 
     private data class WindowState(
         val window: android.view.Window,
@@ -58,6 +78,10 @@ internal object AlertaEcVideoIntro {
         // Solo insertar VideoView en un contenedor compatible.
         val frame = root as? FrameLayout ?: return false
         val context = frame.context
+        val isTelevision = context.isTelevisionDevice()
+        val useTvVisuals = isTelevision ||
+            context.resources.configuration.smallestScreenWidthDp >= 600
+
         val preferences = context.getSharedPreferences("alerta_ec_intro", Context.MODE_PRIVATE)
         val animatorScale = Settings.Global.getFloat(
             context.contentResolver,
@@ -71,13 +95,19 @@ internal object AlertaEcVideoIntro {
             animatorScale,
             animationsEnabled,
         )
+        android.util.Log.i("AlertaEcStartup", "intro play: tv=$useTvVisuals reduceMotion=$reduceMotion")
         stop()
         if (reduceMotion) {
             frame.visibility = View.GONE
             return true
         }
 
-        val view = VideoView(context)
+        val view = IntroVideoView(context)
+        // Must stay VISIBLE: a SurfaceView only creates its surface while visible, and VideoView
+        // does not open (prepare) the video without a surface. An INVISIBLE VideoView never fired
+        // onPrepared, so the intro always timed out on TV. With media-overlay z-order and no frame
+        // posted yet, the surface is transparent, so the start image still shows until playback.
+        view.visibility = View.VISIBLE
         activeVideo = view
         activeRoot = frame
         try {
@@ -91,7 +121,12 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
-            frame.setBackgroundColor(BLACK)
+            previousRootBackground = frame.background
+            if (useTvVisuals) {
+                frame.setBackgroundResource(TV_START_LOGO)
+            } else {
+                frame.setBackgroundColor(BLACK)
+            }
             previousRootPadding = intArrayOf(frame.paddingLeft, frame.paddingTop, frame.paddingRight, frame.paddingBottom)
             ViewCompat.setOnApplyWindowInsetsListener(frame) { view, insets ->
                 val safeInsets = insets.getInsets(
@@ -114,8 +149,8 @@ internal object AlertaEcVideoIntro {
                 window.navigationBarColor = BLACK
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
             }
-            // SurfaceView necesita un fondo transparente para mostrar el fondo negro del contenedor.
-            view.setBackgroundColor(Color.TRANSPARENT)
+            // TextureView is transparent by itself (isOpaque = false). It must NOT get a background:
+            // TextureView throws UnsupportedOperationException on setBackgroundColor, which aborted the intro.
             // Insertar sobre las capas antiguas, manteniendo Omitir delante.
             frame.addView(
                 view,
@@ -127,6 +162,14 @@ internal object AlertaEcVideoIntro {
             skip.visibility = View.VISIBLE
             skip.alpha = 1f
             skip.bringToFront()
+            // Visible focus ring so the remote shows where OK will press "Omitir".
+            skip.isFocusable = true
+            skip.foreground = android.graphics.drawable.GradientDrawable().apply {
+                val density = context.resources.displayMetrics.density
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke((3 * density).toInt(), android.graphics.Color.WHITE)
+                cornerRadius = 12 * density
+            }
             skip.setOnClickListener { stop() }
 
             // No dejar una pantalla negra si el dispositivo no puede decodificar el MP4.
@@ -152,25 +195,36 @@ internal object AlertaEcVideoIntro {
                     player.setOnInfoListener { _, what, _ ->
                         if (activeVideo === view && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                             renderingStarted = true
+                            // First real frame on screen: drop the cover image without a black flash.
+                            frame.setBackgroundColor(BLACK)
                             cancelAudioFallback()
                             player.setVolume(volume, volume)
                         }
                         false
                     }
-                    runCatching { view.start() }
-                        .onSuccess {
-                            // Sustituir el límite de preparación por uno único de reproducción.
-                            val duration = player.duration.takeIf { it > 0 }?.toLong()
-                            scheduleTimeout(
-                                timeout,
-                                (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
-                            )
-                            if (soundEnabled) {
-                                pendingAudioFallback = audioFallback
-                                handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
+                    // Hold the start image, then reveal and start the video.
+                    cancelTimeout()
+                    handler.postDelayed({
+                        if (activeVideo !== view) return@postDelayed
+                        // La portada se quita al recibir el primer cuadro (MEDIA_INFO_VIDEO_RENDERING_START).
+                        view.bringToFront()
+                        skip.bringToFront()
+                        android.util.Log.i("AlertaEcStartup", "intro video start")
+                        runCatching { view.start() }
+                            .onSuccess {
+                                // Sustituir el límite de preparación por uno único de reproducción.
+                                val duration = player.duration.takeIf { it > 0 }?.toLong()
+                                scheduleTimeout(
+                                    timeout,
+                                    (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
+                                )
+                                if (soundEnabled) {
+                                    pendingAudioFallback = audioFallback
+                                    handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
+                                }
                             }
-                        }
-                        .onFailure { stop() }
+                            .onFailure { stop() }
+                    }, START_IMAGE_MS)
                 }
             }
             view.setOnCompletionListener {
@@ -178,6 +232,8 @@ internal object AlertaEcVideoIntro {
                     cancelTimeout()
                     cancelAudioFallback()
                     skip.visibility = View.GONE
+                    // Cierre: logo fijo breve y fundido rápido hacia la pantalla principal (sin negro largo).
+                    if (useTvVisuals) frame.setBackgroundResource(TV_END_LOGO)
                     view.visibility = View.GONE
                     val finish = Runnable {
                         if (activeVideo === view) {
@@ -191,7 +247,7 @@ internal object AlertaEcVideoIntro {
                                 .start()
                         }
                     }
-                    scheduleTimeout(finish, 0L)
+                    scheduleTimeout(finish, if (useTvVisuals) END_IMAGE_MS else 0L)
                 }
             }
             view.setOnErrorListener { _, _, _ ->
@@ -199,10 +255,13 @@ internal object AlertaEcVideoIntro {
                 true
             }
             view.setVideoURI(
-                Uri.parse("android.resource://${context.packageName}/${R.raw.alertaec_cinematic_intro}")
+                Uri.parse("android.resource://${context.packageName}/${introVideoResource(context, useTvVisuals)}")
             )
-            view.requestFocus()
-        } catch (_: RuntimeException) {
+            // El foco va a "Omitir", no al video: así OK funciona con el primer pulso (TV y móvil).
+            skip.requestFocus()
+        } catch (e: RuntimeException) {
+            // Silent before: the intro vanished with no trace. Log the cause so the TV log shows it.
+            android.util.Log.e("AlertaEcStartup", "intro setup failed: ${e.javaClass.name}: ${e.message}", e)
             stop()
         }
         // Aunque falle el vídeo, volver a la pantalla principal sin lanzar animaciones antiguas.
@@ -210,6 +269,7 @@ internal object AlertaEcVideoIntro {
     }
 
     fun stop() {
+        android.util.Log.i("AlertaEcStartup", "intro stop: active=${activeVideo != null}")
         cancelTimeout()
         cancelAudioFallback()
         val view = activeVideo
@@ -226,6 +286,9 @@ internal object AlertaEcVideoIntro {
                 frame.setPadding(padding[0], padding[1], padding[2], padding[3])
             }
             previousRootPadding = null
+            // Soltar el logo de TV (bitmap a pantalla completa) en cuanto termina el intro.
+            frame.background = previousRootBackground
+            previousRootBackground = null
         }
         previousWindowState?.let { state ->
             state.window.statusBarColor = state.statusBarColor
@@ -240,7 +303,39 @@ internal object AlertaEcVideoIntro {
             it.animate().cancel()
             it.alpha = 1f
             it.visibility = View.GONE
+            restoreTelevisionFocus(it)
         }
+    }
+
+    private fun restoreTelevisionFocus(frame: View) {
+        val activity = frame.context as? Activity ?: return
+        if (!activity.isTelevisionDevice()) return
+
+        // Las tarjetas pueden terminar de cargarse despues del video.
+        // Reintentar brevemente sin bloquear la pantalla principal.
+        fun attemptFocus(remaining: Int) {
+            frame.post {
+                if (activity.isFinishing || activity.isDestroyed) return@post
+
+                if (activity.hasWindowFocus()) {
+                    for (areaId in listOf(R.id.fragment_drawer, R.id.fragment_home)) {
+                        val area = activity.findViewById<View>(areaId) ?: continue
+                        if (!area.isShown) continue
+                        val target = area.getFocusables(View.FOCUS_FORWARD).firstOrNull {
+                            it.isShown && it.isEnabled &&
+                                it.isFocusable && it.hasOnClickListeners()
+                        }
+                        if (target?.requestFocus() == true) return@post
+                    }
+                }
+
+                if (remaining > 1) {
+                    frame.postDelayed({ attemptFocus(remaining - 1) }, 250L)
+                }
+            }
+        }
+
+        attemptFocus(10)
     }
 
     private fun scheduleTimeout(timeout: Runnable, delayMs: Long) {
@@ -257,5 +352,22 @@ internal object AlertaEcVideoIntro {
     private fun cancelAudioFallback() {
         pendingAudioFallback?.let(handler::removeCallbacks)
         pendingAudioFallback = null
+    }
+
+    /** Raw video for this device profile (see [IntroPlaybackPolicy.videoProfile]). */
+    private fun introVideoResource(context: Context, useTvVisuals: Boolean): Int {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        val memory = android.app.ActivityManager.MemoryInfo().also { activityManager?.getMemoryInfo(it) }
+        val profile = IntroPlaybackPolicy.videoProfile(
+            tvVisuals = useTvVisuals,
+            totalMemBytes = memory.totalMem,
+            isLowRamDevice = activityManager?.isLowRamDevice ?: true,
+        )
+        android.util.Log.i("AlertaEcStartup", "intro profile=$profile totalMem=${memory.totalMem}")
+        return when (profile) {
+            IntroVideoProfile.TV_FULL_HD -> R.raw.alertaec_cinematic_intro_tv_fhd
+            IntroVideoProfile.TV_BOX_HD -> R.raw.alertaec_cinematic_intro_tv
+            IntroVideoProfile.PHONE_VERTICAL -> R.raw.alertaec_cinematic_intro
+        }
     }
 }

@@ -1,353 +1,66 @@
-## Continuidad ALERTA EC — pasos 1053–1063
+# Alerta EC
 
-La corrección local de compatibilidad JVM y el estado de CI están documentados cronológicamente en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md#alerta-ec--continuidad-de-los-pasos-1053-1063-22-10-2026). Todavía no se ha compilado ni publicado; requiere revisión, commit y push autorizados, y nueva validación remota.
+**Alerta EC**, de Click TV Digital, es una app de alertas tempranas y monitoreo meteorológico en tiempo real para Ecuador. Muestra el clima, los avisos vigentes y las capas de radar y pronóstico de INAMHI. Funciona en celulares y en Android TV / TV Box.
 
-## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
+<p align="center"><img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logo de Alerta EC" width="220"></p>
 
-Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
+## Funciones principales
 
-- Estilo base MapLibre: hasta dos intentos por vista, espera de 2 s y watchdog de 20 s por intento. Los callbacks tienen token e identidad de vista; se retiran listeners y temporizadores al terminar, pausar o destruir. Al agotar el presupuesto se informa al usuario; una vista nueva permite reintentar.
-- Catálogo WMS: una descarga compartida por refresco, con OkHttp ya presente en el proyecto. Cancelar la coroutine llama a `Call.cancel()`; conexión y lectura de 10 s, plazo total HTTP de 30 s, máximo de 4 MiB reales (incluido contenido descomprimido y respuestas sin Content-Length). Se cierra la respuesta también ante errores. Estos límites corresponden a GetCapabilities; las teselas GetMap siguen gestionadas por MapLibre.
-- XML: parser SAX real compartido por Android/JVM, sin dependencias nuevas; rechazo obligatorio de DTD y entidades externas mediante lexical handler/resolver. Límites de profundidad, eventos, texto y fechas. Fechas inválidas y capas duplicadas se marcan por capa; XML roto o respuesta de error invalidan el catálogo completo.
-- Capas: se conservan fechas aún vigentes durante consulta/error y se informa de ello. Una capa se retira por desactivación, vencimiento o respuesta válida sin fecha seleccionable. Una fecha igual no reconstruye la fuente; una nueva se crea antes de retirar la anterior. Fallos parciales conservan registro de recursos para limpieza posterior. No se confirma descarga ni renderizado de teselas.
-- Respaldos: `*.pre_*` excluidos en `.gitignore`, sin borrar ni mover archivos. No había respaldos de ese patrón ya rastreados. Los 263 respaldos registrados al inicio se comprobaron por SHA-256 y permanecen intactos.
+- **Alertas tempranas:** avisos oficiales del INAMHI (vía el centro de alertas de la WMO, activos por defecto en Ecuador) y eventos derivados del pronóstico, con notificaciones y tonos por tipo de evento.
+- **Pronóstico por horas y por días:** cada hora y cada día tienen su propio detalle (tocar en el celular, OK en TV).
+- **Mapas de INAMHI:** capas de radar y pronóstico (WMS), con consulta por refresco y uso sin GPS.
+- **Satélite NOAA GOES-19:** nubes, rayos y nubes de tormenta encuadrados en Ecuador continental, más el mapa completo del norte de Sudamérica.
+- **Cielo de un vistazo:** ícono grande de sol, nubes, luna o lluvia según la hora y el clima.
+- Reseñas y reportes ciudadanos con evidencia y GPS voluntario.
+- **Ubicaciones:** lugares guardados; la ubicación actual se pide al agregarla si el dispositivo tiene GPS.
 
-Validaciones realizadas: `git diff --check` sin errores; revisión de archivos sin seguimiento relevantes y de cambios frente a la copia inicial; análisis sintáctico PSI de 17 archivos Kotlin sin errores. Esto no comprueba tipos ni compatibilidad de APIs. **Pruebas unitarias no ejecutadas; sin Gradle, compilación Android, APK ni consulta al servicio real.**
+## Una sola app para celular y TV
 
-Continuidad y matriz de validación pendiente en `docs/CONTINUAR_AQUI.md`, sección «Paso 632».
+Un único APK se adapta al dispositivo, sin módulos separados:
 
-## Revisión local del módulo INAMHI — 18-10-2026
-
-Esta sección actualiza únicamente el estado de mapas INAMHI y prevalece sobre sus notas históricas inferiores. Cambios locales en `alerta-ec`, sin compilación ni validación Android; no se modifica la estimación global del proyecto.
-
-- Consultas vinculadas a la vista, el estilo y una instantánea de preferencias. Aplicación síncrona en el hilo principal después de consultar WMS; ya no quedan callbacks de aplicación fuera de la tarea. Invalidación antes de cancelar, agrupación de refrescos pendientes y limpieza al pausar/destruir la vista.
-- Una consulta GetCapabilities por refresco para las tres capas. Lectura de dimensiones temporales heredadas, listas y rangos de duración fija con límites; rechazo de fechas ambiguas, intervalos inválidos y respuestas de error. Selección de fechas después de recibir la respuesta; retirada conservadora al superar la fecha seleccionada, sin inventar fecha de emisión ni periodo de validez.
-- Capas activadas por defecto y desactivación persistente. La preferencia actual prevalece sobre la antigua. Botones «activada/desactivada» describen la elección; el panel distingue consulta, ausencia de fecha, error, vencimiento y teselas solicitadas sin confirmar su visualización.
-- Funcionamiento sin GPS, dominio WRF continental separado del alcance nacional de ALERTA EC (incluido Galápagos). El rectángulo configurado no acredita disponibilidad por punto. Unidades y leyenda siguen sin verificar y no se inventan. No se equipara blanco con ausencia de lluvia ni pronóstico con alerta oficial.
-- Se conservan PNG transparente y opacidades 0,15/0,10/0,10. Los controles se desplazan dentro de un máximo del 45 % del alto disponible para dejar espacio al mapa. No se alteran las imágenes del proveedor.
-- Pruebas unitarias añadidas para invalidación/refrescos, estados, preferencias, dominio continental, URL WMS y lectura/selección temporal. **Pendientes de ejecución**. Revisión sintáctica PSI Kotlin y `git diff --check`: sin errores; no comprueban resolución de tipos, compatibilidad de APIs ni funcionamiento Android.
-
-Pendientes: ejecutar pruebas y compilación en una etapa autorizada; validar en dispositivo rotación, salida/retorno durante consulta, alternancia rápida, cambio de preferencias, mapa sin GPS/red, fallos WMS/teselas, expiración, continente/Galápagos, texto grande y desplazamiento de paneles. Verificar metadatos oficiales, leyenda, unidades y representación de teselas antes de anunciarlos como confirmados. No se comprobó disponibilidad actual del servicio en esta sesión.
-
-<!-- ALERTA_EC_AUDITORIA_20261018 -->
-## Estado auditado ALERTA EC v0.1.9 / 109 (18-10-2026)
-
-Auditoria local de Codex, solo lectura, sin compilacion ni validacion Android.
-
-- Avance global estimado: **46/100** (revision provisional del 2026-10-18; implementacion ponderada estimada 65,7 % x factor de validacion 0,70; no equivale a pruebas aprobadas).
-- Revision posterior a los pasos 558-598: autosoporte reforzado (cola WorkManager, identificacion de solicitudes, contenido meteorologico, verificacion parcial/completa y cancelaciones). Las pruebas unitarias aun no se han ejecutado ni existe validacion de esta revision en Android. El aumento de implementacion de 62,7 % a 65,7 % es una estimacion de auditoria, no una medicion automatica.
-- Implementacion ponderada estimada: **62,7 %**.
-- Pendientes prioritarios: autosoporte y cola WorkManager; vigencia y cobertura INAMHI; pruebas meteorologicas; notificaciones multiciudad; intro; GPS/SOS; envio voluntario; accesibilidad y pruebas en Samsung.
-- Las funciones futuras aplazadas siguen pendientes y no se declaran completas.
-- Informe detallado: docs/ALERTA_EC_AUDITORIA_CODEX_20261018.txt.
-- No publicar Release ni ejecutar compilacion integral sin autorizacion.
-
-<div align="center">
-<br />
-<img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logotipo de ALERTA EC" width="320" />
-</div>
-
-<h1 align="center">ALERTA EC</h1>
-<p align="center"><strong>CLICK TV DIGITAL</strong></p>
-
-<br />
-
-<div align="center">
-  <img alt="API mínima configurada: 24" src="https://img.shields.io/badge/API%2024+-50f270?logo=android&logoColor=black&style=for-the-badge" />
-  <a href="https://kotlinlang.org/">
-    <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-a503fc?logo=kotlin&logoColor=white&style=for-the-badge" />
-  </a>
-  <a href="https://developer.android.com/compose">
-    <img alt="Jetpack Compose" src="https://img.shields.io/static/v1?style=for-the-badge&message=Jetpack+Compose&color=4285F4&logo=Jetpack+Compose&logoColor=FFFFFF&label=" />
-  </a>
-  <a href="https://m3.material.io/">
-    <img alt="Material 3" src="https://img.shields.io/badge/Material%203-lightblue?style=for-the-badge" />
-  </a>
-  <br />
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/Licencia-LGPL--3.0-blue?style=for-the-badge" alt="License LGPL-3.0" />
-  </a>
-  <br /><br />
-  <a href="https://github.com/clicktvdigital/Alerta-EC/releases">
-    <img src="https://img.shields.io/badge/ALERTA_EC-Releases-purple?logo=github&style=for-the-badge" alt="Releases de ALERTA EC en GitHub" />
-  </a>
-</div>
-
-<h4 align="center">Aplicación Android de código abierto en desarrollo, orientada a información meteorológica y alertas para Ecuador. La disponibilidad y precisión de los datos dependen de las fuentes y su cobertura; las funciones propias requieren validación progresiva.</h4>
-
-ALERTA EC es un proyecto derivado no oficial de [Breezy Weather](https://github.com/breezy-weather/breezy-weather), desarrollado por **CLICK TV DIGITAL**. Conserva la licencia original y las atribuciones a sus autores y colaboradores. No es una publicación del equipo de Breezy Weather ni está afiliado oficialmente a ECU 911 o a instituciones gubernamentales. Consulta el [estado y los pendientes del proyecto](docs/CONTINUAR_AQUI.md).
-
-## Prueba previa a release posterior a v0.1.8 — 2026-10-17
-
-**Estado actual: código preparado localmente; APK todavía no compilado ni probado.** Esta sección prevalece sobre los registros históricos inferiores. Rama `alerta-ec`, versión base comprobada en Gradle **0.1.8 / 108**; no se incrementó versión ni se publicó release o tag. Sin commit ni push.
-
-- Notificaciones: actualizaciones, alertas graves, precipitaciones y pronósticos de hoy/mañana quedan habilitados si no existe una preferencia guardada. Se respetan los valores guardados, incluidos los desactivados. Los trabajos de pronóstico ya no guardan `false` al faltar permiso; al volver a la pantalla principal se reprograman si hay permiso y no están activos. El permiso Android, los horarios, la actualización en segundo plano y la disponibilidad de fuentes siguen siendo necesarios.
-- Acerca de: logo conservado, marca, CLICK TV DIGITAL y versión en renglones separados y centrados. Una única ficha de Richard Ontaneda con el texto «Fundador de CLICK TV DIGITAL, creador y desarrollador principal de ALERTA EC. 🇪🇨». Atribución a Breezy Weather y LGPL-3.0 en el desplegable junto a los créditos originales; acceso a licencias conservado.
-- Donativos: dimensiones de logos más equilibradas; los tres PNG antiguos eliminan en memoria el blanco exterior conectado a sus bordes. Se conservan los blancos interiores, recursos originales, enlaces, QR y comportamientos. Pendiente inspección visual de bordes y contraste en Android.
-- Detalle horario: gráfica encima, encabezado de desplazamiento/hora destacado, datos meteorológicos en otra línea y recepción debajo con color secundario del tema; separación entre intervalos, altura flexible y sin truncar texto. Se conservan unidades, estados y datos ausentes.
-- CI prepara `:app:assembleBasicDebug` y un artefacto `alerta-ec-prueba-post-v0.1.8-<SHA>` con retención de 7 días, además de las verificaciones existentes. Solo se ejecutará tras un push autorizado o PR; no crea Releases. Usa la variante `.debug` existente y firma de depuración: no sirve para comprobar actualización sobre producción. No se modificaron `applicationId`, keystore, firma de producción ni secretos.
-
-Verificación local: `git diff --check`, `python scripts/validate_alerta_ec.py`, parseo de los XML modificados y unicidad de sus claves de cadenas. No se ejecutó Gradle en Termux ni CI remoto. No hay APK nuevo disponible todavía.
-
-Prueba Android pendiente: instalación Debug limpia y valores predeterminados; desactivar opciones y comprobar persistencia tras reiniciar; denegar/conceder permiso y verificar planificación/entrega real de hoy y mañana; alertas y precipitación con fuente disponible; tema claro/oscuro, texto grande y TalkBack; logos sin halos o pérdida de detalle, apertura de enlaces y QR originales; datos horarios ausentes/antiguos, cambio de día y recepción. Comprobar también intro y regresiones registradas abajo. Antes de una release posterior hará falta un APK firmado de prueba y validar actualización conservando datos.
-
-Los archivos locales sin seguimiento `AGENTS.md` y `ALERTA_EC_GITHUB_CI_RELEASE_2026-10-14.txt` se conservan intactos. Siguiente paso: revisar diff, autorizar commit/push, esperar CI y descargar el APK de prueba; no crear tag final ni publicar hasta completar pruebas y recibir autorización.
-
-## Características de ALERTA EC implementadas en código
-
-Esta tabla describe funciones presentes en el código del repositorio; no garantiza que hayan superado pruebas en dispositivo o que estén disponibles en la última Release. La base meteorológica procede de Breezy Weather; los datos visibles dependen del proveedor, la ubicación y su vigencia.
-
-| Característica | Evidencia de implementación y límites |
-| --- | --- |
-| Introducción con identidad ALERTA EC y CLICK TV DIGITAL | [Controlador de la intro](app/src/main/kotlin/org/breezyweather/ui/main/intro/AlertaEcIntroController.kt), conectado a la pantalla principal: escenas animadas, omisión, movimiento reducido y control de sonido con siete pistas. Pendientes validación visual, escucha y accesibilidad en dispositivo. |
-| Resumen del pronóstico horario | [Vista horaria](app/src/main/kotlin/org/breezyweather/ui/main/adapters/main/holder/HourlyViewHolder.kt): muestra datos meteorológicos disponibles, hora prevista, adquisición y estados de disponibilidad mediante el resumen horario. Pendientes pruebas funcionales; no equivale a observaciones ni seguimiento por radar. |
-| Organización de direcciones para Ecuador | [Mapeo de direcciones](app/src/main/kotlin/org/breezyweather/background/location/EcuadorAddressMapper.kt), utilizado por el proveedor de dirección detallada: separa barrio, sector, parroquia, cantón y provincia según los datos recibidos. No garantiza exactitud postal ni cobertura completa. |
-| Clasificación y notificaciones meteorológicas | [Adaptador](app/src/main/kotlin/org/breezyweather/alertaec/AlertaEcWeatherAdapter.kt) y [notificador](app/src/main/kotlin/org/breezyweather/alertaec/AlertaEcNotifier.kt), llamado desde la actualización en segundo plano: distinguen pronósticos y alertas de la fuente, incorporan datos disponibles y filtran duplicados. Las alertas oficiales y la precipitación minutely conservan su ruta original. Pendientes pruebas de recepción, permisos y datos vencidos. |
-| Compartir la aplicación y aportes voluntarios | [Pantalla Acerca de](app/src/main/kotlin/org/breezyweather/ui/about/AboutScreen.kt): integra compartir ALERTA EC y la sección de apoyo. Pendiente validar el flujo en dispositivo; no se afirman transacciones verificadas. |
-
-El motor multiamenaza completo, SOS, reportes ciudadanos, mapas offline/relieve 3D y seguimiento de lluvia con trayectoria o cuenta regresiva siguen siendo objetivos por fases. Los nombres de fenómenos en los modelos no demuestran una integración operativa de fuentes para cada amenaza.
-
-### Base técnica comprobada por inspección
-
-- **API mínima 24:** definida en [AndroidConfig.kt](buildSrc/src/main/kotlin/breezy/buildlogic/AndroidConfig.kt) y aplicada por [ProjectExtensions.kt](buildSrc/src/main/kotlin/breezy/buildlogic/ProjectExtensions.kt). Es un requisito configurado, no una garantía de pruebas en todos los dispositivos.
-- **Kotlin, Jetpack Compose y Material 3:** el [módulo de la aplicación](app/build.gradle.kts), las convenciones de compilación y el [catálogo de dependencias](gradle/libs.versions.toml) declaran su uso. La insignia describe tecnologías, no certificación visual ni compilación exitosa.
-
-
-## Corrección de consentimiento de audio — v0.1.6 (2026-10-15)
-
-- Corregida la lectura de `sound_enabled`: una preferencia ausente significa sonido apagado. Inicio, etiqueta del control y alternancia usan la misma lectura; solo el botón guarda la elección. Los valores `true` y `false` ya guardados se conservan, sin migración ni sobrescritura.
-- El valor predeterminado anterior `true` podía permitir audio sin activación explícita cuando el timbre, volumen y foco lo permitían. Esas barreras no sustituyen el consentimiento.
-- Revisión estática: omisión, final, pausa, destrucción y movimiento reducido detienen audio; pérdida de foco cancela pistas y libera reproductores. Silencio/vibración y volumen multimedia cero bloquean el inicio. No se cambió el reproductor ni la cronología.
-- Añadidas pruebas unitarias para preferencia ausente, valores guardados y ausencia de escrituras al leer; ampliada la cobertura de la política al modo vibración. No ejecutadas: Gradle no se ejecuta en Termux. Pendientes CI y pruebas de audio/foco/ciclo de vida en dispositivo; los cambios de timbre durante la reproducción no se monitorizan continuamente.
-- Se preservaron el logo y la identidad de ALERTA EC; comprueba en GitHub Actions el resultado de CI y en Releases cuál es la última versión realmente disponible.
-
-## 📱 Capturas oficiales de ALERTA EC
-
-Las capturas verificadas de la aplicación se incorporarán después de instalar y probar la **compilación que se valide en Android** en Android. Mostraremos pantallas reales de ALERTA EC, preferentemente con una ubicación pública de Quito o Ecuador, sin divulgar domicilios ni datos personales.
-
-**El logotipo superior sí es el oficial de ALERTA EC.** No se utilizarán capturas del proyecto original Breezy Weather como si fueran pantallas propias. Ver el [plan de documentación y capturas](docs/CONTINUAR_AQUI.md).
-
-# ⬇️ Descarga de ALERTA EC
-
-Las descargas propias se encuentran en [Releases de ALERTA EC](https://github.com/clicktvdigital/Alerta-EC/releases). Para uso público, elige únicamente una Release estable con APK de producción; las versiones marcadas como preliminares, los APK Debug y los artefactos de CI son de prueba. Si no hay una Release estable disponible, espera su publicación.
-
-### Obtainium
-
-1. Instala [Obtainium desde su proyecto oficial](https://github.com/ImranR98/Obtainium).
-2. En la opción para añadir una aplicación, introduce la URL del repositorio: `https://github.com/clicktvdigital/Alerta-EC` y utiliza la fuente GitHub.
-3. Mantén desactivada la inclusión de versiones preliminares (*pre-releases*). Guarda la aplicación y selecciona el APK de producción compatible con tu dispositivo (universal, si está disponible).
-4. Comprueba que corresponde a ALERTA EC, paquete `com.clicktvdigital.alertaec`. Si no se detecta una versión estable con APK, espera su publicación; no uses el repositorio de Breezy Weather como sustituto.
-
-Consulta también la [documentación oficial de Obtainium](https://wiki.obtainium.imranr.dev/). La detección y actualización de una nueva Release de ALERTA EC debe comprobarse antes de distribuirla.
-
-**Firma de producción:** la huella SHA-256 queda pendiente de validación criptográfica contra un APK de producción y la versión instalada antes de incorporarla a esta sección. El registro histórico de continuidad no sustituye esa comprobación. Un checksum SHA-256 del archivo APK es distinto de la huella de su certificado de firma.
-
-Las fichas de Breezy Weather en F-Droid e IzzyOnDroid, sus APK y su certificado pertenecen al proyecto original; no son canales ni credenciales de distribución de ALERTA EC.
-
-<hr />
-
-## 📜 Procedencia, licencia y agradecimientos
-
-**ALERTA EC** es una adaptación independiente desarrollada dentro de **CLICK TV DIGITAL**, basada en [Breezy Weather](https://github.com/breezy-weather/breezy-weather). Agradecemos el trabajo de sus autores y colaboradores. Se conservan sus avisos de derechos de autor y la licencia [LGPL-3.0](LICENSE); la documentación original se consulta [en su repositorio](https://github.com/breezy-weather/breezy-weather). Esta aplicación **no** es una publicación de sus mantenedores.
-
-ALERTA EC tampoco está afiliada oficialmente al **ECU 911** ni a instituciones gubernamentales. Sus funciones de SOS remoto y rescate comunitario siguen en desarrollo y no sustituyen los servicios de emergencia.
-
-## Registro histórico de preparación anterior (2026-10-17)
-
-Se corrigió el fondo opaco de la intro y se añadió portada hasta el primer fotograma, silencio hasta que haya imagen y recuperación por error/timeout. La gráfica horaria prioriza precipitación disponible y muestra el detalle debajo; el resumen cuadrado queda con las mediciones. Donativos incorpora logos locales y el nuevo PayPal. Acerca de destaca ALERTA EC / CLICK TV DIGITAL y permite desplegar atribuciones sin duplicar al desarrollador ni eliminar licencias.
-
-**Pendiente de CI y validación en Android.** El MP4 no se recodificó: la inspección binaria indica H.264 High 4.0, 720×1280 y 12,052 s; la decodificación local está bloqueada por una biblioteca de Termux. GitHub Actions queda preparado para decodificarlo y guardar primeros fotogramas en `intro-review`, además de las pruebas Kotlin. La disponibilidad HTTP de los enlaces no verifica pagos ni destinatarios. Banco Pichincha es el banco con recursos existentes; no se inventaron otros cobros.
-
-Se mantienen `com.clicktvdigital.alertaec`, versión 0.1.6 / 106 y firma de producción. No se compiló Android localmente ni se publicó. Consulta los [cambios, pruebas pendientes y procedimientos de recuperación](docs/CONTINUAR_AQUI.md#preparación-de-la-siguiente-actualización-estable--2026-10-17) y las [fuentes de marcas](artwork/alerta-ec/donaciones/MARCAS.md).
-
-## ❤️ Apoya el desarrollo de ALERTA EC
-
-ALERTA EC es **gratuita y de código abierto**. Si deseas respaldar su mantenimiento, puedes realizar un aporte completamente voluntario. ☕🇪🇨
-
-<div align="center">
-  <a href="https://ppls.me/izAAuu8fptGHF6uZBV9L4Q" title="Apoyar con PayPhone">
-    <img src="https://img.shields.io/badge/PayPhone-DONAR-1678DA?style=for-the-badge&amp;logoColor=white" alt="Donar mediante PayPhone" height="48" />
-  </a>
-  &nbsp;
-  <a href="https://www.paypal.com/ncp/payment/9XTVG6H4YU6JY" title="Apoyar con PayPal">
-    <img src="https://img.shields.io/badge/PayPal-DONAR-003087?style=for-the-badge&amp;logo=paypal&amp;logoColor=white" alt="Donar mediante PayPal" height="48" />
-  </a>
-  <br /><br />
-  <a href="https://www.patreon.com/clicktvdigital" title="Apoyar en Patreon">
-    <img src="https://img.shields.io/badge/Patreon-APOYAR-FF424D?style=for-the-badge&amp;logo=patreon&amp;logoColor=white" alt="Apoyar mediante Patreon" height="48" />
-  </a>
-  &nbsp;
-  <a href="https://github.com/sponsors/clicktvdigital" title="Patrocinar mediante GitHub Sponsors">
-    <img src="https://img.shields.io/badge/GitHub%20Sponsors-PATROCINAR-EA4AAA?style=for-the-badge&amp;logo=githubsponsors&amp;logoColor=white" alt="Patrocinar mediante GitHub Sponsors" height="48" />
-  </a>
-</div>
-
-<p align="center"><small>Los botones enlazan con las plataformas indicadas; verifica el destinatario antes de completar un pago. La disponibilidad de cada método y las transacciones no han sido comprobadas en esta revisión.</small></p>
-
-
-### 🇪🇨 Aportes con QR desde Ecuador y el exterior
-
-Los siguientes códigos fueron compartidos por el responsable de CLICK TV DIGITAL. **Antes de donar, comprueba en la plataforma el destinatario y el importe.** La lectura del código no equivale a una transacción verificada.
-
-| Método | QR de aportes | Abrir el enlace |
+| | Celular | Android TV / TV Box |
 |---|---|---|
-| **PayPhone** | <img src="artwork/alerta-ec/donaciones/qr-payphone.png" alt="QR PayPhone para aportes" width="170" /> | [Abrir PayPhone](https://ppls.me/izAAuu8fptGHF6uZBV9L4Q) |
-| **Banco Pichincha / Deuna** | <img src="artwork/alerta-ec/donaciones/qr-pichincha.png" alt="QR de cobro de Banco Pichincha mediante Deuna" width="170" /> | [Abrir el cobro](https://pagar.deuna.app/H92p/person?id=v1e_WT373U4AKPZ46YWW) |
-| **Deuna** | <img src="artwork/alerta-ec/donaciones/qr-deuna.png" alt="QR Deuna para aportes" width="170" /> | [Abrir Deuna](https://pagar.deuna.app/H92p/person/payment?id=858a7565a7fa5e9bc2302b7836e1fdf2d8635300) |
-| **Binance Pay** | <img src="artwork/alerta-ec/donaciones/qr-binance.png" alt="QR Binance Pay para aportes" width="170" /> | [Abrir Binance Pay](https://app.binance.com/uni-qr/RMqefYgh) |
+| Orientación | Vertical (1080p) | Horizontal (720p y 1080p) |
+| Entrada | Táctil y deslizamiento | Control remoto (D-pad + OK) |
+| Intro cinematográfica | Video vertical 720×1280 | 1920×1080 en Android TV · 1280×720 en TV Box de 1 GB |
+| Recursos | `res/` por defecto | Calificadores `-television` / `-w640dp` |
 
-Los enlaces de Banco Pichincha y Deuna utilizan infraestructura de Deuna. **Son aportes voluntarios; no sustituyen ni condicionan el acceso gratuito a ALERTA EC.**
+Se mantiene un solo módulo porque toda la lógica (alertas, datos, mapas) es común. Lo que cambia es la presentación, y Android ya la separa con calificadores de recursos y con la detección de TV en tiempo de ejecución.
 
-<!-- ALERTA_EC_QR_APORTES_2026_10_16_V1 -->
-**Desde un celular:** toca el enlace correspondiente al método de pago; no necesitas escanear tu propia pantalla.
-La aplicación también ofrecerá botones grandes para abrir enlaces, consultar QR y compartir ALERTA EC.
-**Volver a ALERTA EC no confirma un cobro:** se preguntará al usuario si desea indicar que completó su aporte;
-la valoración de 1 a 5 estrellas es voluntaria y se envía por correo, sin generar una reseña automática.
-<!-- ALERTA_EC_APOYOS_ACCESIBLES_2026_10_16_V2 -->
+## Control remoto (Android TV y TV Box)
 
+| Tecla | Acción |
+|---|---|
+| Flechas | Mover el foco entre tarjetas; IZQ/DER recorren horas y días con scroll automático |
+| OK | Abrir la tarjeta, hora o día enfocado (mismo detalle que al tocar en el celular) |
+| ARRIBA desde la primera fila | Barra superior: ubicaciones, **Ajustes**, más opciones |
+| Atrás | Cierra lo abierto (intro, diálogos) y luego sale |
+| Mantener ABAJO (≈2 s) | Actualizar la pantalla principal |
 
-**Los aportes no habilitan servicios exclusivos ni otorgan prioridad en emergencias.** El acceso a las funciones meteorológicas esenciales sigue siendo gratuito.
+El foco se marca con un anillo azul marino y ámbar, legible a 3 m sobre fondos claros y oscuros. Mientras haya una alerta vigente, la pantalla no se apaga ni entra el salvapantallas.
 
-<details>
-<summary>🧰 Consultar registro técnico, planes y avances históricos</summary>
+> En muchos televisores (por ejemplo, con panel MStar) la tecla **MENÚ** la usa el propio TV. Por eso Ajustes también está en la barra superior.
 
-## Ubicacion avanzada y referencias comunitarias
+## Arquitectura y rendimiento
 
-Alerta EC prepara GPS detallado, altitud, relieve 3D y referencias comunitarias verificables para Ecuador. Atucucho es zona piloto; la ubicacion sera dinamica para todos los usuarios. Las coordenadas privadas y puntos de domicilio no se publicaran. Ver docs/CONTINUAR_AQUI.md para requisitos, estado y validaciones.
+- Android nativo en **Kotlin** (Views + Jetpack Compose), con los módulos `app`, `data`, `domain` y utilidades de clima. Está basada en [Breezy Weather](https://github.com/breezy-weather/breezy-weather) (LGPL-3.0).
+- Diseñada para equipos con **1 GB de RAM**: imágenes decodificadas a su tamaño en pantalla, sombras ligeras y foco sin desenfoques.
+- APK separados para `armeabi-v7a` (TV Box de 32 bits) y `arm64-v8a`.
 
+## Compilación y releases
 
+- **CI:** `alerta-ec-ci.yml` valida recursos, documentación y el intro, y corre las pruebas unitarias en cada push o PR hacia `alerta-ec`.
+- **APK de prueba:** `alerta-ec.yml` (manual, desde Actions) publica el artefacto `Alerta-EC-Debug`.
+- **Release:** `alerta-ec-release.yml` publica los APK firmados al subir un tag `vMAJOR.MINOR.PATCH` (por ejemplo `v0.1.15`).
+- **Local:** `./gradlew :app:testBasicDebugUnitTest` corre las pruebas unitarias si hay toolchain Android disponible.
 
-### Notificaciones Alerta EC: clasificación y deduplicación
+## Documentación
 
-- Las notificaciones de precipitación minutely siguen bajo `Notifications.checkAndSendPrecipitation`; Alerta EC no emite una segunda notificación para esos mismos datos.
-- La ruta minutely del adaptador Alerta EC está inactiva y documentada hasta contar con una estrategia que no duplique el aviso original.
-- `FORECAST` conserva la etiqueta de pronóstico. `OBSERVED` no se genera ni se notifica mientras no exista una fuente observacional real; `OFFICIAL_EVENT` se atiende únicamente desde `remoteviews.Notifications`.
-- La deduplicación filtra IDs ya notificados y eventos repetidos en una misma actualización.
-- GitHub Actions ejecutará `:app:testBasicDebugUnitTest` y la compilación Kotlin Release. No se ejecutó Gradle localmente en Termux.
+- [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md): estado actual, ramas, herramientas y próximos pasos.
+- [`docs/HISTORIAL_README.md`](docs/HISTORIAL_README.md): bitácora histórica del proyecto.
+- [`PRIVACY.md`](PRIVACY.md) y [`LICENSE`](LICENSE).
 
-
-
-
-## Alerta EC: visión funcional para Ecuador
-
-Alerta EC es una adaptación independiente de Breezy Weather para ofrecer información meteorológica, alertas y referencias territoriales útiles en Ecuador. El producto debe explicar qué se sabe, de qué fuente viene, cuándo se actualizó y con qué incertidumbre. Pronósticos, observaciones, alertas oficiales y reportes ciudadanos deben permanecer claramente diferenciados. Las funciones enumeradas como visión o pendientes no se consideran implementadas hasta contar con código operativo y validación.
-
-### Información y experiencia previstas
-
-- Ubicación por niveles administrativos separados: calle/intersección, barrio o sector, parroquia civil, parroquia eclesiástica cuando una fuente confiable la identifique, distrito/cantón, provincia y código postal. La geocodificación debe conservar fuente, confianza y antigüedad. Para el caso de referencia del usuario, el código postal [código postal residencial omitido] está confirmado por el usuario y fuentes postales oficiales; Nominatim ha devuelto 170318 para un punto de prueba y esa discrepancia debe conservarse. Ningún código postal se debe fijar para todos los usuarios.
-- Zona horaria de Quito, UTC−05:00, con hora y segundos cuando la precisión temporal del dato lo permita. Un reloj o cuenta regresiva no debe implicar precisión meteorológica que la fuente no tiene.
-- Temperatura en grados Celsius, acumulación de lluvia en milímetros y tasa de precipitación en mm/h, explicando intervalo y significado. El pronóstico por horas es prioritario; el pronóstico diario es complementario.
-- Seguimiento de lluvia por barrio solo cuando haya cobertura espacial suficiente. Radar y satélites deben ser productos reales, identificados por fuente, hora, cobertura y licencia; distinguir observación de animaciones/modelos de pronóstico. No inferir trayectoria, procedencia o ETA desde un único pronóstico puntual.
-- Calidad del aire explicada en lenguaje sencillo, con contaminantes e índice cuando estén disponibles, hora, fuente y recomendaciones; no presentar estimaciones como mediciones locales.
-- Recomendaciones breves asociadas al riesgo y al nivel de confianza. Accesibilidad desde el diseño: lectores de pantalla, contraste y texto configurables, voz/TTS, sonido y vibración opcionales, y controles sencillos.
-- Mapas y referencias comunitarias con procedencia y privacidad; reportes ciudadanos marcados como no verificados hasta corroboración. Las funciones de SOS, comunicación comunitaria, cámaras y seguimiento de rutas requieren implementación, controles de privacidad y validación antes de anunciar disponibilidad.
-
-### Fuentes a evaluar e integrar con verificación
-
-INAMHI, IG-EPN, SGR, COE, ECU 911, AMT, EPMMOP, MTOP, REMMAQ, GeoQuito, NOAA y canales oficiales en X, además de fuentes meteorológicas existentes compatibles. Antes de usar cada fuente se deben confirmar endpoint, cobertura, actualización, calidad, permisos, atribución y términos/licencia. Una publicación en X o un reporte ciudadano no confirma automáticamente una emergencia. No acceder a cámaras restringidas de ECU 911; usar únicamente transmisiones públicas autorizadas. Radar, imágenes satelitales, cámaras y cartografía pueden tener restricciones de redistribución o uso comercial: no copiar, retransmitir ni almacenar sin autorización comprobada.
-
-### Estado de implementación
-
-La base heredada de Breezy Weather, los modelos y adaptador inicial de eventos Alerta EC, los pronósticos horarios, deduplicación y política de estados existen parcialmente. El minutely sigue atendido por la notificación original de Breezy Weather para evitar duplicados; sus valores de Open-Meteo representan pronóstico en intervalos de 15 minutos convertido a tasa equivalente mm/h, nunca observación. Radar/satélite ecuatorianos integrados, alertas de las instituciones enumeradas, vigilancia por barrios, recomendaciones contextuales, reportes comunitarios, parroquia eclesiástica y una interfaz completa de accesibilidad siguen pendientes o sujetos a validación. Consulta [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md) para el estado técnico y las decisiones acumuladas.
-
-**Regla de mantenimiento:** toda función nueva o decisión de producto debe actualizar README.md con el cambio funcional y docs/CONTINUAR_AQUI.md con el estado técnico, decisión, pendientes y riesgos correspondientes antes de cada commit.
-
-## Widget meteorológico Alerta EC — fase 1
-
-El widget prioriza condiciones actuales, lluvia próxima pronosticada y acumulación horaria; muestra los milímetros acumulados por intervalo separados de la tasa en mm/h. Los horarios corresponden a la zona de la ubicación y se incluye la antigüedad de actualización en la descripción accesible. Ecuador usa °C en modo automático, respetando unidades elegidas manualmente. No se presentan pronósticos como observaciones ni se inventan radares o tiempos de llegada.
-
-La previsión Hourly Trend también ofrece texto accesible para cada hora mostrada. La primera fase reutiliza las seis celdas horarias visibles que ya ofrecen los layouts Material You; expandirlas visualmente a 12–24 horas según el tamaño, validar TalkBack/dispositivo y ejecutar CI siguen pendientes. Sin datos minutely el widget indica que no hay pronóstico de corto plazo.
-
-
-
-## CI en `550df16d` (2026-10-14)
-- Los runs 38490947969 (APK Debug) y 38490946868 (Verificación continua) fallaron al compilar `HourlyTrendWidgetIMP.kt:315`: faltaba importar la extensión `Location.getPlace`, por lo que Kotlin no resolvía la llamada de descripción accesible del widget horario. Ambos logs apuntan a esta misma causa; el job de pruebas tampoco alcanzó a ejecutar las pruebas unitarias.
-- Se agregó el import de la extensión existente. No se cambió el texto accesible, las funciones del widget ni la configuración de CI.
-- Pendiente: CI y pruebas unitarias tras el push, y pruebas visuales/accesibles en dispositivo. No se ejecutó Gradle en Termux.
-
-## Intro cinematográfica de Alerta EC
-
-Se conservan el logo, el cóndor y las escenas de fenómenos. La intro ofrece una opción accesible y persistente de movimiento reducido, con una composición estática y una preferencia explícita de sonido. Se eliminaron los destellos intensos en todos los modos. La infraestructura de reproducción está limitada por volumen, modo silencioso y liberación al omitir o cerrar. **Los efectos ambientales reales siguen pendientes:** no hay recursos de audio propios o con licencia pública verificable en el repositorio; no se descargaron ni añadieron pistas. La preferencia activada no produce sonido mientras no exista una pista aprobada. No se genera TTS automáticamente.
-
-
-
-
-## Intro cinematográfica: efectos originales (2026-10-14)
-
-Estado: pistas procedurales implementadas e integradas; validación en dispositivo y CI pendiente. Esta actualización reemplaza el estado histórico inmediatamente anterior de “audio pendiente”.
-
-- Se generaron localmente con síntesis digital determinista siete WAV originales, sin grabaciones descargadas: viento (5,0 s), tormenta distante (1,8 s), sismo (1,2 s), ambiente volcánico (1,5 s), lluvia (2,0 s), deslizamiento (1,4 s) y cierre armónico (1,4 s). El tamaño conjunto es aprox. 0,60 MiB (630.938 bytes).
-- Archivos en `app/src/main/res/raw/alertaec_intro_{wind,storm,seismic,volcano,rain,landslide,closing}.wav`; mono PCM 16-bit, 22.050 Hz, picos limitados a 0,68 de escala digital (aprox. −3,35 dBFS), con entradas/salidas suaves. El guion reproducible es `scripts/generate_alerta_ec_intro_audio.py`; su autoría es propia y no tiene dependencias ni material de terceros.
-- `IntroAudioPlayback` solicita Audio Focus transitorio y crea/reproduce/libera cada MediaPlayer por efecto. Límite por pista 0,12; no comienza sin activación explícita persistente, volumen multimedia disponible y modo de timbre normal. Omisión, movimiento reducido, pérdida de foco, pausa y destrucción cancelan tareas, detienen y liberan reproductores y abandonan foco. El sonido sigue apagado inicialmente; no hay TTS.
-- Sincronía con el timeline existente: viento 0 ms; tormenta 250 ms; sismo 300 ms; volcán 1.250 ms; lluvia 3.150 ms; deslizamiento 3.350 ms; cierre 3.900 ms. No se alteraron escenas, logo o cóndor; el destello permanece desactivado y el modo de movimiento reducido sigue silenciando la intro.
-- La duración final se amplió a 5,8 s: permite que terminen la lluvia (5,15 s) y el cierre (5,3 s) antes de ocultar la intro; el fundido comienza a 5,3 s.
-- Verificación estática realizada por el generador: formato PCM, canales, frecuencia, duración exacta, integridad de lectura y pico de cada pista. No se ejecutó Gradle en Termux. Pendiente probar audición/foco en dispositivo y CI.
-
-### Ajustes de estabilización (2026-10-14)
-- La reducción de movimiento también consulta `ValueAnimator.areAnimatorsEnabled()` en Android 8 o posterior, además de la escala global; valores de escala no finitos o iguales/menores que cero se tratan como movimiento reducido.
-- La ruta de audio aplica la política probada de consentimiento, recurso disponible, modo de timbre normal y volumen multimedia distinto de cero. Liberar un reproductor ya detenido no interrumpe la limpieza del resto.
-- El adaptador de alertas conserva los eventos oficiales en `remoteviews.Notifications` y los deduplica por identificador en su propia ruta. La lluvia por minuto sigue siendo exclusiva del notificador previo de Breezy Weather; el evento Alerta EC de pronóstico es horario.
-- No hay en este checkout un widget horario Alerta EC aislado con su propio sonido/TTS. Los widgets generales muestran pronósticos y los datos minutely disponibles; no se añadieron avisos de 60/30/15/5/1 minutos ni voz porque la fuente horaria no permite respaldar esos tiempos. El TTS de alertas sigue pendiente de diseño y deduplicación compartida.
-- Verificación de esta revisión: `git diff --check`, inspección de recursos WAV con `file`, lectura estática de flujos de audio, ciclo de vida, widget/notificación. No se ejecutó Gradle, CI ni prueba en dispositivo.
-
-
-
-
-## Continuidad verificada — 2026-10-14
-
-- PRIORIDAD: preservar avances y decisiones en GitHub.
-- Intro cinematografica: composicion y siete pistas de audio procedurales documentadas; faltan CI y pruebas reales de audio en dispositivo.
-- Widget meteorologico: fase 1 implementada en codigo; faltan CI, pruebas visuales, accesibilidad y ampliacion de horizonte.
-- Alertas: adaptador meteorologico y modelos iniciales existentes; motor multiamenaza, avisos anticipados, sonidos por fenomeno, vibracion y voz TTS pendientes de integracion y validacion.
-- Ubicaciones: GPS, calles, barrios, parroquias, altitud y referencias comunitarias pendientes de completar y verificar; no publicar domicilios privados.
-- Donaciones: ui/support/SupportSection.kt creado y conectado localmente a AboutScreen.kt; faltan formulario, WhatsApp, pruebas y CI. No afirmar que esta publicado.
-- Resenas: usar opiniones reales, moderadas, con posible lectura desde GitHub; no publicar opiniones ficticias.
-- Proxima prioridad: completar aportes, revisar intro/widget/alertas, ejecutar CI y pruebas en dispositivo.
-- Codex: utilizarlo para implementar tareas por modulos y documentar resultados.
-- Version publica documentada: 0.1.4 / 104; mantener applicationId y certificado de produccion.
-- No publicar Release, tag ni APK nueva sin pruebas, firma verificada y autorizacion.
-- Actualizar README.md y docs/CONTINUAR_AQUI.md en cada avance; mantener cada proyecto en su propio repositorio.
-
-
-
-</details>
-
-
-## 👨‍💻 Autoría y equipo
-
-<div align="center">
-  <img src="artwork/alerta-ec/alerta-ec-master.png" alt="Logotipo oficial de ALERTA EC" width="165" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="artwork/alerta-ec/click-tv-digital-logo.jpg" alt="Logotipo oficial de CLICK TV DIGITAL" width="155" />
-  <p><strong>Richard Ontaneda</strong></p>
-  <p>Creador y desarrollador de ALERTA EC · Fundador y creador de CLICK TV DIGITAL</p>
-  <p><strong>ALERTA EC 🇪🇨 — un proyecto de CLICK TV DIGITAL</strong></p>
-</div>
-
-La sección automática **Contributors** de GitHub muestra perfiles de las cuentas que aportaron commits; no admite sustituir sus avatares por logos personalizados. Por eso la identidad visual del proyecto está disponible aquí.
-
-<!-- ALERTA_EC_README_PUBLICO_2026_10_16 -->
-
-
-
-## Ubicación local y notificaciones
-
-El nombre meteorológico prioriza barrio o sector explícito devuelto por geocodificación, después parroquia/distrito y ciudad. No se presupone Atucucho a partir de Cochapamba. En las preferencias de cada ubicación, incluida la actual, puedes definir una etiqueta manual: no cambia las coordenadas del pronóstico y debes revisarla al desplazarte.
-
-Los resúmenes horarios muestran fenómeno, lugar, intervalo, probabilidad, precipitación acumulada y temperatura; las alertas y el estilo nativo separan los detalles en la vista expandida. Se mantienen canales, permisos y preferencias. Un intervalo ya iniciado no se presenta como futuro.
-
-Cambios pendientes de compilación y validación visual en Android; las comprobaciones locales son estáticas. Consulta los límites de precisión y las pruebas pendientes en [CONTINUAR_AQUI](docs/CONTINUAR_AQUI.md).
-
-### Revisión de GPS y precisión meteorológica (2026-10-17)
-
-La actualización conserva coordenadas originales y metadatos de Android, evita volver al punto anterior por fallos de geocodificación y muestra precisión, altitud y hora en preferencias de ubicación. Incluye límites/caché de Nominatim y mantiene la etiqueta manual independiente del GPS. La resolución del clima no equivale a precisión GPS; no se confirmó radar de barrio ni se añadió una fuente hiperlocal. Consulta [hallazgos, fuentes y pruebas pendientes](docs/ALERTA_EC_GPS_METEOROLOGIA.md). Sin compilación ni validación Android todavía.
-
-
-### Iconos y vibración de notificaciones
-
-Los avisos meteorológicos usan iconos pequeños vectoriales monocromáticos según el fenómeno; se conserva el logotipo ALERTA EC. Las instalaciones nuevas separan pronósticos discretos, precipitación con vibración corta y alertas oficiales graves/extremas con patrones diferenciados. Las instalaciones existentes conservan sus canales y preferencias: no se migran automáticamente a canales que puedan eludir un bloqueo. La vibración depende de permisos, ajustes individuales, silencio, No molestar y hardware.
-
-Se reutiliza la ubicación barrio, parroquia, ciudad sin inventar Atucucho, Cochapamba o Quito. Se limita la repetición de avisos y no se convierte un pronóstico de lluvia en una alerta oficial grave. Consulta el [diagnóstico, restablecimiento manual y pruebas pendientes](docs/CONTINUAR_AQUI.md#notificaciones-android-iconos-y-vibración-2026-10-17).
+---
 
 <!-- ALERTA_EC_AUTO_START -->
 

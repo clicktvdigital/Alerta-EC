@@ -219,7 +219,34 @@ object Notifications {
                 silentChannel(context, AlertaEcNotificationAppearance.SILENT_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
             ).filter { notificationManager.getNotificationChannel(it.id) == null }
         )
+
+        // The *_v1 sound channels were replaced by *_v2 but never deleted: every channel showed twice in the
+        // system settings (phone, 2026-11-20). Remove the obsolete ones.
+        listOf(
+            AlertaEcNotificationAppearance.SOUND_RAIN, AlertaEcNotificationAppearance.SOUND_STORM,
+            AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE, AlertaEcNotificationAppearance.SOUND_VOLCANIC,
+            AlertaEcNotificationAppearance.SOUND_CRITICAL, AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION,
+            AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION,
+            AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION,
+            AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION,
+            AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION,
+        ).filter { it.endsWith("_v2") }
+            .map { it.removeSuffix("_v2") + "_v1" }
+            .forEach { notificationManager.deleteNotificationChannel(it) }
+
+        // Storm channels were labelled «Precipitación»; a channel name can be updated in place (its sound cannot).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            listOf(AlertaEcNotificationAppearance.SOUND_STORM, AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION)
+                .forEach { id ->
+                    notificationManager.getNotificationChannel(id)?.let { channel ->
+                        channel.name = STORM_CHANNEL_NAME
+                        notificationManager.createNotificationChannel(channel)
+                    }
+                }
+        }
     }
+
+    private const val STORM_CHANNEL_NAME = "Tormentas eléctricas"
 
     private fun soundChannel(context: Context, id: String, importance: Int, name: Int, vibrationEnabled: Boolean = true): NotificationChannelCompat? {
         val resource = AlertaEcNotificationAppearance.soundResource(id) ?: return null

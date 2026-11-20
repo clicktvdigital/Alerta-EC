@@ -27,7 +27,6 @@ import org.breezyweather.common.options.appearance.CardDisplay
 import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.domain.weather.model.hasMinutelyPrecipitation
 import org.breezyweather.domain.weather.model.isIndexValid
-import org.breezyweather.domain.weather.model.validAirQuality
 import org.breezyweather.ui.main.MainActivity
 import org.breezyweather.ui.main.adapters.main.holder.AbstractMainCardViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.AbstractMainViewHolder
@@ -50,6 +49,7 @@ import org.breezyweather.ui.main.adapters.main.holder.SunViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.UvViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.VisibilityViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.WindViewHolder
+import org.breezyweather.ui.support.isTelevisionDevice
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.ui.theme.weatherView.WeatherView
 import java.util.Calendar
@@ -109,7 +109,11 @@ class MainAdapter(
                 mViewTypeList.add(ViewType.ALERT)
             }
             mViewTypeList.add(ViewType.HEADER)
+            val isTv = activity.isTelevisionDevice()
             val enabledCardDisplayList = mutableListOf<CardDisplay>()
+            // Todas las tarjetas configuradas se muestran. Solo se omiten las que no pueden existir:
+            // Nowcast sin datos por minuto y pronósticos sin días. Las tarjetas métricas, Sol y Luna
+            // siempre aparecen; cuando el proveedor no envía un dato, la tarjeta indica "--".
             for (c in cardDisplayList) {
                 if (c === CardDisplay.CARD_NOWCAST &&
                     (!weather.hasMinutelyPrecipitation || weather.minutelyForecast.size < 3)
@@ -119,53 +123,9 @@ class MainAdapter(
                 if (c === CardDisplay.CARD_DAILY_FORECAST && weather.dailyForecast.isEmpty()) {
                     continue
                 }
-                if (c === CardDisplay.CARD_PRECIPITATION) {
-                    val cal = Date().toCalendarWithTimeZone(location.timeZone)
-                    val currentHour = cal[Calendar.HOUR_OF_DAY]
-                    val precipitation = if (currentHour < 5) {
-                        weather.todayIndex?.let { todayIndex ->
-                            weather.dailyForecast.getOrElse(todayIndex.minus(1)) { null }?.night?.precipitation
-                        }
-                    } else if (currentHour < 17) {
-                        weather.today?.day?.precipitation
-                    } else {
-                        weather.today?.night?.precipitation
-                    }
-                    if (precipitation?.total == null) {
-                        continue
-                    }
-                }
-                if (c === CardDisplay.CARD_WIND && weather.current?.wind?.isValid != true) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_AIR_QUALITY && weather.validAirQuality == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_POLLEN &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.pollen?.isIndexValid != true)
-                ) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_HUMIDITY && weather.current?.relativeHumidity == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_UV && weather.current?.uV?.index == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_VISIBILITY && weather.current?.visibility == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_PRESSURE && weather.current?.pressure == null) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_SUN &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.sun == null)
-                ) {
-                    continue
-                }
-                if (c === CardDisplay.CARD_MOON &&
-                    (weather.dailyForecast.isEmpty() || weather.today?.moon?.isValid != true)
-                ) {
+                // TV: la tarjeta de Polen se retira del Home (no se crea su vista ni consume memoria).
+                // Teléfono y tableta conservan la tarjeta según la configuración del usuario.
+                if (isTv && c === CardDisplay.CARD_POLLEN) {
                     continue
                 }
                 enabledCardDisplayList.add(c)
@@ -216,7 +176,7 @@ class MainAdapter(
         ViewType.SUN -> SunViewHolder(parent)
         ViewType.MOON -> MoonViewHolder(parent)
         ViewType.CLOCK -> ClockViewHolder(parent)
-        VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(ComposeView(parent.context))
+        VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(android.widget.LinearLayout(parent.context))
         VIEW_TYPE_DONATIONS -> DonationsViewHolder(ComposeView(parent.context))
         ViewType.FOOTER -> FooterViewHolder(ComposeView(parent.context))
         else -> FooterViewHolder(ComposeView(parent.context))

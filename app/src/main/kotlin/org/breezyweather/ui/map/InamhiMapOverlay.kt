@@ -65,8 +65,18 @@ internal class InamhiMapOverlay(private val style: Style) {
         try {
             val tiles = TileSet("2.2.0", InamhiWmsTiles.url(layer, time))
             style.addSource(RasterSource(entry.source, tiles, 256))
-            val opacity = if (layer == InamhiLayers.PRECIPITATION_3H) 0.15f else 0.10f
-            val overlay = RasterLayer(entry.layer, entry.source).withProperties(rasterOpacity(opacity))
+            // 0,30/0,20 made the layers almost invisible over the base map (and on a TV across the room).
+            val opacity = when (layer) {
+                InamhiLayers.PRECIPITATION_3H -> 0.70f
+                InamhiLayers.PRECIPITATION_24H -> 0.65f
+                else -> 0.55f
+            }
+            // Short crossfade (Emil: motion only with a purpose — here, continuity when the hour or layer changes)
+            // instead of tiles popping in.
+            val overlay = RasterLayer(entry.layer, entry.source).withProperties(
+                rasterOpacity(opacity),
+                org.maplibre.android.style.layers.PropertyFactory.rasterFadeDuration(200f),
+            )
             if (style.getLayer("waterway_line_label") != null) {
                 style.addLayerBelow(overlay, "waterway_line_label")
             } else {
