@@ -22,9 +22,13 @@ object AlertaEcReturnIntro : Application.ActivityLifecycleCallbacks {
     fun register(application: Application) = application.registerActivityLifecycleCallbacks(this)
 
     /** True once when Home should replay the intro after a return from the background. */
-    fun consume(): Boolean = pending.also { pending = false }
+    fun consume(): Boolean = pending.also { pending = false; diag("consume -> $it") }
+
+    /** TEMP diag (remove before release). */
+    internal fun diag(msg: String) { android.util.Log.println(android.util.Log.WARN, "AlertaEcDiag", msg) }
 
     override fun onActivityStarted(activity: Activity) {
+        diag("started ${activity.javaClass.simpleName}@${System.identityHashCode(activity)} count=$started bg=$wasInBackground")
         if (started == 0 && wasInBackground) {
             pending = activity is MainActivity
             wasInBackground = false
@@ -34,6 +38,7 @@ object AlertaEcReturnIntro : Application.ActivityLifecycleCallbacks {
 
     override fun onActivityStopped(activity: Activity) {
         started = (started - 1).coerceAtLeast(0)
+        diag("stopped ${activity.javaClass.simpleName}@${System.identityHashCode(activity)} count=$started changing=${activity.isChangingConfigurations}")
         // A configuration change (rotation) restarts the activity: that is not leaving the app.
         if (started == 0 && !activity.isChangingConfigurations) wasInBackground = true
     }

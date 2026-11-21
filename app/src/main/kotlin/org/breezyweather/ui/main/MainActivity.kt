@@ -509,6 +509,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         if (AlertaEcReturnIntro.consume()) returnIntroAt = android.os.SystemClock.elapsedRealtime()
         val returnedFromOutside = android.os.SystemClock.elapsedRealtime() - returnIntroAt < RETURN_INTRO_WINDOW_MS &&
             !org.breezyweather.ui.main.intro.AlertaEcVideoIntro.isActive()
+        AlertaEcReturnIntro.diag("resume@${System.identityHashCode(this)} tvPending=$tvIntroPending returned=$returnedFromOutside active=${org.breezyweather.ui.main.intro.AlertaEcVideoIntro.isActive()}")
         if (tvIntroPending || returnedFromOutside) {
             tvIntroPending = false
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer)?.visibility = android.view.View.VISIBLE
