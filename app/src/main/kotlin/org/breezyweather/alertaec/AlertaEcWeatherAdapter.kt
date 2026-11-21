@@ -181,7 +181,18 @@ object AlertaEcWeatherAdapter {
     }
 
     private fun locationName(location: Location): String =
-        location.geographicName.takeIf { it.isNotBlank() }
-            ?: location.admin1?.takeIf { it.isNotBlank() }
-            ?: location.country
+        withoutRepeatedParts(
+            location.geographicName.takeIf { it.isNotBlank() }
+                ?: location.admin1?.takeIf { it.isNotBlank() }
+                ?: location.country
+        )
+
+    /**
+     * «Atucucho, Unión La Paz, Cochapamba, Cochapamba» → «Atucucho, Unión La Paz, Cochapamba»: the parish could come
+     * both as locality and as parish, and the TV launcher showed it twice in the alert (2026-11-20).
+     */
+    internal fun withoutRepeatedParts(name: String): String =
+        name.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase() }
+            .joinToString(", ")
 }

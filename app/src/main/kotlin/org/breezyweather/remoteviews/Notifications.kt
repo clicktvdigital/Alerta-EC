@@ -234,19 +234,42 @@ object Notifications {
             .map { it.removeSuffix("_v2") + "_v1" }
             .forEach { notificationManager.deleteNotificationChannel(it) }
 
-        // Storm channels were labelled «Precipitación»; a channel name can be updated in place (its sound cannot).
+        // Several channels shared one name («Precipitación» ×3, «Alertas meteorológicas graves» ×6…), so the system
+        // settings looked duplicated (phone, 2026-11-20). Each sound/vibration variant is its own channel (those
+        // properties are fixed once created), but its name can be updated in place: say what each one is.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            listOf(AlertaEcNotificationAppearance.SOUND_STORM, AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION)
-                .forEach { id ->
-                    notificationManager.getNotificationChannel(id)?.let { channel ->
-                        channel.name = STORM_CHANNEL_NAME
+            CHANNEL_NAMES.forEach { (id, name) ->
+                notificationManager.getNotificationChannel(id)?.let { channel ->
+                    if (channel.name != name) {
+                        channel.name = name
                         notificationManager.createNotificationChannel(channel)
                     }
                 }
+            }
         }
     }
 
-    private const val STORM_CHANNEL_NAME = "Tormentas eléctricas"
+    private val CHANNEL_NAMES = mapOf(
+        AlertaEcNotificationAppearance.SOUND_RAIN to "Lluvia · sonido y vibración",
+        AlertaEcNotificationAppearance.SOUND_RAIN_NO_VIBRATION to "Lluvia · solo sonido",
+        AlertaEcNotificationAppearance.PRECIPITATION_IMMINENT to "Lluvia inminente",
+        AlertaEcNotificationAppearance.SOUND_STORM to "Tormentas eléctricas · sonido y vibración",
+        AlertaEcNotificationAppearance.SOUND_STORM_NO_VIBRATION to "Tormentas eléctricas · solo sonido",
+        AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE to "Inundación y deslizamiento · sonido y vibración",
+        AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION to "Inundación y deslizamiento · solo sonido",
+        AlertaEcNotificationAppearance.SOUND_VOLCANIC to "Actividad volcánica · sonido y vibración",
+        AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION to "Actividad volcánica · solo sonido",
+        AlertaEcNotificationAppearance.SOUND_CRITICAL to "Emergencia extrema · sonido y vibración",
+        AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION to "Emergencia extrema · solo sonido",
+        AlertaEcNotificationAppearance.VIBRATION_FORECAST to "Pronóstico · solo vibración",
+        AlertaEcNotificationAppearance.VIBRATION_SEVERE to "Alertas graves · solo vibración",
+        AlertaEcNotificationAppearance.VIBRATION_EXTREME to "Alertas extremas · solo vibración",
+        AlertaEcNotificationAppearance.SILENT_SEVERE to "Alertas graves · en silencio",
+        AlertaEcNotificationAppearance.SILENT_EXTREME to "Alertas extremas · en silencio",
+        CHANNEL_FORECAST to "Pronóstico diario",
+        CHANNEL_ALERT to "Alertas oficiales",
+    )
+
 
     private fun soundChannel(context: Context, id: String, importance: Int, name: Int, vibrationEnabled: Boolean = true): NotificationChannelCompat? {
         val resource = AlertaEcNotificationAppearance.soundResource(id) ?: return null

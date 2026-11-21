@@ -90,8 +90,9 @@ class GadgetbridgeService @Inject constructor() : BroadcastSource {
 
         return GadgetbridgeData(
             timestamp = location.weather?.base?.forecastUpdateTime?.time?.div(1000)?.toInt(),
-            location = location.customName?.trim()?.takeIf { it.isNotEmpty() }
-                ?: location.getPlace(context),
+            location = (location.customName?.trim()?.takeIf { it.isNotEmpty() } ?: location.getPlace(context))
+                .split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+                .joinToString(", "),
             currentTemp = current?.temperature?.temperature?.inKelvins?.roundToInt(),
             currentConditionCode = getWeatherCode(current?.weatherCode, current?.cloudCover),
             currentCondition = current?.weatherText,
