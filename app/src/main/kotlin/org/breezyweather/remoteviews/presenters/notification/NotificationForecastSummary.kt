@@ -2,6 +2,7 @@ package org.breezyweather.remoteviews.presenters.notification
 
 import android.content.Context
 import breezyweather.domain.location.model.Location
+import org.breezyweather.domain.location.model.getPlace
 import org.breezyweather.alertaec.AlertaEcNotificationText
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.domain.settings.SettingsManager
@@ -24,7 +25,7 @@ internal class NotificationForecastSummary(context: Context, location: Location)
     } else {
         current?.temperature?.temperature ?: hour?.temperature?.temperature
     }
-    val place = location.geographicName.takeIf { it.isNotBlank() }
+    val place = location.getPlace(context).takeIf { it.isNotBlank() }
         ?: listOf(location.admin1, location.country).firstOrNull { !it.isNullOrBlank() }
         ?: "Ubicación no disponible"
     val phenomenon = NotificationWeatherText.nonBlank(current?.weatherText)

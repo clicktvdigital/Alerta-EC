@@ -505,7 +505,7 @@ object Notifications {
             alert.headline?.ifEmpty {
                 context.getString(R.string.alert)
             } ?: context.getString(R.string.alert),
-            location.geographicName,
+            location.getPlace(context),
             description,
             PendingIntent.getActivity(
                 context,
@@ -646,7 +646,7 @@ object Notifications {
                 context,
                 R.drawable.ic_notification_rain,
                 weather.getMinutelyTitle(context),
-                location.geographicName,
+                location.getPlace(context),
                 weather.getMinutelyDescription(context, location),
                 PendingIntent.getActivity(
                     context,
