@@ -103,6 +103,8 @@ object AlertaEcWeatherAdapter {
             precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
                 AlertaEcPhenomenon.HEAVY_RAIN
             codePhenomenon != null -> codePhenomenon
+            precipitationMm != null && precipitationMm >= 0.2 ->
+                AlertaEcPhenomenon.RAIN
             else -> return null
         }
 
