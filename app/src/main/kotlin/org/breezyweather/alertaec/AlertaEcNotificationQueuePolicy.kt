@@ -1,9 +1,9 @@
 package org.breezyweather.alertaec
 
 internal object AlertaEcNotificationQueuePolicy {
-    const val INFORMATION_DURATION_MILLIS = 30_000L
+    const val INFORMATION_DURATION_MILLIS = 2 * 60 * 60 * 1000L
     const val MAX_PENDING_IDS = 100
-    const val DISMISSAL_DELAY_MILLIS = 30_000L
+    const val DISMISSAL_DELAY_MILLIS = 2 * 60 * 60 * 1000L
 
     internal data class Continuation(val delayMillis: Long)
 
