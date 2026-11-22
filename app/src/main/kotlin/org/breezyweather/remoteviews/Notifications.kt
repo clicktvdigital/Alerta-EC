@@ -222,7 +222,8 @@ object Notifications {
         )
 
         // Obsolete sound channels: *_v1 (showed twice in the system settings, phone 2026-11-20) and *_v2 (their sound
-        // was saved as a numeric resource id that later builds point at another tone, TV 2026-11-21).
+        // was saved as a numeric resource id that later builds point at another tone, TV 2026-11-21) and *_v3
+        // (replaced by *_v4, 2026-11-22).
         listOf(
             AlertaEcNotificationAppearance.SOUND_RAIN, AlertaEcNotificationAppearance.SOUND_STORM,
             AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE, AlertaEcNotificationAppearance.SOUND_VOLCANIC,
@@ -231,8 +232,8 @@ object Notifications {
             AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION,
             AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION,
             AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION,
-        ).filter { it.endsWith("_v3") }
-            .flatMap { id -> listOf("_v1", "_v2").map { id.removeSuffix("_v3") + it } }
+        ).filter { it.endsWith("_v4") }
+            .flatMap { id -> listOf("_v1", "_v2", "_v3").map { id.removeSuffix("_v4") + it } }
             .forEach { notificationManager.deleteNotificationChannel(it) }
 
         // Several channels shared one name («Precipitación» ×3, «Alertas meteorológicas graves» ×6…), so the system
