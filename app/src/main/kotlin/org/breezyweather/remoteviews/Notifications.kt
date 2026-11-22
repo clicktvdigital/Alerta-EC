@@ -38,6 +38,7 @@ import androidx.core.app.NotificationManagerCompat.IMPORTANCE_MIN
 import androidx.core.content.ContextCompat
 import androidx.core.text.parseAsHtml
 import breezyweather.domain.location.model.Location
+import org.breezyweather.domain.location.model.getPlace
 import breezyweather.domain.weather.model.Alert
 import breezyweather.domain.weather.model.Weather
 import breezyweather.domain.weather.reference.AlertSeverity
