@@ -341,6 +341,7 @@ class WeatherUpdateJob @AssistedInject constructor(
                     locationsToUpdate.firstOrNull { it.formattedId == location.formattedId }?.weather
                 )
                 Notifications.checkAndSendPrecipitation(applicationContext, location)
+                runCatching { org.breezyweather.alertaec.observation.QuitoRainGauges.lastHour(location.latitude, location.longitude) }
                 org.breezyweather.alertaec.AlertaEcNotifier.checkAndNotify(applicationContext, location)
             }
 

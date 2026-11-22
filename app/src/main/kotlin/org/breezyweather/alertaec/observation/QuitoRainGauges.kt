@@ -123,6 +123,8 @@ object QuitoRainGauges {
     }
 
     /** Rain measured in the last 2 hours at the nearest station within 5 km; null outside Quito or on error. */
+    fun cachedNear(latitude: Double, longitude: Double, nowMillis: Long = System.currentTimeMillis()): Reading? { val (st, d) = nearest(latitude, longitude) ?: return null; val e = synchronized(cache) { cache[st.id] } ?: return null; if (nowMillis - e.first >= CACHE_MS || !e.second.isFinite() || e.second < 0.0) return null; return Reading(st, d, e.second) }
+
     suspend fun lastHour(latitude: Double, longitude: Double): Reading? = withContext(Dispatchers.IO) {
         val (station, distance) = nearest(latitude, longitude) ?: return@withContext null
         val now = System.currentTimeMillis()

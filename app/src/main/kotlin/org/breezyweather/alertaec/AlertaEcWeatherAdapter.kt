@@ -21,6 +21,8 @@ object AlertaEcWeatherAdapter {
         // Minutely rain remains owned by Notifications.checkAndSendPrecipitation.
         // Keep this Alerta EC route inactive to prevent duplicate notifications.
 
+        org.breezyweather.alertaec.observation.QuitoRainGauges.cachedNear(location.latitude, location.longitude, nowMillis)?.takeIf { it.lastHourMm >= 0.2 }?.let { g -> val heavy = g.lastHourMm >= 2.5; val ph = if (heavy) AlertaEcPhenomenon.HEAVY_RAIN else AlertaEcPhenomenon.RAIN; val sv = if (heavy) AlertaEcSeverity.WARNING else AlertaEcSeverity.ADVISORY; val mm = String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f", g.lastHourMm); val km = String.format(java.util.Locale.forLanguageTag("es-EC"), "%.1f", g.distanceKm); events += AlertaEcEvent(id = "epmaps-rain-${location.formattedId}-${ph.name}", phenomenon = ph, state = AlertaEcEventState.FORECAST, severity = sv, headline = if (heavy) "Lluvia fuerte registrada: $mm mm en ${org.breezyweather.alertaec.observation.QuitoRainGauges.WINDOW_HOURS} h (${g.station.name}, $km km)" else "Lluvia registrada: $mm mm en ${org.breezyweather.alertaec.observation.QuitoRainGauges.WINDOW_HOURS} h (${g.station.name}, $km km)", locationName = locationName(location), timeZoneId = location.timeZone.id, latitude = location.latitude, longitude = location.longitude, sourceName = "EPMAPS (${g.station.code})", startTimeMillis = nowMillis, precipitationAccumulationMm = g.lastHourMm) }
+
         // Use the eligibility clock; an hour starting exactly one hour ago is no longer eligible.
         weather.hourlyForecast
             .filter {
@@ -92,10 +94,12 @@ object AlertaEcWeatherAdapter {
         val probability = hour.precipitationProbability?.total?.inPercent?.takeIf { it.isFinite() && it in 0.0..100.0 }?.roundToInt()
         val windKmh = hour.wind?.speed?.inKilometersPerHour?.takeIf { it.isFinite() && it >= 0 }
         val gustKmh = hour.wind?.gusts?.inKilometersPerHour?.takeIf { it.isFinite() && it >= 0 }
-        val codePhenomenon = hour.weatherCode?.let(::phenomenonFromWeatherCode)
+        val visKm = hour.visibility?.inKilometers?.takeIf { it.isFinite() && it >= 0.0 }
+        val codePhenomenon = hour.weatherCode?.let(::phenomenonFromWeatherCode) ?: if (visKm != null && visKm <= 1.0) AlertaEcPhenomenon.FOG else null
 
         val phenomenon = when {
             codePhenomenon == AlertaEcPhenomenon.THUNDERSTORM -> codePhenomenon
+            codePhenomenon == AlertaEcPhenomenon.HAIL -> codePhenomenon
             precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
                 AlertaEcPhenomenon.HEAVY_RAIN
             codePhenomenon != null -> codePhenomenon
@@ -103,8 +107,10 @@ object AlertaEcWeatherAdapter {
         }
 
         val severity = when {
+            phenomenon == AlertaEcPhenomenon.HAIL -> AlertaEcSeverity.WARNING
             precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_RAINSTORM ->
                 AlertaEcSeverity.WARNING
+            phenomenon == AlertaEcPhenomenon.THUNDERSTORM -> AlertaEcSeverity.WATCH
             precipitationMm != null && precipitationMm >= Precipitation.PRECIPITATION_HOURLY_HEAVY ->
                 AlertaEcSeverity.WATCH
             else -> AlertaEcSeverity.ADVISORY
@@ -139,7 +145,7 @@ object AlertaEcWeatherAdapter {
             windDirectionDegrees = hour.wind?.degree?.takeIf { it.isFinite() && it in 0.0..360.0 }?.roundToInt(),
             humidityPercent = hour.relativeHumidity?.inPercent?.takeIf { it.isFinite() && it in 0.0..100.0 }?.roundToInt(),
             pressureHpa = hour.pressure?.inHectopascals,
-            visibilityKm = hour.visibility?.inKilometers
+            visibilityKm = visKm
         )
     }
 

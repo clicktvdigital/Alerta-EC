@@ -214,7 +214,7 @@ object AlertaEcNotifier {
         // TV / TV Box: only WARNING and EMERGENCY make a sound; forecasts and advisories arrive silently.
         val isTv = context.isTelevisionDevice()
         val soundAllowed = settings.isAlertSoundEnabled &&
-            (!isTv || event.severity >= AlertaEcSeverity.WARNING)
+            (!isTv || event.severity >= AlertaEcSeverity.WATCH)
         val requestedChannel = org.breezyweather.remoteviews.Notifications.selectChannel(
             soundAllowed,
             settings.isAlertVibrationEnabled,
@@ -260,7 +260,7 @@ object AlertaEcNotifier {
         onNotifyInvoked()
         context.notify(notificationId, notification)
         // TV: brief banner over the app being watched (only WARNING/EMERGENCY, only if the user allowed it).
-        if (event.severity >= AlertaEcSeverity.WARNING) {
+        if (event.severity >= AlertaEcSeverity.WATCH) {
             // TV emergency voice (opt-in): speaks even over a film or video playing in another app.
             org.breezyweather.alertaec.tv.AlertaEcEmergencyVoice.speakIfAllowed(
                 context,

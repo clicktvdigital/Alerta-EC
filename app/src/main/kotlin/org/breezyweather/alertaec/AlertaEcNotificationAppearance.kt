@@ -48,8 +48,8 @@ internal object AlertaEcNotificationAppearance {
         severity == AlertaEcSeverity.EMERGENCY -> SOUND_CRITICAL
         severity == AlertaEcSeverity.WARNING && phenomenon in setOf(AlertaEcPhenomenon.FLOOD, AlertaEcPhenomenon.LANDSLIDE) -> SOUND_FLOOD_LANDSLIDE
         severity == AlertaEcSeverity.WARNING && phenomenon == AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> SOUND_VOLCANIC
-        severity <= AlertaEcSeverity.ADVISORY && phenomenon == AlertaEcPhenomenon.THUNDERSTORM -> SOUND_STORM
-        severity <= AlertaEcSeverity.ADVISORY && phenomenon in setOf(AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN) -> SOUND_RAIN
+        phenomenon in setOf(AlertaEcPhenomenon.THUNDERSTORM, AlertaEcPhenomenon.HAIL) -> SOUND_STORM
+        phenomenon in setOf(AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN) -> SOUND_RAIN
         else -> null
     }
 
