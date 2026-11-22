@@ -572,9 +572,36 @@ class RefreshHelper @Inject constructor(
                 )
             }
 
+            val isEcuador = location.countryCode.equals("EC", ignoreCase = true) ||
+                (location.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude))
+            val effectiveLocation = if (isEcuador && location.forecastSource == "openmeteo" &&
+                sourceManager.getWeatherSource("metno") != null
+            ) {
+                val upgraded = location.copy(
+                    forecastSource = "metno",
+                    currentSource = if (location.currentSource == "openmeteo") null else location.currentSource,
+                    alertSource = if (location.alertSource.isNullOrBlank() || location.alertSource == "accu") {
+                        "wmosevereweather"
+                    } else {
+                        location.alertSource
+                    },
+                    pollenSource = if (location.pollenSource == "openmeteo" || location.pollenSource == "accu") {
+                        null
+                    } else {
+                        location.pollenSource
+                    },
+                    normalsSource = if (location.normalsSource == "accu") null else location.normalsSource
+                )
+                locationRepository.update(upgraded)
+                upgraded
+            } else {
+                location
+            }
+
             // Group data requested to sources by source
             val featuresBySources: MutableMap<String, MutableList<SourceFeature>> = mutableMapOf()
-            with(location) {
+            with(effectiveLocation) {
                 listOf(
                     Pair(forecastSource, SourceFeature.FORECAST),
                     Pair(currentSource, SourceFeature.CURRENT),

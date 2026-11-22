@@ -508,10 +508,17 @@ class SourceManager @Inject constructor(
                 null
             }
 
-            SourceFeature.POLLEN -> getWeatherSource("openmeteo")?.let {
-                if (it.isFeatureSupportedForLocation(location, feature)) it else null
-            } ?: getWeatherSource("accu")?.takeIf {
-                it.isFeatureSupportedForLocation(location, feature) && BuildConfig.FLAVOR != "freenet"
+            SourceFeature.POLLEN -> if (location.countryCode.equals("EC", ignoreCase = true) ||
+                (location.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude))
+            ) {
+                null
+            } else {
+                getWeatherSource("openmeteo")?.let {
+                    if (it.isFeatureSupportedForLocation(location, feature)) it else null
+                } ?: getWeatherSource("accu")?.takeIf {
+                    it.isFeatureSupportedForLocation(location, feature) && BuildConfig.FLAVOR != "freenet"
+                }
             }
 
             // Ecuador: INAMHI publishes its CAP warnings to the WMO Severe Weather centre, which needs no API key.
@@ -524,12 +531,15 @@ class SourceManager @Inject constructor(
                     getWeatherSource("wmosevereweather")
                 else -> getWeatherSource("accu")
             }
-            SourceFeature.NORMALS -> if (!location.countryCode.equals("CN", ignoreCase = true) &&
-                BuildConfig.FLAVOR != "freenet"
+            SourceFeature.NORMALS -> if (location.countryCode.equals("EC", ignoreCase = true) ||
+                (location.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude)) ||
+                location.countryCode.equals("CN", ignoreCase = true) ||
+                BuildConfig.FLAVOR == "freenet"
             ) {
-                getWeatherSource("accu")
-            } else {
                 null
+            } else {
+                getWeatherSource("accu")
             }
 
             SourceFeature.REVERSE_GEOCODING -> getReverseGeocodingSource("nominatim")
