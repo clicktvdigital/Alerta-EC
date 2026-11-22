@@ -560,48 +560,49 @@ class RefreshHelper @Inject constructor(
 
     suspend fun getWeather(
         context: Context,
-        location: Location,
+        rawLocation: Location,
         coordinatesChanged: Boolean,
         ignoreCaching: Boolean = false,
     ): WeatherResult {
         try {
-            if (!location.isUsable || location.needsGeocodeRefresh) {
+            if (!rawLocation.isUsable || rawLocation.needsGeocodeRefresh) {
                 return WeatherResult(
-                    location.weather,
+                    rawLocation.weather,
                     listOf(RefreshError(RefreshErrorType.INVALID_LOCATION))
                 )
             }
 
-            val isEcuador = location.countryCode.equals("EC", ignoreCase = true) ||
-                (location.countryCode.isNullOrBlank() &&
-                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude))
-            val effectiveLocation = if (isEcuador && location.forecastSource == "openmeteo" &&
-                sourceManager.getWeatherSource("metno") != null
+            val isEcuador = rawLocation.countryCode.equals("EC", ignoreCase = true) ||
+                (rawLocation.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(rawLocation.latitude, rawLocation.longitude))
+            val location = if (isEcuador && (
+                    rawLocation.forecastSource == "openmeteo" ||
+                    rawLocation.minutelySource == "openmeteo" ||
+                    rawLocation.pollenSource != null ||
+                    rawLocation.normalsSource != null
+                ) && sourceManager.getWeatherSource("metno") != null
             ) {
-                val upgraded = location.copy(
-                    forecastSource = "metno",
-                    currentSource = if (location.currentSource == "openmeteo") null else location.currentSource,
-                    alertSource = if (location.alertSource.isNullOrBlank() || location.alertSource == "accu") {
+                val upgraded = rawLocation.copy(
+                    forecastSource = if (rawLocation.forecastSource == "openmeteo") "metno" else rawLocation.forecastSource,
+                    currentSource = if (rawLocation.currentSource == "openmeteo") null else rawLocation.currentSource,
+                    minutelySource = if (rawLocation.minutelySource == "openmeteo") null else rawLocation.minutelySource,
+                    alertSource = if (rawLocation.alertSource.isNullOrBlank() || rawLocation.alertSource == "accu") {
                         "wmosevereweather"
                     } else {
-                        location.alertSource
+                        rawLocation.alertSource
                     },
-                    pollenSource = if (location.pollenSource == "openmeteo" || location.pollenSource == "accu") {
-                        null
-                    } else {
-                        location.pollenSource
-                    },
-                    normalsSource = if (location.normalsSource == "accu") null else location.normalsSource
+                    pollenSource = null,
+                    normalsSource = null
                 )
                 locationRepository.update(upgraded)
                 upgraded
             } else {
-                location
+                rawLocation
             }
 
             // Group data requested to sources by source
             val featuresBySources: MutableMap<String, MutableList<SourceFeature>> = mutableMapOf()
-            with(effectiveLocation) {
+            with(location) {
                 listOf(
                     Pair(forecastSource, SourceFeature.FORECAST),
                     Pair(currentSource, SourceFeature.CURRENT),
