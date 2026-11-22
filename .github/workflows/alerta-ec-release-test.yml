@@ -20,7 +20,7 @@ jobs:
       - name: Validar etiqueta y version de Gradle
         id: version
         env:
-          RELEASE_TAG: "v0.1.15"
+          RELEASE_TAG: "v0.1.16"
         run: |
           python3 - <<'PYVERSION'
           import os
