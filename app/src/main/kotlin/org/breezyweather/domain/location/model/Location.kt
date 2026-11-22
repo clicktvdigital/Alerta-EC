@@ -35,6 +35,12 @@ fun Location.getPlace(context: Context, showCurrentPositionInPriority: Boolean =
     }
     if (countryCode.equals("EC", ignoreCase = true) && geographicName.isNotBlank()) {
         return geographicName
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.equals("Cochapamba", ignoreCase = true) }
+            .distinctBy { it.lowercase() }
+            .joinToString(", ")
+            .ifBlank { geographicName }
     }
     if (cityAndDistrict.isNotEmpty()) {
         return cityAndDistrict

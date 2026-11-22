@@ -284,7 +284,7 @@ class SettingsManager private constructor(
         get() = SpeedUnit.getUnit(config.getString("speed_unit", "auto") ?: "auto")
 
     fun getSpeedUnit(context: Context): SpeedUnit {
-        return speedUnit ?: SpeedUnit.METER_PER_SECOND
+        return speedUnit ?: SpeedUnit.KILOMETER_PER_HOUR
     }
 
     var pressureUnit: PressureUnit?

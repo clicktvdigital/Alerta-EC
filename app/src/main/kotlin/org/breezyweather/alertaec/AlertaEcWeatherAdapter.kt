@@ -200,7 +200,8 @@ object AlertaEcWeatherAdapter {
      * both as locality and as parish, and the TV launcher showed it twice in the alert (2026-11-20).
      */
     internal fun withoutRepeatedParts(name: String): String =
-        name.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        name.split(',').map { it.trim() }
+            .filter { it.isNotEmpty() && !it.equals("Cochapamba", ignoreCase = true) }
             .distinctBy { it.lowercase() }
             .joinToString(", ")
 }

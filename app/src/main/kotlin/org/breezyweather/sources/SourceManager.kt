@@ -533,7 +533,14 @@ class SourceManager @Inject constructor(
             }
 
             SourceFeature.REVERSE_GEOCODING -> getReverseGeocodingSource("nominatim")
-            else -> getWeatherSource("openmeteo")
+            else -> if (location.countryCode.equals("EC", ignoreCase = true) ||
+                (location.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude))
+            ) {
+                getWeatherSource("metno") ?: getWeatherSource("openmeteo")
+            } else {
+                getWeatherSource("openmeteo")
+            }
         }
     }
 
