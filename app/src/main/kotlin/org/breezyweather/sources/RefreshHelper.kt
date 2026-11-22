@@ -564,32 +564,33 @@ class RefreshHelper @Inject constructor(
         coordinatesChanged: Boolean,
         ignoreCaching: Boolean = false,
     ): WeatherResult {
+        val location = rawLocation
         try {
-            if (!rawLocation.isUsable || rawLocation.needsGeocodeRefresh) {
+            if (!location.isUsable || location.needsGeocodeRefresh) {
                 return WeatherResult(
-                    rawLocation.weather,
+                    location.weather,
                     listOf(RefreshError(RefreshErrorType.INVALID_LOCATION))
                 )
             }
 
-            val isEcuador = rawLocation.countryCode.equals("EC", ignoreCase = true) ||
-                (rawLocation.countryCode.isNullOrBlank() &&
-                    org.breezyweather.background.location.EcuadorBounds.contains(rawLocation.latitude, rawLocation.longitude))
-            val location = if (isEcuador && (
-                    rawLocation.forecastSource == "openmeteo" ||
-                    rawLocation.minutelySource == "openmeteo" ||
-                    rawLocation.pollenSource != null ||
-                    rawLocation.normalsSource != null
+            val isEcuador = location.countryCode.equals("EC", ignoreCase = true) ||
+                (location.countryCode.isNullOrBlank() &&
+                    org.breezyweather.background.location.EcuadorBounds.contains(location.latitude, location.longitude))
+            val effectiveLocation = if (isEcuador && (
+                    location.forecastSource == "openmeteo" ||
+                    location.minutelySource == "openmeteo" ||
+                    location.pollenSource != null ||
+                    location.normalsSource != null
                 ) && sourceManager.getWeatherSource("metno") != null
             ) {
-                val upgraded = rawLocation.copy(
-                    forecastSource = if (rawLocation.forecastSource == "openmeteo") "metno" else rawLocation.forecastSource,
-                    currentSource = if (rawLocation.currentSource == "openmeteo") null else rawLocation.currentSource,
-                    minutelySource = if (rawLocation.minutelySource == "openmeteo") null else rawLocation.minutelySource,
-                    alertSource = if (rawLocation.alertSource.isNullOrBlank() || rawLocation.alertSource == "accu") {
+                val upgraded = location.copy(
+                    forecastSource = if (location.forecastSource == "openmeteo") "metno" else location.forecastSource,
+                    currentSource = if (location.currentSource == "openmeteo") null else location.currentSource,
+                    minutelySource = if (location.minutelySource == "openmeteo") null else location.minutelySource,
+                    alertSource = if (location.alertSource.isNullOrBlank() || location.alertSource == "accu") {
                         "wmosevereweather"
                     } else {
-                        rawLocation.alertSource
+                        location.alertSource
                     },
                     pollenSource = null,
                     normalsSource = null
@@ -597,12 +598,12 @@ class RefreshHelper @Inject constructor(
                 locationRepository.update(upgraded)
                 upgraded
             } else {
-                rawLocation
+                location
             }
 
             // Group data requested to sources by source
             val featuresBySources: MutableMap<String, MutableList<SourceFeature>> = mutableMapOf()
-            with(location) {
+            with(effectiveLocation) {
                 listOf(
                     Pair(forecastSource, SourceFeature.FORECAST),
                     Pair(currentSource, SourceFeature.CURRENT),
@@ -623,20 +624,20 @@ class RefreshHelper @Inject constructor(
             }
 
             // Always update refresh time displayed to the user, even if just re-using cached data
-            val base = location.weather?.base?.copy(
+            val base = effectiveLocation.weather?.base?.copy(
                 refreshTime = Date()
             ) ?: Base(
                 refreshTime = Date()
             )
 
             val languageUpdateTime = SettingsManager.getInstance(context).languageUpdateLastTimestamp
-            val locationParameters = location.parameters.toMutableMap()
+            val locationParameters = effectiveLocation.parameters.toMutableMap()
 
             // COMPLETE BACK TO YESTERDAY 00:00 MAX
             // TODO: Use Calendar to handle DST
             val yesterdayMidnight = Date(Date().time - 1.days.inWholeMilliseconds)
-                .getIsoFormattedDate(location)
-                .toDateNoHour(location.timeZone)!!
+                .getIsoFormattedDate(effectiveLocation)
+                .toDateNoHour(effectiveLocation.timeZone)!!
             var forecastUpdateTime = base.forecastUpdateTime
             var currentUpdateTime = base.currentUpdateTime
             var airQualityUpdateTime = base.airQualityUpdateTime
@@ -651,7 +652,7 @@ class RefreshHelper @Inject constructor(
             // Can't return from inside `async`
             if (!context.isOnline()) {
                 return WeatherResult(
-                    location.weather,
+                    effectiveLocation.weather,
                     listOf(
                         RefreshError(RefreshErrorType.NETWORK_UNAVAILABLE)
                     )
@@ -719,8 +720,8 @@ class RefreshHelper @Inject constructor(
                                                 }
                                             }
                                             .filter {
-                                                // Remove sources that no longer supports the feature for that location
-                                                if (!service.isFeatureSupportedForLocation(location, it)) {
+                                                // Remove sources that no longer supports the feature for that effectiveLocation
+                                                if (!service.isFeatureSupportedForLocation(effectiveLocation, it)) {
                                                     errors.add(
                                                         RefreshError(
                                                             RefreshErrorType.UNSUPPORTED_FEATURE,
@@ -736,7 +737,7 @@ class RefreshHelper @Inject constructor(
                                                 service !is HttpSource ||
                                                     ignoreCaching ||
                                                     !isWeatherDataStillValid(
-                                                        location,
+                                                        effectiveLocation,
                                                         it,
                                                         isRestricted = !BreezyWeather.instance.debugMode &&
                                                             service is ConfigurableSource &&
@@ -751,7 +752,7 @@ class RefreshHelper @Inject constructor(
                                             sourceCalls[entry.key] = try {
                                                 if (service is LocationParametersSource &&
                                                     service.needsLocationParametersRefresh(
-                                                        location,
+                                                        effectiveLocation,
                                                         coordinatesChanged,
                                                         featuresToUpdate
                                                     )
@@ -762,7 +763,7 @@ class RefreshHelper @Inject constructor(
                                                         }
                                                         putAll(
                                                             service
-                                                                .requestLocationParameters(context, location.copy())
+                                                                .requestLocationParameters(context, effectiveLocation.copy())
                                                                 .awaitFirstOrElse {
                                                                     throw WeatherException()
                                                                 }
@@ -772,7 +773,7 @@ class RefreshHelper @Inject constructor(
                                                 service
                                                     .requestWeather(
                                                         context,
-                                                        location.copy(parameters = locationParameters),
+                                                        effectiveLocation.copy(parameters = locationParameters),
                                                         featuresToUpdate
                                                     ).awaitFirstOrElse {
                                                         featuresToUpdate.forEach {
