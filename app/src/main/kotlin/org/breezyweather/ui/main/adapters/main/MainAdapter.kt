@@ -110,6 +110,8 @@ class MainAdapter(
             }
             mViewTypeList.add(ViewType.HEADER)
             val isTv = activity.isTelevisionDevice()
+            // Ecuador: polen y visibilidad no tienen fuente local fiable; no se muestran sus tarjetas.
+            val isEcuador = location?.countryCode.equals("EC", ignoreCase = true)
             val enabledCardDisplayList = mutableListOf<CardDisplay>()
             // Todas las tarjetas configuradas se muestran. Solo se omiten las que no pueden existir:
             // Nowcast sin datos por minuto y pronósticos sin días. Las tarjetas métricas, Sol y Luna
@@ -126,6 +128,9 @@ class MainAdapter(
                 // TV: la tarjeta de Polen se retira del Home (no se crea su vista ni consume memoria).
                 // Teléfono y tableta conservan la tarjeta según la configuración del usuario.
                 if (isTv && c === CardDisplay.CARD_POLLEN) {
+                    continue
+                }
+                if (isEcuador && (c === CardDisplay.CARD_POLLEN || c === CardDisplay.CARD_VISIBILITY)) {
                     continue
                 }
                 enabledCardDisplayList.add(c)
