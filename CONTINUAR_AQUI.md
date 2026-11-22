@@ -1,6 +1,25 @@
 # Continuar aquí — Alerta EC
 
-Actualizado: 2026-11-20 · Versión publicada: **v0.1.15 (versionCode 116)** · tag `v0.1.15`
+Actualizado: 2026-11-22 · Versión publicada: **v0.1.16 (versionCode 117)** · tag `v0.1.16`
+
+## 0. Cierre de v0.1.16 (2026-11-22)
+
+Publicada desde `wip/v0116-intro` (tag sobre `c2e172a3d`). Release: https://github.com/clicktvdigital/Alerta-EC/releases/tag/v0.1.16. Instalada y verificada antes del tag en el TV (192.168.100.11) y el celular (192.168.100.164): 0.1.16/117, 10 canales `_v4`, sin crashes ni ANR, intro en frío correcto en el TV.
+
+- **Intro:** vuelve a salir al regresar desde el lanzador del TV (contador de actividades + ventana de 3 s; verificado con traza y grabación).
+- **Sonidos:** el tono de cada canal se guarda por nombre (`/raw/<tono>`), no por id numérico (los ids se corren entre compilaciones y en el TV sonaba el tono de otro fenómeno). Canales `_v4`; se borran `_v1`, `_v2` y `_v3`.
+- **Notificaciones repetidas:** el deduplicador recortaba un StringSet sin orden con `takeLast(100)` y olvidaba eventos al azar (333 avisos en un día en el TV). Ahora el historial está ordenado (`id|epoch`), caduca a las 48 h y guarda hasta 300. Cola informativa: una cada 2 h. El pluviómetro EPMAPS tiene una ventana de 6 h (antes su ID era fijo).
+- **Otros:** el actualizador elige el APK por ABI y flavor; en Ecuador no se muestran polen ni visibilidad; pluviómetros EPMAPS en el encabezado; km/h por defecto; nombre del lugar sin partes repetidas.
+- **Build:** se revirtió `7c2ed636d` (KSP inexistente). El fallo de `kotlin-stdlib` en buildSrc es una caída intermitente del repositorio: reintentar, no tocar versiones.
+
+**Pendiente de decidir (sale así en v0.1.16):**
+1. TV: sonido, voz y aviso desde WATCH. Antes era desde WARNING, y el comentario de `AlertaEcNotifier` todavía dice WARNING.
+2. La lluvia suena desde 0,2 mm/h (propuesta: desde 1 mm/h; por debajo, en silencio).
+3. «Cochapamba» fijo en `Location.getPlace` y `AlertaEcWeatherAdapter` (propuesta: quitarlo y usar «Corregir mi zona»).
+4. Migración forzada a metno en Ecuador en `RefreshHelper`, que pisa la fuente elegida por el usuario.
+5. Fallo en TV: `canNotifyEvent` comprueba un canal distinto del que usa `sendNotification` (no aplica el filtro de gravedad).
+6. La cola informativa guarda un solo lugar: con varios lugares se vacía.
+7. Sin comprobar en pantalla: que en Ecuador no salgan las tarjetas de polen y visibilidad.
 
 ## 0. Cierre de v0.1.15 (2026-11-20)
 
