@@ -220,8 +220,8 @@ object Notifications {
             ).filter { notificationManager.getNotificationChannel(it.id) == null }
         )
 
-        // The *_v1 sound channels were replaced by *_v2 but never deleted: every channel showed twice in the
-        // system settings (phone, 2026-11-20). Remove the obsolete ones.
+        // Obsolete sound channels: *_v1 (showed twice in the system settings, phone 2026-11-20) and *_v2 (their sound
+        // was saved as a numeric resource id that later builds point at another tone, TV 2026-11-21).
         listOf(
             AlertaEcNotificationAppearance.SOUND_RAIN, AlertaEcNotificationAppearance.SOUND_STORM,
             AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE, AlertaEcNotificationAppearance.SOUND_VOLCANIC,
@@ -230,8 +230,8 @@ object Notifications {
             AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE_NO_VIBRATION,
             AlertaEcNotificationAppearance.SOUND_VOLCANIC_NO_VIBRATION,
             AlertaEcNotificationAppearance.SOUND_CRITICAL_NO_VIBRATION,
-        ).filter { it.endsWith("_v2") }
-            .map { it.removeSuffix("_v2") + "_v1" }
+        ).filter { it.endsWith("_v3") }
+            .flatMap { id -> listOf("_v1", "_v2").map { id.removeSuffix("_v3") + it } }
             .forEach { notificationManager.deleteNotificationChannel(it) }
 
         // Several channels shared one name («Precipitación» ×3, «Alertas meteorológicas graves» ×6…), so the system
@@ -277,7 +277,12 @@ object Notifications {
             setName(context.getString(name))
             setGroup(GROUP_BREEZY_WEATHER)
             setSound(
-                Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.packageName + "/" + resource),
+                // By name, not by numeric id: the channel keeps this URI forever, and R.raw ids shift between builds
+                // (the TV channels made by an older build played another phenomenon's tone, 2026-11-21).
+                Uri.parse(
+                    ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.packageName + "/raw/" +
+                        context.resources.getResourceEntryName(resource)
+                ),
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
