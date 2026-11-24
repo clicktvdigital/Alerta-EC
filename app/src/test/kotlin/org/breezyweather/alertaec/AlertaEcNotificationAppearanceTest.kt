@@ -45,7 +45,7 @@ class AlertaEcNotificationAppearanceTest {
         AlertaEcNotificationAppearance.soundResource(AlertaEcSoundProfile.RAIN.silentVibrationChannelId) shouldBe R.raw.alertaec_intro_rain
         val patterns = AlertaEcSoundProfile.entries.map { it.vibration.toList() }
         patterns.distinct().size shouldBe patterns.size
-        AlertaEcSoundProfile.entries.all { it.channelId.endsWith("_v4") } shouldBe true
+        AlertaEcSoundProfile.entries.all { it.channelId.endsWith("_v5") } shouldBe true
         AlertaEcNotificationAppearance.OBSOLETE_SOUND_CHANNELS.none { id ->
             AlertaEcSoundProfile.entries.any { it.channelId == id || it.silentVibrationChannelId == id }
         } shouldBe true

@@ -30,7 +30,9 @@ internal enum class AlertaEcSoundProfile(
     companion object {
         // v4: v3 rain channel could be created without its sound (system default tone), and phenomena
         // shared a single 180 ms vibration.
-        const val CHANNEL_VERSION = "v4"
+        // v5: the channel stores the tone by resource NAME (android.resource://pkg/raw/name). v4 stored the
+        // numeric id, which shifts whenever raw resources change, leaving frozen channels on a wrong/missing tone.
+        const val CHANNEL_VERSION = "v5"
 
         fun forPhenomenon(phenomenon: AlertaEcPhenomenon): AlertaEcSoundProfile? = when (phenomenon) {
             AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN -> RAIN
@@ -74,6 +76,8 @@ internal object AlertaEcNotificationAppearance {
     /** Channels of previous versions; deleted so Android settings only list the current ones. */
     val OBSOLETE_SOUND_CHANNELS = listOf("rain", "storm", "flood_landslide", "volcanic", "critical").flatMap {
         listOf("alertaec_sound_${it}_v3", "alertaec_sound_${it}_no_vibration_v3")
+    } + AlertaEcSoundProfile.entries.flatMap {
+        listOf("alertaec_sound_${it.key}_v4", "alertaec_sound_${it.key}_no_vibration_v4")
     }
 
     // Only official provider severity authorizes an intrusive channel.

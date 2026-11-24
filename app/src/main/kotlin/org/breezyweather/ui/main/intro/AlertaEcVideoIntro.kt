@@ -8,8 +8,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.media.AudioManager
 import android.media.MediaCodecList
 import android.media.MediaPlayer
@@ -31,6 +29,8 @@ import androidx.core.view.updateLayoutParams
 
 /**
  * Intro común a los 3 perfiles: logo inicial Full HD (1300 ms) → video → logo final Full HD (1300 ms) → Home.
+ * Exactamente 2 apariciones del logo: el video ya no trae logo propio al final (recortado a 8 s) y no hay
+ * fondo con el logo detrás del video. Logo y video se muestran completos (FIT_CENTER / proporción nativa).
  * - Android TV: logo 1920×1080 + video horizontal 1920×1080.
  * - TV Box (o TV con pocos recursos): logo 1920×1080 + video horizontal 1280×720.
  * - Celular: logo vertical 1080×1920 + video vertical 720×1280.
@@ -55,7 +55,6 @@ internal object AlertaEcVideoIntro {
     private var activeVideo: VideoView? = null
     private var activeRoot: FrameLayout? = null
     private var activeSplash: ImageView? = null
-    private var activeBackdrop: ImageView? = null
     private var activeSkip: View? = null
     private var pendingTimeout: Runnable? = null
     private var pendingHold: Runnable? = null
@@ -76,29 +75,6 @@ internal object AlertaEcVideoIntro {
         val navigationBarColor: Int,
         val navigationBarContrastEnforced: Boolean?,
     )
-
-    private fun applyVideoFillScale(view: VideoView, profile: IntroDeviceProfile, videoWidth: Int, videoHeight: Int) {
-        if (profile != IntroDeviceProfile.PHONE || videoWidth <= 0 || videoHeight <= 0) {
-            view.scaleX = 1f
-            view.scaleY = 1f
-            return
-        }
-        view.post {
-            val vw = view.width
-            val vh = view.height
-            if (vw <= 0 || vh <= 0) return@post
-            val viewRatio = vw.toFloat() / vh.toFloat()
-            val videoRatio = videoWidth.toFloat() / videoHeight.toFloat()
-            if (videoRatio <= 0f || viewRatio <= 0f) return@post
-            if (videoRatio < viewRatio) {
-                view.scaleX = viewRatio / videoRatio
-                view.scaleY = 1f
-            } else {
-                view.scaleX = 1f
-                view.scaleY = videoRatio / viewRatio
-            }
-        }
-    }
 
     private fun log(message: String) {
         Log.println(Log.INFO, TAG, message)
@@ -144,30 +120,14 @@ internal object AlertaEcVideoIntro {
 
     /**
      * Logo de apertura y cierre. FIT_CENTER sin padding: el arte (alas del cóndor incluidas) nunca se recorta.
-     * El espacio sobrante no queda negro: lo cubre [createBackdropView].
+     * El espacio sobrante muestra el color institucional [BRAND_BG] del contenedor, nunca otra copia del logo.
      */
     private fun createBrandSplashView(context: Context, logo: Int): ImageView =
         ImageView(context).apply {
             setImageResource(logo)
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = false
             setBackgroundColor(Color.TRANSPARENT)
-        }
-
-    /**
-     * Fondo a pantalla completa con el mismo arte ampliado, oscurecido (y desenfocado en Android 12+).
-     * Rellena las franjas del logo vertical y del video 9:16 en vez de dejarlas negras.
-     */
-    private fun createBackdropView(context: Context, logo: Int): ImageView =
-        ImageView(context).apply {
-            setBackgroundColor(BRAND_BG)
-            setImageResource(logo)
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setColorFilter(0x99061630.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setRenderEffect(RenderEffect.createBlurEffect(48f, 48f, Shader.TileMode.CLAMP))
-            }
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
 
     fun play(
@@ -209,12 +169,10 @@ internal object AlertaEcVideoIntro {
         }
         log("Recursos: logo=${logo.first}, video=${video.first}")
         val view = VideoView(context)
-        val backdrop = createBackdropView(context, logo.second)
         val splashView = createBrandSplashView(context, logo.second)
         activeVideo = view
         activeRoot = frame
         activeSplash = splashView
-        activeBackdrop = backdrop
         activeSkip = skip
         phase = Phase.INITIAL_LOGO
         videoPrepared = false
@@ -273,7 +231,7 @@ internal object AlertaEcVideoIntro {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ).apply { gravity = Gravity.CENTER }
             }
-            frame.addView(backdrop, fullScreen())
+            // Sin capa de fondo con el logo: entre los dos logos solo se ve el video.
             // El VideoView debe estar VISIBLE desde el inicio: un SurfaceView invisible no crea su superficie
             // y el video nunca se prepara (la intro terminaba por timeout sin video ni logo final).
             // Queda tapado por el logo opaco hasta que arranca la reproducción.
@@ -330,10 +288,9 @@ internal object AlertaEcVideoIntro {
                     pendingAudioFallback = audioFallback
                     handler.postDelayed(audioFallback, LOGO_HOLD_MS + AUDIO_FALLBACK_MS)
                 }
-                player.setOnVideoSizeChangedListener { _, w, h ->
-                    applyVideoFillScale(view, profile, w, h)
-                }
-                applyVideoFillScale(view, profile, player.videoWidth, player.videoHeight)
+                // Sin escalado artificial: VideoView conserva la proporción y muestra el encuadre completo.
+                view.scaleX = 1f
+                view.scaleY = 1f
                 videoDurationMs = player.duration.takeIf { it > 0 }?.toLong()
                 videoPrepared = true
                 log("Video preparado (${player.videoWidth}x${player.videoHeight}, ${videoDurationMs ?: "?"} ms, sonido=$soundEnabled)")
@@ -426,8 +383,6 @@ internal object AlertaEcVideoIntro {
         runCatching { view.stopPlayback() }
         view.visibility = View.GONE
         activeSkip?.visibility = View.GONE
-        activeBackdrop?.animate()?.cancel()
-        activeBackdrop?.visibility = View.GONE
         val splash = activeSplash ?: return stop()
         log("Etapa 3: logo final durante $LOGO_HOLD_MS ms")
         splash.animate().cancel()
@@ -517,12 +472,10 @@ internal object AlertaEcVideoIntro {
         val video = activeVideo
         val root = activeRoot
         val splash = activeSplash
-        val backdrop = activeBackdrop
         val skip = activeSkip
         activeVideo = null
         activeRoot = null
         activeSplash = null
-        activeBackdrop = null
         activeSkip = null
         paused = false
         if (video != null) log("Intro detenida y retirada (fase $phase): transición al Home")
@@ -530,7 +483,6 @@ internal object AlertaEcVideoIntro {
         if (root != null) {
             if (video != null) root.removeView(video)
             if (splash != null) root.removeView(splash)
-            if (backdrop != null) root.removeView(backdrop)
             ViewCompat.setOnApplyWindowInsetsListener(root, null)
             root.alpha = 1f
             root.visibility = View.GONE

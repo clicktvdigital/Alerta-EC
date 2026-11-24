@@ -238,8 +238,19 @@ object Notifications {
         }
     }
 
-    internal fun alertaEcSoundUri(context: Context, resource: Int): Uri =
-        Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.packageName + "/" + resource)
+    /**
+     * Tone URI by resource name (android.resource://pkg/raw/name): stable across builds, unlike the numeric id
+     * that a frozen notification channel would otherwise keep pointing at after raw resources change.
+     */
+    internal fun alertaEcSoundUri(context: Context, resource: Int): Uri {
+        val res = context.resources
+        return Uri.Builder()
+            .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+            .authority(context.packageName)
+            .appendPath(res.getResourceTypeName(resource))
+            .appendPath(res.getResourceEntryName(resource))
+            .build()
+    }
 
     private fun vibrationChannel(context: Context, id: String, importance: Int, name: Int): NotificationChannelCompat =
         buildNotificationChannel(id, importance) {

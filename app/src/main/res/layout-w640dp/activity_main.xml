@@ -46,4 +46,11 @@
 
     </org.breezyweather.ui.common.widgets.DrawerLayout>
 
+    <!-- Android TV / pantallas anchas: sin esta capa MainActivity.onCreate fallaba (findViewById nulo). -->
+    <include
+        android:id="@+id/alerta_ec_intro_layer"
+        layout="@layout/alerta_ec_intro"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
