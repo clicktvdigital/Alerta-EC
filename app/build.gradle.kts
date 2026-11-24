@@ -24,8 +24,8 @@ configure<ApplicationExtension> {
 
     defaultConfig {
         applicationId = "com.clicktvdigital.alertaec"
-        versionCode = 122
-        versionName = "0.1.20"
+        versionCode = 123
+        versionName = "0.1.21"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
