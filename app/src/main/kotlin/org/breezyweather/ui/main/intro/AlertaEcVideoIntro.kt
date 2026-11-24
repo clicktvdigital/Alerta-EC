@@ -77,6 +77,29 @@ internal object AlertaEcVideoIntro {
         val navigationBarContrastEnforced: Boolean?,
     )
 
+    private fun applyVideoFillScale(view: VideoView, profile: IntroDeviceProfile, videoWidth: Int, videoHeight: Int) {
+        if (profile != IntroDeviceProfile.PHONE || videoWidth <= 0 || videoHeight <= 0) {
+            view.scaleX = 1f
+            view.scaleY = 1f
+            return
+        }
+        view.post {
+            val vw = view.width
+            val vh = view.height
+            if (vw <= 0 || vh <= 0) return@post
+            val viewRatio = vw.toFloat() / vh.toFloat()
+            val videoRatio = videoWidth.toFloat() / videoHeight.toFloat()
+            if (videoRatio <= 0f || viewRatio <= 0f) return@post
+            if (videoRatio < viewRatio) {
+                view.scaleX = viewRatio / videoRatio
+                view.scaleY = 1f
+            } else {
+                view.scaleX = 1f
+                view.scaleY = videoRatio / viewRatio
+            }
+        }
+    }
+
     private fun log(message: String) {
         Log.println(Log.INFO, TAG, message)
     }
@@ -126,7 +149,7 @@ internal object AlertaEcVideoIntro {
     private fun createBrandSplashView(context: Context, logo: Int): ImageView =
         ImageView(context).apply {
             setImageResource(logo)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
             adjustViewBounds = false
             setBackgroundColor(Color.TRANSPARENT)
         }
@@ -307,6 +330,10 @@ internal object AlertaEcVideoIntro {
                     pendingAudioFallback = audioFallback
                     handler.postDelayed(audioFallback, LOGO_HOLD_MS + AUDIO_FALLBACK_MS)
                 }
+                player.setOnVideoSizeChangedListener { _, w, h ->
+                    applyVideoFillScale(view, profile, w, h)
+                }
+                applyVideoFillScale(view, profile, player.videoWidth, player.videoHeight)
                 videoDurationMs = player.duration.takeIf { it > 0 }?.toLong()
                 videoPrepared = true
                 log("Video preparado (${player.videoWidth}x${player.videoHeight}, ${videoDurationMs ?: "?"} ms, sonido=$soundEnabled)")
@@ -399,13 +426,14 @@ internal object AlertaEcVideoIntro {
         runCatching { view.stopPlayback() }
         view.visibility = View.GONE
         activeSkip?.visibility = View.GONE
+        activeBackdrop?.animate()?.cancel()
+        activeBackdrop?.visibility = View.GONE
         val splash = activeSplash ?: return stop()
         log("Etapa 3: logo final durante $LOGO_HOLD_MS ms")
         splash.animate().cancel()
         splash.visibility = View.VISIBLE
-        splash.alpha = 0f
+        splash.alpha = 1f
         splash.bringToFront()
-        splash.animate().alpha(1f).setDuration(LOGO_FADE_MS).start()
         scheduleTimeout(Runnable { finish(view) }, LOGO_FADE_MS + LOGO_HOLD_MS)
     }
 
