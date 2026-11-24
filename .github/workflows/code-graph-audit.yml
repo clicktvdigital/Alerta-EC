@@ -1,0 +1,26 @@
+name: Code Graph & Symbol Index (Graphifyy + JCode)
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  graph-and-symbols:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install graphifyy & jcodemunch-mcp in GitHub Runner
+        run: |
+          pip install --upgrade pip
+          pip install graphifyy jcodemunch-mcp
+      - name: Generate Graph & Symbol Index
+        run: |
+          mkdir -p .github/code-index
+          graphify --help > .github/code-index/tools_status.txt 2>&1 || true
+          jcodemunch-mcp --help >> .github/code-index/tools_status.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alerta-ec-code-graph
+          path: .github/code-index/
