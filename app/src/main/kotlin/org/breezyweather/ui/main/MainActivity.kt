@@ -673,7 +673,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                 },
                 text = {
                     LazyColumn {
-                        items(viewModel.snackbarError.value!!) {
+                        items(viewModel.snackbarError.value.orEmpty()) {
                             val source = it.getSourceWithOptionalFeature(this@MainActivity, sourceManager)
                             val message = this@MainActivity.getString(it.error.shortMessage)
 

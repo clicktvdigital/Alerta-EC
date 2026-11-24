@@ -330,7 +330,9 @@ internal object AlertaEcVideoIntro {
             view.setVideoURI(
                 Uri.parse("android.resource://${context.packageName}/${video.second}")
             )
-            view.requestFocus()
+            // Android TV: el foco va al botón «Omitir» para que el control remoto (OK) pueda saltar la intro.
+            skip.isFocusable = true
+            skip.requestFocus()
         } catch (e: RuntimeException) {
             log("Error al iniciar la intro: ${e.javaClass.simpleName}: ${e.message}")
             stop()
@@ -495,7 +497,7 @@ internal object AlertaEcVideoIntro {
         activeBackdrop = null
         activeSkip = null
         paused = false
-        if (video != null) log("Intro detenida y retirada (fase $phase)")
+        if (video != null) log("Intro detenida y retirada (fase $phase): transición al Home")
         runCatching { video?.stopPlayback() }
         if (root != null) {
             if (video != null) root.removeView(video)
@@ -504,6 +506,8 @@ internal object AlertaEcVideoIntro {
             ViewCompat.setOnApplyWindowInsetsListener(root, null)
             root.alpha = 1f
             root.visibility = View.GONE
+            // Android TV: sin esto el Home podía quedar sin vista enfocada y el D-pad no respondía.
+            root.rootView?.let { decor -> if (decor.findFocus() == null) decor.requestFocus(View.FOCUS_DOWN) }
         }
         previousSkipMargins?.let { base ->
             skip?.updateLayoutParams<ViewGroup.MarginLayoutParams> { setMargins(base[0], base[1], base[2], base[3]) }
