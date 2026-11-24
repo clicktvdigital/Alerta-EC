@@ -335,6 +335,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
 
     override fun onResume() {
         super.onResume()
+        AlertaEcIntroController.resume()
         // Resume enabled forecasts after the notification permission is granted.
         if (hasNotificationPermission) {
             TodayForecastNotificationJob.setupTask(this, false, keepExisting = true)
@@ -343,8 +344,14 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     }
 
     override fun onPause() {
-        AlertaEcIntroController.stop()
+        // Un diálogo de permisos solo pausa la intro; al salir de la app (onStop) se retira.
+        AlertaEcIntroController.pause()
         super.onPause()
+    }
+
+    override fun onStop() {
+        AlertaEcIntroController.stop()
+        super.onStop()
     }
 
     override fun onDestroy() {

@@ -28,6 +28,16 @@ object AlertaEcIntroController {
         IntroAudioPlayback.stop()
     }
 
+    /** Diálogos (permisos) pausan la intro; no la cierran a medias. */
+    fun pause() {
+        AlertaEcVideoIntro.pause()
+        IntroAudioPlayback.stop()
+    }
+
+    fun resume() {
+        AlertaEcVideoIntro.resume()
+    }
+
     fun play(
         root: View,
         terrain: View,
