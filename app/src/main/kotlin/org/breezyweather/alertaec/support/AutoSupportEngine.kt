@@ -242,16 +242,15 @@ internal object AutoSupportEngine {
                         "Diagnostico completado con ${report.pendingCount} problemas pendientes"
                     }
                     append(base)
-                    val pendingDetails = report.items.filter { !it.passed }.map { item ->
-                        "• ${item.description}: ${item.detail}"
-                    }
+                    val pendingDetails = report.checks
+                        .filter { it.result == AutoSupportResult.PENDIENTE || it.result == AutoSupportResult.ERROR }
+                        .map { item -> "- ${item.description}: ${item.detail}" }
                     if (pendingDetails.isNotEmpty()) {
-                        append("
-
-Detalle detectado:
-")
-                        append(pendingDetails.joinToString("
-"))
+                        append(System.lineSeparator())
+                        append(System.lineSeparator())
+                        append("Detalle detectado:")
+                        append(System.lineSeparator())
+                        append(pendingDetails.joinToString(System.lineSeparator()))
                     }
                 },
             )

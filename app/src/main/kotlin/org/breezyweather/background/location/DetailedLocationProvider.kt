@@ -50,8 +50,14 @@ class DetailedLocationProvider @Inject constructor(
             fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
         }.flatMap { results ->
             val mapped = results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
-            if (mapped != null && (mapped.sector.isNotBlank() || mapped.city.isNotBlank())) {
-                Observable.just(mapped)
+            val hasDetail = mapped != null && (
+                !mapped.sector.isNullOrBlank() ||
+                !mapped.neighborhood.isNullOrBlank() ||
+                !mapped.canton.isNullOrBlank() ||
+                !mapped.locality.isNullOrBlank()
+            )
+            if (hasDetail) {
+                Observable.just(mapped!!)
             } else {
                 fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
                     .map { fb -> fb.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo) ?: mapped ?: DetailedLocationAddress() }
