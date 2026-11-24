@@ -4,29 +4,77 @@ import org.breezyweather.R
 import breezyweather.domain.weather.model.Minutely
 import breezyweather.domain.weather.reference.AlertSeverity
 
+/**
+ * Natural sound + vibration identity of each phenomenon. A notification channel freezes its sound and
+ * vibration when it is first created, so every change of sound/pattern must bump [CHANNEL_VERSION].
+ */
+internal enum class AlertaEcSoundProfile(
+    val key: String,
+    val sound: Int,
+    val vibration: LongArray,
+    val highImportance: Boolean,
+) {
+    RAIN("rain", R.raw.alertaec_intro_rain, longArrayOf(0, 120, 90, 120, 90, 120), false),
+    STORM("storm", R.raw.alertaec_intro_storm, longArrayOf(0, 600, 180, 220, 120, 220), false),
+    HAIL("hail", R.raw.alertaec_tono_granizo, longArrayOf(0, 60, 40, 60, 40, 60, 40, 60, 40, 60), true),
+    WIND("wind", R.raw.alertaec_intro_wind, longArrayOf(0, 800, 300, 800), false),
+    SEISMIC("seismic", R.raw.alertaec_intro_seismic, longArrayOf(0, 100, 50, 100, 50, 100, 50, 700), true),
+    FLOOD_LANDSLIDE("flood_landslide", R.raw.alertaec_tono_inundacion_deslizamiento_grave, longArrayOf(0, 500, 200, 500), true),
+    VOLCANIC("volcanic", R.raw.alertaec_tono_actividad_volcanica, longArrayOf(0, 700, 250, 700), true),
+    CRITICAL("critical", R.raw.alertaec_tono_emergencia_critica, longArrayOf(0, 500, 200, 500, 200, 500), true),
+    ;
+
+    val channelId: String get() = "alertaec_sound_${key}_$CHANNEL_VERSION"
+    val silentVibrationChannelId: String get() = "alertaec_sound_${key}_no_vibration_$CHANNEL_VERSION"
+
+    companion object {
+        // v4: v3 rain channel could be created without its sound (system default tone), and phenomena
+        // shared a single 180 ms vibration.
+        const val CHANNEL_VERSION = "v4"
+
+        fun forPhenomenon(phenomenon: AlertaEcPhenomenon): AlertaEcSoundProfile? = when (phenomenon) {
+            AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN -> RAIN
+            AlertaEcPhenomenon.THUNDERSTORM, AlertaEcPhenomenon.TROPICAL_CYCLONE -> STORM
+            AlertaEcPhenomenon.HAIL, AlertaEcPhenomenon.SNOW -> HAIL
+            AlertaEcPhenomenon.STRONG_WIND -> WIND
+            AlertaEcPhenomenon.EARTHQUAKE, AlertaEcPhenomenon.TSUNAMI -> SEISMIC
+            AlertaEcPhenomenon.FLOOD, AlertaEcPhenomenon.LANDSLIDE -> FLOOD_LANDSLIDE
+            AlertaEcPhenomenon.VOLCANIC_ACTIVITY, AlertaEcPhenomenon.WILDFIRE -> VOLCANIC
+            else -> null
+        }
+
+        fun forChannel(channelId: String): AlertaEcSoundProfile? =
+            entries.firstOrNull { it.channelId == channelId || it.silentVibrationChannelId == channelId }
+    }
+}
+
 internal object AlertaEcNotificationAppearance {
     const val PRECIPITATION = "weather_precipitation"
     const val PRECIPITATION_IMMINENT = "weather_precipitation_v3"
     const val SEVERE = "weather_severe"
     const val EXTREME = "weather_extreme"
 
-    // Versioned because Android channel sound settings are immutable after creation.
-    const val SOUND_RAIN = "alertaec_sound_rain_v3"
-    const val SOUND_STORM = "alertaec_sound_storm_v3"
-    const val SOUND_FLOOD_LANDSLIDE = "alertaec_sound_flood_landslide_v3"
-    const val SOUND_VOLCANIC = "alertaec_sound_volcanic_v3"
-    const val SOUND_CRITICAL = "alertaec_sound_critical_v3"
-    const val SOUND_RAIN_NO_VIBRATION = "alertaec_sound_rain_no_vibration_v3"
-    const val SOUND_STORM_NO_VIBRATION = "alertaec_sound_storm_no_vibration_v3"
-    const val SOUND_FLOOD_LANDSLIDE_NO_VIBRATION = "alertaec_sound_flood_landslide_no_vibration_v3"
-    const val SOUND_VOLCANIC_NO_VIBRATION = "alertaec_sound_volcanic_no_vibration_v3"
-    const val SOUND_CRITICAL_NO_VIBRATION = "alertaec_sound_critical_no_vibration_v3"
+    val SOUND_RAIN = AlertaEcSoundProfile.RAIN.channelId
+    val SOUND_STORM = AlertaEcSoundProfile.STORM.channelId
+    val SOUND_HAIL = AlertaEcSoundProfile.HAIL.channelId
+    val SOUND_WIND = AlertaEcSoundProfile.WIND.channelId
+    val SOUND_SEISMIC = AlertaEcSoundProfile.SEISMIC.channelId
+    val SOUND_FLOOD_LANDSLIDE = AlertaEcSoundProfile.FLOOD_LANDSLIDE.channelId
+    val SOUND_VOLCANIC = AlertaEcSoundProfile.VOLCANIC.channelId
+    val SOUND_CRITICAL = AlertaEcSoundProfile.CRITICAL.channelId
+    val SOUND_RAIN_NO_VIBRATION = AlertaEcSoundProfile.RAIN.silentVibrationChannelId
+    val SOUND_CRITICAL_NO_VIBRATION = AlertaEcSoundProfile.CRITICAL.silentVibrationChannelId
     const val VIBRATION_FORECAST = "alertaec_vibration_forecast_v1"
     const val VIBRATION_SEVERE = "alertaec_vibration_severe_v1"
     const val VIBRATION_EXTREME = "alertaec_vibration_extreme_v1"
     // Stable visual-only channels for the both-preferences-disabled case.
     const val SILENT_SEVERE = "alertaec_silent_severe_v1"
     const val SILENT_EXTREME = "alertaec_silent_extreme_v1"
+
+    /** Channels of previous versions; deleted so Android settings only list the current ones. */
+    val OBSOLETE_SOUND_CHANNELS = listOf("rain", "storm", "flood_landslide", "volcanic", "critical").flatMap {
+        listOf("alertaec_sound_${it}_v3", "alertaec_sound_${it}_no_vibration_v3")
+    }
 
     // Only official provider severity authorizes an intrusive channel.
     fun officialChannel(severity: AlertSeverity): String = when (severity) {
@@ -35,23 +83,16 @@ internal object AlertaEcNotificationAppearance {
         else -> "forecast"
     }
 
-    /** Selects a sound only from an already-supported phenomenon/severity pair. */
-    fun officialSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertSeverity): String? = when {
-        severity == AlertSeverity.EXTREME -> SOUND_CRITICAL
-        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.FLOOD -> SOUND_FLOOD_LANDSLIDE
-        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.LANDSLIDE -> SOUND_FLOOD_LANDSLIDE
-        severity == AlertSeverity.SEVERE && phenomenon == AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> SOUND_VOLCANIC
+    /** Official alerts play the sound of their phenomenon; extreme ones always use the critical tone. */
+    fun officialSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertSeverity): String? = when (severity) {
+        AlertSeverity.EXTREME -> SOUND_CRITICAL
+        AlertSeverity.SEVERE, AlertSeverity.MODERATE -> AlertaEcSoundProfile.forPhenomenon(phenomenon)?.channelId
         else -> null
     }
 
-    fun eventSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertaEcSeverity): String? = when {
-        severity == AlertaEcSeverity.EMERGENCY -> SOUND_CRITICAL
-        severity == AlertaEcSeverity.WARNING && phenomenon in setOf(AlertaEcPhenomenon.FLOOD, AlertaEcPhenomenon.LANDSLIDE) -> SOUND_FLOOD_LANDSLIDE
-        severity == AlertaEcSeverity.WARNING && phenomenon == AlertaEcPhenomenon.VOLCANIC_ACTIVITY -> SOUND_VOLCANIC
-        severity <= AlertaEcSeverity.ADVISORY && phenomenon == AlertaEcPhenomenon.THUNDERSTORM -> SOUND_STORM
-        severity <= AlertaEcSeverity.ADVISORY && phenomenon in setOf(AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN) -> SOUND_RAIN
-        else -> null
-    }
+    fun eventSoundChannel(phenomenon: AlertaEcPhenomenon, severity: AlertaEcSeverity): String? =
+        if (severity == AlertaEcSeverity.EMERGENCY) SOUND_CRITICAL
+        else AlertaEcSoundProfile.forPhenomenon(phenomenon)?.channelId
 
     fun eventChannel(severity: AlertaEcSeverity): String = when (severity) {
         AlertaEcSeverity.EMERGENCY -> EXTREME
@@ -59,19 +100,12 @@ internal object AlertaEcNotificationAppearance {
         else -> "forecast"
     }
 
-    fun soundResource(channel: String): Int? = when (channel) {
-        SOUND_RAIN -> R.raw.alertaec_tono_lluvia_informativa
-        SOUND_STORM -> R.raw.alertaec_tono_tormenta_preventiva
-        SOUND_FLOOD_LANDSLIDE -> R.raw.alertaec_tono_inundacion_deslizamiento_grave
-        SOUND_VOLCANIC -> R.raw.alertaec_tono_actividad_volcanica
-        SOUND_CRITICAL -> R.raw.alertaec_tono_emergencia_critica
-        SOUND_RAIN_NO_VIBRATION -> R.raw.alertaec_tono_lluvia_informativa
-        SOUND_STORM_NO_VIBRATION -> R.raw.alertaec_tono_tormenta_preventiva
-        SOUND_FLOOD_LANDSLIDE_NO_VIBRATION -> R.raw.alertaec_tono_inundacion_deslizamiento_grave
-        SOUND_VOLCANIC_NO_VIBRATION -> R.raw.alertaec_tono_actividad_volcanica
-        SOUND_CRITICAL_NO_VIBRATION -> R.raw.alertaec_tono_emergencia_critica
-        else -> null
-    }
+    fun soundResource(channel: String): Int? = AlertaEcSoundProfile.forChannel(channel)?.sound
+
+    /** Vibration of the phenomenon; also applied on the builder for Android < 8. */
+    fun vibrationPattern(phenomenon: AlertaEcPhenomenon, severity: AlertaEcSeverity): LongArray =
+        (if (severity == AlertaEcSeverity.EMERGENCY) AlertaEcSoundProfile.CRITICAL else AlertaEcSoundProfile.forPhenomenon(phenomenon))
+            ?.vibration ?: longArrayOf(0, 180)
 
     fun icon(phenomenon: AlertaEcPhenomenon): Int = when (phenomenon) {
         AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN -> R.drawable.ic_notification_rain

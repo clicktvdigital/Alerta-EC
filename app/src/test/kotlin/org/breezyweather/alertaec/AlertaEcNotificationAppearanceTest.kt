@@ -28,9 +28,27 @@ class AlertaEcNotificationAppearanceTest {
     fun soundsRequireSupportedPhenomenonAndSeverity() {
         AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.FLOOD, AlertSeverity.SEVERE) shouldBe AlertaEcNotificationAppearance.SOUND_FLOOD_LANDSLIDE
         AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.RAIN, AlertSeverity.EXTREME) shouldBe AlertaEcNotificationAppearance.SOUND_CRITICAL
-        AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.RAIN, AlertSeverity.MODERATE) shouldBe null
+        AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.RAIN, AlertSeverity.MODERATE) shouldBe AlertaEcNotificationAppearance.SOUND_RAIN
+        AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.RAIN, AlertSeverity.MINOR) shouldBe null
+        AlertaEcNotificationAppearance.officialSoundChannel(AlertaEcPhenomenon.OTHER, AlertSeverity.SEVERE) shouldBe null
         AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.RAIN, AlertaEcSeverity.INFORMATION) shouldBe AlertaEcNotificationAppearance.SOUND_RAIN
         AlertaEcNotificationAppearance.soundResource("unknown") shouldBe null
+    }
+
+    @Test
+    fun eachPhenomenonHasItsOwnSoundAndVibration() {
+        AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.HAIL, AlertaEcSeverity.WARNING) shouldBe AlertaEcNotificationAppearance.SOUND_HAIL
+        AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.STRONG_WIND, AlertaEcSeverity.WATCH) shouldBe AlertaEcNotificationAppearance.SOUND_WIND
+        AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.THUNDERSTORM, AlertaEcSeverity.WARNING) shouldBe AlertaEcNotificationAppearance.SOUND_STORM
+        AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.HAIL, AlertaEcSeverity.EMERGENCY) shouldBe AlertaEcNotificationAppearance.SOUND_CRITICAL
+        AlertaEcNotificationAppearance.soundResource(AlertaEcNotificationAppearance.SOUND_HAIL) shouldBe R.raw.alertaec_tono_granizo
+        AlertaEcNotificationAppearance.soundResource(AlertaEcSoundProfile.RAIN.silentVibrationChannelId) shouldBe R.raw.alertaec_intro_rain
+        val patterns = AlertaEcSoundProfile.entries.map { it.vibration.toList() }
+        patterns.distinct().size shouldBe patterns.size
+        AlertaEcSoundProfile.entries.all { it.channelId.endsWith("_v4") } shouldBe true
+        AlertaEcNotificationAppearance.OBSOLETE_SOUND_CHANNELS.none { id ->
+            AlertaEcSoundProfile.entries.any { it.channelId == id || it.silentVibrationChannelId == id }
+        } shouldBe true
     }
 
     @Test

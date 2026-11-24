@@ -74,7 +74,8 @@ enum class TemperatureUnit(
         convertToReference = { valueInThisUnit -> valueInThisUnit.times(10.0) },
         convertDeviationFromReference = { valueInDefaultUnit -> valueInDefaultUnit.div(10.0) },
         convertDeviationToReference = { valueInThisUnit -> valueInThisUnit.times(10.0) },
-        decimals = UnitDecimals(narrow = 0, short = 1, long = 1),
+        // Alerta EC: temperatures are always shown as whole numbers.
+        decimals = UnitDecimals(0),
         chartStep = 5.0
     ),
     FAHRENHEIT(
@@ -92,7 +93,7 @@ enum class TemperatureUnit(
         convertToReference = { valueInThisUnit -> 5.0.div(9.0).times(valueInThisUnit - 32.0).times(10.0) },
         convertDeviationFromReference = { valueInDefaultUnit -> 9.0.div(5.0).times(valueInDefaultUnit.div(10.0)) },
         convertDeviationToReference = { valueInThisUnit -> 5.0.div(9.0).times(valueInThisUnit).times(10.0) },
-        decimals = UnitDecimals(narrow = 0, short = 0, long = 1),
+        decimals = UnitDecimals(0),
         chartStep = 10.0
     ),
     KELVIN(

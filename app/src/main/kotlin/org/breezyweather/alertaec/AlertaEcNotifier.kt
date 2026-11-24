@@ -12,6 +12,8 @@ import org.breezyweather.domain.settings.SettingsManager
 import org.breezyweather.common.extensions.formatMeasure
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.temperature.Temperature.Companion.celsius
+import org.breezyweather.unit.temperature.TemperatureUnit
+import kotlin.math.roundToInt
 
 object AlertaEcNotifier {
 
@@ -227,6 +229,15 @@ object AlertaEcNotifier {
             setStyle(NotificationCompat.BigTextStyle().bigText(content))
             setAutoCancel(true)
             setOnlyAlertOnce(true)
+            // Android < 8 ignores channels: apply the phenomenon sound and vibration on the builder.
+            if (settings.isAlertVibrationEnabled) {
+                setVibrate(AlertaEcNotificationAppearance.vibrationPattern(event.phenomenon, event.severity))
+            }
+            if (settings.isAlertSoundEnabled) {
+                AlertaEcNotificationAppearance.eventSoundChannel(event.phenomenon, event.severity)
+                    ?.let(AlertaEcNotificationAppearance::soundResource)
+                    ?.let { setSound(org.breezyweather.remoteviews.Notifications.alertaEcSoundUri(context, it)) }
+            }
             if (event.severity == AlertaEcSeverity.INFORMATION || event.severity == AlertaEcSeverity.ADVISORY) {
                 setTimeoutAfter(30_000L)
                 val dismissIntent = android.content.Intent(
@@ -256,10 +267,18 @@ object AlertaEcNotifier {
         context.notify(notificationId, notification)
         org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
             context,
-            "${event.headline}. ${event.locationName ?: ""}. $compact. ${advice ?: ""}",
+            org.breezyweather.alertaec.accessibility.AlertVoicePolicy.conciseSpeech(
+                phenomenon = event.phenomenon,
+                degrees = spokenDegrees(event.temperatureCelsius, temperatureUnit),
+                celsius = event.feelsLikeCelsius?.takeIf { it.isFinite() } ?: event.temperatureCelsius,
+            ),
             dedupeKey = "event_${event.id}"
         )
     }
+
+    /** Whole-number temperature in the user's unit, for speech. */
+    internal fun spokenDegrees(celsius: Double?, unit: TemperatureUnit): Int? =
+        celsius?.takeIf { it.isFinite() }?.celsius?.toDouble(unit)?.takeIf { it.isFinite() }?.roundToInt()
 
     private fun windDirection(degrees: Int): String = when ((((degrees % 360 + 360) % 360 + 22.5) / 45).toInt() % 8) {
         0 -> "N"

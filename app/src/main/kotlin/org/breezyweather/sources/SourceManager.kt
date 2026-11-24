@@ -473,6 +473,12 @@ class SourceManager @Inject constructor(
         location: Location,
         feature: SourceFeature,
     ): FeatureSource? {
+        if (feature == SourceFeature.FORECAST && isEcuador(location)) {
+            // Alerta EC: fixed order for Ecuador/Quito, never overridden by generic priorities.
+            ECUADOR_FORECAST_PRIORITY.firstNotNullOfOrNull { id ->
+                getWeatherSource(id)?.takeIf { isUsableFor(it, location, feature) }
+            }?.let { return it }
+        }
         return getSupportedFeatureSources(feature, location)
             .filter {
                 it !is RemovedSource &&
@@ -524,20 +530,19 @@ class SourceManager @Inject constructor(
             }
 
             SourceFeature.REVERSE_GEOCODING -> getReverseGeocodingSource("nominatim")
-            else -> {
-                val isEcuador = location.countryCode.equals("EC", ignoreCase = true) ||
-                    (location.latitude in -5.2..1.7 && location.longitude in -92.0..-75.0)
-                if (isEcuador && feature == SourceFeature.FORECAST) {
-                    getWeatherSource("metno")
-                        ?: getWeatherSource("epmaps")
-                        ?: getWeatherSource("inamhi")
-                        ?: getWeatherSource("openmeteo")
-                } else {
-                    getWeatherSource("openmeteo")
-                }
+            else -> if (feature == SourceFeature.FORECAST && isEcuador(location)) {
+                ECUADOR_FORECAST_PRIORITY.firstNotNullOfOrNull { getWeatherSource(it) }
+            } else {
+                getWeatherSource("openmeteo")
             }
         }
     }
+
+    private fun isUsableFor(source: FeatureSource, location: Location, feature: SourceFeature): Boolean =
+        source !is RemovedSource &&
+            source.isFeatureSupportedForLocation(location, feature) &&
+            (source !is ConfigurableSource || (source.isConfigured && !source.isRestricted)) &&
+            (BuildConfig.FLAVOR != "freenet" || source !is NonFreeNetSource)
 
     fun getBestSourceForFeatureOrDefault(
         location: Location,
@@ -554,6 +559,22 @@ class SourceManager @Inject constructor(
                 }
         } else {
             null
+        }
+    }
+
+    companion object {
+        /** Alerta EC order for Ecuador/Quito: MET Norway → EPMAPS Quito → INAMHI → Open-Meteo. */
+        val ECUADOR_FORECAST_PRIORITY = listOf("metno", "epmaps", "inamhi", "openmeteo")
+
+        /**
+         * Ecuador by country code, by coordinates when the address is still unknown, or a GPS location
+         * not located yet (Alerta EC targets Ecuador).
+         */
+        fun isEcuador(location: Location): Boolean {
+            if (location.countryCode.equals("EC", ignoreCase = true)) return true
+            if (!location.countryCode.isNullOrBlank()) return false
+            if (location.isCurrentPosition && location.latitude == 0.0 && location.longitude == 0.0) return true
+            return location.latitude in -5.2..1.7 && location.longitude in -92.0..-75.0
         }
     }
 }

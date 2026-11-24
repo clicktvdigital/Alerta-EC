@@ -261,7 +261,10 @@ data class Location(
     /** A local presentation label; never used to resolve coordinates or weather. */
     val geographicName: String
         get() = if (countryCode.equals("EC", ignoreCase = true)) {
-            listOf(customName?.takeIf { it.isNotBlank() } ?: district, admin4, city)
+            val label = customName?.takeIf { it.isNotBlank() }
+            // A manual label replaces barrio and parish: the stored parish (e.g. a previous
+            // city_district) must not keep appearing next to the user's own name.
+            (if (label != null) listOf(label, city) else listOf(district, admin4, city))
                 .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
                 .distinctBy { it.lowercase(Locale.ROOT) }
                 .joinToString(", ")

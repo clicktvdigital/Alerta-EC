@@ -78,33 +78,81 @@ object AlertVoice {
     private var lastBgSpokenKey: String = ""
     private var lastBgSpokenAt: Long = 0L
     private var bgEngine: TextToSpeech? = null
+    // Separate from [handler]: stop() on activity pause must not cancel background alerts.
+    private val bgHandler = Handler(Looper.getMainLooper())
 
-    fun speakFromBackground(context: Context, text: String, dedupeKey: String = text) {
-        handler.post {
+    /** Lets the phenomenon sound of the notification play before the voice starts. */
+    const val VOICE_AFTER_SOUND_MILLIS = 1_500L
+
+    fun speakFromBackground(
+        context: Context,
+        text: String,
+        dedupeKey: String = text,
+        delayMillis: Long = VOICE_AFTER_SOUND_MILLIS,
+    ) {
+        if (text.isBlank()) return
+        val appCtx = context.applicationContext
+        bgHandler.postDelayed({
             val now = System.currentTimeMillis()
-            if (dedupeKey == lastBgSpokenKey && (now - lastBgSpokenAt) < 90_000L) return@post
-            val settings = SettingsManager.getInstance(context)
-            if (!settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled) return@post
+            if (dedupeKey == lastBgSpokenKey && (now - lastBgSpokenAt) < 90_000L) return@postDelayed
+            val settings = SettingsManager.getInstance(appCtx)
+            if (!settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled) return@postDelayed
             lastBgSpokenKey = dedupeKey
             lastBgSpokenAt = now
-            val appCtx = context.applicationContext
-            bgEngine?.stop()
-            bgEngine?.shutdown()
-            bgEngine = TextToSpeech(appCtx) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    val voice = bgEngine?.voices?.filter {
-                        it.locale.language == "es" &&
-                            android.speech.tts.TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features
-                    }?.sortedBy { if (it.locale.country == "EC") 0 else 1 }?.firstOrNull()
-                    if (voice != null) bgEngine?.voice = voice
-                    else bgEngine?.language = java.util.Locale("es", "EC")
+            releaseBackgroundEngine()
+            var created: TextToSpeech? = null
+            created = TextToSpeech(appCtx) { status ->
+                bgHandler.post {
+                    val tts = created?.takeIf { it === bgEngine } ?: return@post
+                    val voice = if (status == TextToSpeech.SUCCESS) {
+                        tts.voices?.filter {
+                            it.locale.language == "es" &&
+                                TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features
+                        }?.sortedBy { if (it.locale.country == "EC") 0 else 1 }?.firstOrNull()
+                    } else null
+                    val languageReady = voice != null && tts.setVoice(voice) != TextToSpeech.ERROR ||
+                        status == TextToSpeech.SUCCESS &&
+                        tts.setLanguage(java.util.Locale("es", "EC")) >= TextToSpeech.LANG_AVAILABLE
+                    if (!languageReady) {
+                        releaseBackgroundEngine()
+                        android.widget.Toast.makeText(
+                            appCtx,
+                            "Alerta EC: falta una voz en español. Instala Google Speech Services (Servicios de voz de Google).",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                        return@post
+                    }
+                    tts.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                    tts.setSpeechRate(AlertVoicePolicy.speechRate(1.0f))
+                    tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) = Unit
+                        override fun onDone(utteranceId: String?) { bgHandler.post { if (bgEngine === tts) releaseBackgroundEngine() } }
+                        @Deprecated("Required by Android")
+                        override fun onError(utteranceId: String?) { bgHandler.post { if (bgEngine === tts) releaseBackgroundEngine() } }
+                    })
                     val params = android.os.Bundle().apply {
                         putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
                     }
-                    bgEngine?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "alertaec_bg_utterance")
+                    if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "alertaec_bg_utterance") == TextToSpeech.ERROR) {
+                        releaseBackgroundEngine()
+                    }
                 }
             }
-        }
+            bgEngine = created
+            // Never keep the engine alive if the utterance callbacks are lost.
+            bgHandler.postDelayed({ if (bgEngine === created) releaseBackgroundEngine() }, 30_000L)
+        }, delayMillis.coerceAtLeast(0L))
+    }
+
+    private fun releaseBackgroundEngine() {
+        bgEngine?.stop()
+        bgEngine?.shutdown()
+        bgEngine = null
     }
 
     fun test(activity: Activity, result: (String) -> Unit) {

@@ -56,7 +56,7 @@ class LocationAddressPriorityTest {
         result.latitude shouldBe original.latitude
         result.longitude shouldBe original.longitude
         result.weather shouldBe original.weather
-        result.copy(customName = "Mi barrio").geographicName shouldBe "Mi barrio, Cochapamba, Quito"
+        result.copy(customName = "Mi barrio").geographicName shouldBe "Mi barrio, Quito"
         result.copy(customName = " ").geographicName shouldBe result.cityAndDistrict
         EcuadorAddressMapper.fromAddressInfo(address).neighborhood shouldBe null
     }

@@ -84,6 +84,10 @@
         <intent>
             <action android:name="nodomain.freeyourgadget.gadgetbridge.ACTION_GENERIC_WEATHER" />
         </intent>
+        <!-- Android 11+: makes the text-to-speech engine visible for spoken alerts. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
     </queries>
 
     <application
@@ -119,6 +123,7 @@
 
         <activity
             android:name=".ui.main.MainActivity"
+            android:banner="@drawable/tv_banner"
             android:label="@string/app_name"
             android:theme="@style/BreezyWeatherTheme.Main"
             android:exported="true">

@@ -49,7 +49,9 @@ object Migrations {
         val lastVersionCode = SettingsManager.getInstance(context).lastVersionCode
         val oldVersion = lastVersionCode
         if (oldVersion < BuildConfig.VERSION_CODE) {
-            if (oldVersion > 0) { // Not fresh install
+            // Upstream Breezy Weather migrations use 5xxxx/6xxxx codes. Alerta EC codes (~1xx) are always
+            // lower, so without this guard every update re-ran all of them (deleting cached weather).
+            if (oldVersion > 0 && BuildConfig.VERSION_CODE >= UPSTREAM_MIGRATIONS_MIN_VERSION_CODE) {
                 if (oldVersion < 50000) {
                     // V5.0.0 adds many new charts
                     // Adding it to people who customized their hourly trends tabs so they don't miss
@@ -292,6 +294,27 @@ object Migrations {
                 }
             }
 
+            if (oldVersion in 1 until ALERTA_EC_SOURCE_ORDER_VERSION_CODE) {
+                // v0.1.22: GPS locations created before coordinates were known were pinned to Open-Meteo.
+                // One-time move to the Ecuador order (MET Norway → EPMAPS → INAMHI → Open-Meteo).
+                try {
+                    runBlocking {
+                        locationRepository.getAllLocations(withParameters = false)
+                            .filter {
+                                it.isCurrentPosition && it.forecastSource == "openmeteo" && SourceManager.isEcuador(it)
+                            }
+                            .forEach { location ->
+                                val best = sourceManager.getBestSourceForFeature(location, SourceFeature.FORECAST)?.id
+                                if (best != null && best != location.forecastSource) {
+                                    locationRepository.update(location.copy(forecastSource = best))
+                                }
+                            }
+                    }
+                } catch (ignored: Throwable) {
+                    // ignored: the location keeps its previous source
+                }
+            }
+
             SettingsManager.getInstance(context).lastVersionCode = BuildConfig.VERSION_CODE
 
             // Always set up background tasks to ensure they're running
@@ -304,4 +327,7 @@ object Migrations {
 
         return false
     }
+
+    private const val UPSTREAM_MIGRATIONS_MIN_VERSION_CODE = 50000
+    private const val ALERTA_EC_SOURCE_ORDER_VERSION_CODE = 124
 }

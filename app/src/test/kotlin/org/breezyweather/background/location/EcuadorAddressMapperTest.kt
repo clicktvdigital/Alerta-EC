@@ -16,6 +16,18 @@ class EcuadorAddressMapperTest {
     }
 
     @Test
+    fun parishFromCityDistrictIsNotRepeatedOrForcedElsewhere() {
+        val result = EcuadorAddressMapper.fromAddressInfo(
+            LocationAddressInfo(countryCode = "EC", city = "Quito", cityDistrict = "Cochapamba", locality = "Atucucho")
+        )
+        result.parish shouldBe "Cochapamba"
+        result.educationalDistrict shouldBe null
+        result.administrativeDistrict shouldBe null
+        (result.ecclesiasticalParish?.contains("Cochapamba") == true) shouldBe false
+        result.completeAddressLines.count { "Cochapamba" in it } shouldBe 1
+    }
+
+    @Test
     fun explicitNeighborhoodAndSectorRemainSeparateFromParish() {
         val result = EcuadorAddressMapper.fromAddressInfo(
             LocationAddressInfo(
@@ -90,7 +102,7 @@ class EcuadorAddressMapperTest {
         merged.postalCode shouldBe "123456"
         merged.postalCodeProvenance shouldBe "authorized-test-source"
         merged.completeAddressLines shouldBe listOf(
-            "Calle principal 10",
+            "Calle principal: Calle principal 10",
             "Código postal: 123456",
             "Sector: Sector sintético",
             "Barrio: Barrio sintético",

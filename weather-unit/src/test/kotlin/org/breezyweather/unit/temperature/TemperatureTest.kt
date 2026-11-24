@@ -93,7 +93,7 @@ class TemperatureTest {
             valueWidth = UnitWidth.SHORT,
             unitWidth = UnitWidth.NARROW,
             locale = Locale.Builder().setLanguage("fr").setRegion("FR").build()
-        ) shouldBe "10,1°"
+        ) shouldBe "10°"
         0.deciCelsius.format(
             context = context,
             unit = TemperatureUnit.KELVIN,
@@ -134,7 +134,7 @@ class TemperatureTest {
             valueWidth = UnitWidth.SHORT,
             unitWidth = UnitWidth.SHORT,
             locale = Locale.Builder().setLanguage("fr").setRegion("FR").build()
-        ) shouldBe "10,1 °C"
+        ) shouldBe "10 °C"
         0.deciCelsius.format(
             context = context,
             unit = TemperatureUnit.KELVIN,
@@ -175,7 +175,7 @@ class TemperatureTest {
             valueWidth = UnitWidth.SHORT,
             unitWidth = UnitWidth.LONG,
             locale = Locale.Builder().setLanguage("fr").setRegion("FR").build()
-        ) shouldBe "10,1 degrés Celsius"
+        ) shouldBe "10 degrés Celsius"
         0.deciCelsius.format(
             context = context,
             unit = TemperatureUnit.KELVIN,

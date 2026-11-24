@@ -30,7 +30,8 @@ object EcuadorAddressMapper {
 
         val province = firstNonBlank(address.admin1)
         val adminZone = if (isEcuador) inferQuitoAdminZone(address.latitude, address.longitude, parish, sector, canton) else null
-        val district = if (isEcuador) firstNonBlank(address.district, address.cityDistrict) else firstNonBlank(address.district)
+        // city_district is already the civil parish in Ecuador; repeating it as "Distrito" duplicated names.
+        val district = firstNonBlank(address.district)?.takeIf { it != parish }
         val ecclesiastical = if (isEcuador) inferEcclesiasticalParish(parish, sector, canton) else null
 
         val rawPostal = address.postalCode?.trim()?.takeIf(EcuadorPostalCodeAdapter::isValidCode)
@@ -81,7 +82,7 @@ object EcuadorAddressMapper {
         }
         val text = listOfNotNull(parish, sector).joinToString(" ").lowercase(Locale.ROOT)
         return when {
-            listOf("cotocollao", "ponceano", "carcelen", "comite del pueblo", "condado", "atucucho", "union la paz", "cochapamba").any { it in text } -> "La Delicia"
+            listOf("cotocollao", "ponceano", "carcelen", "comite del pueblo", "condado", "atucucho", "union la paz").any { it in text } -> "La Delicia"
             listOf("calderon", "llano chico").any { it in text } -> "Calderón"
             listOf("iñaquito", "rumipamba", "belisario quevedo", "mariscal", "kennedy", "jipijapa", "concepcion", "san isidro").any { it in text } -> "Eugenio Espejo"
             listOf("centro historico", "san juan", "itchimbia", "libertad", "puengasi").any { it in text } -> "Manuela Sáenz"
@@ -102,12 +103,11 @@ object EcuadorAddressMapper {
         val text = listOfNotNull(sector, parish).joinToString(" ").lowercase(Locale.ROOT)
         if (text.isBlank()) return null
         return when {
-            "atucucho" in text || "union la paz" in text -> "San Pablo Apóstol / Cochapamba"
+            "atucucho" in text || "union la paz" in text -> "San Pablo Apóstol"
             "cotocollao" in text -> "San Juan Bautista de Cotocollao"
             "carcelen" in text -> "San Pedro de Carcelén"
             "iñaquito" in text -> "Santa Clara de Millán / Iñaquito"
             "chillogallo" in text -> "San Juan Evangelista de Chillogallo"
-            !parish.isNullOrBlank() -> "Parroquia Eclesiástica $parish"
             else -> null
         }
     }
@@ -117,7 +117,7 @@ object EcuadorAddressMapper {
     ): String? {
         val text = listOfNotNull(sector, parish, canton, province).joinToString(" ").lowercase(Locale.ROOT)
         return when {
-            "atucucho" in text || "union la paz" in text || "cochapamba" in text -> "170511"
+            "atucucho" in text || "union la paz" in text -> "170511"
             "cotocollao" in text -> "170301"
             "carcelen" in text -> "170312"
             "ponceano" in text -> "170303"

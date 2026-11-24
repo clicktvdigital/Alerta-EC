@@ -57,20 +57,22 @@ internal object AlertaEcVideoIntro {
         return isTv || isLandscape
     }
 
+    /**
+     * Logo de apertura y cierre: banner panorámico Full HD 16:9 en Android TV/horizontal, y logo
+     * vertical en celular. FIT_CENTER nunca recorta: el arte (alas del cóndor incluidas) cabe completo.
+     */
     private fun createBrandSplashView(context: Context, panoramic: Boolean): ImageView {
         return ImageView(context).apply {
             setBackgroundColor(BRAND_BG)
-            val bannerRes = context.resources.getIdentifier("tv_banner", "drawable", context.packageName)
-            val introLogoRes = context.resources.getIdentifier("alerta_ec_intro_logo", "drawable", context.packageName)
-            if (panoramic && bannerRes != 0) {
-                setImageResource(bannerRes)
-                scaleType = ImageView.ScaleType.FIT_CENTER
-            } else if (introLogoRes != 0) {
-                setImageResource(introLogoRes)
-                scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = false
+            if (panoramic) {
+                setImageResource(R.drawable.tv_banner)
             } else {
-                setImageResource(R.mipmap.ic_launcher)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setImageResource(R.drawable.alerta_ec_intro_logo)
+                // Margen vertical equilibrado (arriba = abajo) para el logo vertical.
+                val margin = (context.resources.displayMetrics.heightPixels * 0.04f).toInt()
+                setPadding(0, margin, 0, margin)
             }
         }
     }

@@ -81,4 +81,14 @@ class AlertVoicePolicyTest {
         AlertVoicePolicy.AutomaticReadState(isNewEvent, notificationAccepted, hasBacklog, activityResumed, activityHasFocus,
             pushEnabled, soundEnabled, voiceEnabled, dndAllowsAlerts, notificationVolume, deviceUnlocked,
             audioModeNormal, musicInactive, audioFocusAvailable, readingInProgress)
+
+    @Test
+    fun `concise speech says only whole degrees and the recommendation`() {
+        AlertVoicePolicy.conciseSpeech(AlertaEcPhenomenon.RAIN, 14, 14.4) shouldBe
+            "14 grados. Lleva chompa. Lleva paraguas o impermeable. Si conduces, hazlo con precaución."
+        AlertVoicePolicy.conciseSpeech(AlertaEcPhenomenon.EXTREME_HEAT, 30, 30.2) shouldBe
+            "30 grados. Usa ropa ligera y toma agua. Busca sombra."
+        AlertVoicePolicy.conciseSpeech(AlertaEcPhenomenon.OTHER, null, null) shouldBe ""
+        AlertVoicePolicy.conciseSpeech(AlertaEcPhenomenon.FOG, 1, 1.0).startsWith("1 grado.") shouldBe true
+    }
 }
