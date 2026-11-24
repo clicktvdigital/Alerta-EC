@@ -524,7 +524,18 @@ class SourceManager @Inject constructor(
             }
 
             SourceFeature.REVERSE_GEOCODING -> getReverseGeocodingSource("nominatim")
-            else -> getWeatherSource("openmeteo")
+            else -> {
+                val isEcuador = location.countryCode.equals("EC", ignoreCase = true) ||
+                    (location.latitude in -5.2..1.7 && location.longitude in -92.0..-75.0)
+                if (isEcuador && feature == SourceFeature.FORECAST) {
+                    getWeatherSource("metno")
+                        ?: getWeatherSource("epmaps")
+                        ?: getWeatherSource("inamhi")
+                        ?: getWeatherSource("openmeteo")
+                } else {
+                    getWeatherSource("openmeteo")
+                }
+            }
         }
     }
 

@@ -3,6 +3,7 @@ package org.breezyweather.background.location
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Observable
+import kotlinx.coroutines.runBlocking
 import org.breezyweather.sources.SourceManager
 import javax.inject.Inject
 
@@ -11,8 +12,6 @@ class DetailedLocationProvider @Inject constructor(
     private val sourceManager: SourceManager,
 ) {
 
-    // La corrección del usuario es LOCAL a un punto; no se aplica a todo Quito.
-    // Nunca se presenta como dirección certificada por el geocodificador.
     private fun applyUserVerifiedZone(
         latitude: Double, longitude: Double, result: DetailedLocationAddress
     ): DetailedLocationAddress {
@@ -39,30 +38,62 @@ class DetailedLocationProvider @Inject constructor(
         longitude: Double,
         sourceId: String = "nominatim",
     ): Observable<DetailedLocationAddress> {
-        val source = sourceManager.getReverseGeocodingSourceOrDefault(sourceId)
-
+        val primarySource = sourceManager.getReverseGeocodingSourceOrDefault("nominatim")
         val fallbackSource = sourceManager.getReverseGeocodingSourceOrDefault("android")
-        return source.requestNearestLocation(
+
+        return primarySource.requestNearestLocation(
             context = context,
             latitude = latitude,
             longitude = longitude,
         ).onErrorResumeNext {
             fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
         }.flatMap { results ->
-            val mapped = results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
-            val hasDetail = mapped != null && (
-                !mapped.sector.isNullOrBlank() ||
-                !mapped.neighborhood.isNullOrBlank() ||
-                !mapped.canton.isNullOrBlank() ||
-                !mapped.locality.isNullOrBlank()
-            )
-            if (hasDetail) {
+            val mapped = results.firstOrNull()?.let { info ->
+                EcuadorAddressMapper.fromAddressInfo(info.copy(latitude = latitude, longitude = longitude))
+            }
+            val needsAndroidEnrichment = mapped == null ||
+                mapped.road.isNullOrBlank() ||
+                mapped.postalCode.isNullOrBlank() ||
+                mapped.canton.isNullOrBlank()
+            if (!needsAndroidEnrichment) {
                 Observable.just(mapped!!)
             } else {
                 fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
-                    .map { fb -> fb.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo) ?: mapped ?: DetailedLocationAddress() }
-                    .onErrorReturnItem(mapped ?: DetailedLocationAddress())
+                    .map { fbResults ->
+                        val fbMapped = fbResults.firstOrNull()?.let { info ->
+                            EcuadorAddressMapper.fromAddressInfo(info.copy(latitude = latitude, longitude = longitude))
+                        }
+                        if (mapped == null) {
+                            fbMapped ?: DetailedLocationAddress(latitude = latitude, longitude = longitude)
+                        } else if (fbMapped == null) {
+                            mapped
+                        } else {
+                            mapped.copy(
+                                road = mapped.road ?: fbMapped.road,
+                                houseNumber = mapped.houseNumber ?: fbMapped.houseNumber,
+                                crossStreet = mapped.crossStreet ?: fbMapped.crossStreet,
+                                postalCode = mapped.postalCode ?: fbMapped.postalCode,
+                                sector = mapped.sector ?: fbMapped.sector,
+                                neighborhood = mapped.neighborhood ?: fbMapped.neighborhood,
+                                parish = mapped.parish ?: fbMapped.parish,
+                                canton = mapped.canton ?: fbMapped.canton,
+                                province = mapped.province ?: fbMapped.province,
+                                administrativeZone = mapped.administrativeZone ?: fbMapped.administrativeZone,
+                            )
+                        }
+                    }
+                    .onErrorReturnItem(mapped ?: DetailedLocationAddress(latitude = latitude, longitude = longitude))
             }
-        }.map { address -> applyUserVerifiedZone(latitude, longitude, address) }
+        }.map { address ->
+            val elevation = runCatching {
+                runBlocking { EcuadorTerrainElevation.find(latitude, longitude)?.meters }
+            }.getOrNull()
+            val enriched = address.copy(
+                latitude = latitude,
+                longitude = longitude,
+                altitudeMeters = elevation ?: address.altitudeMeters,
+            )
+            applyUserVerifiedZone(latitude, longitude, enriched)
+        }
     }
 }

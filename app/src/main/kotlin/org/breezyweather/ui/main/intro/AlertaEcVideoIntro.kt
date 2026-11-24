@@ -2,7 +2,9 @@ package org.breezyweather.ui.main.intro
 
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.app.UiModeManager
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -15,26 +17,26 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.VideoView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.breezyweather.R
 
-/**
- * Reproduce un vídeo local con sonido de forma predeterminada.
- * Respeta el volumen multimedia, el modo silencio y la preferencia de movimiento reducido.
- * No necesita Internet. Nunca toca los controles de volumen del dispositivo.
- */
 internal object AlertaEcVideoIntro {
     private const val BLACK = Color.BLACK
+    private const val BRAND_BG = 0xFF0A244A.toInt()
+    private const val LOGO_HOLD_MS = 1_300L
     private const val PREPARE_TIMEOUT_MS = 5_000L
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
-    private const val COMPLETION_FADE_MS = 250L
+    private const val COMPLETION_FADE_MS = 280L
     private const val COMPLETION_GRACE_MS = 1_000L
     private const val AUDIO_FALLBACK_MS = 1_500L
+
     private val handler = Handler(Looper.getMainLooper())
     private var activeVideo: VideoView? = null
     private var activeRoot: FrameLayout? = null
+    private var activeSplash: ImageView? = null
     private var pendingTimeout: Runnable? = null
     private var pendingAudioFallback: Runnable? = null
     private var previousWindowState: WindowState? = null
@@ -48,6 +50,31 @@ internal object AlertaEcVideoIntro {
         val navigationBarContrastEnforced: Boolean?,
     )
 
+    private fun isPanoramicTvOrLandscape(context: Context): Boolean {
+        val uiMode = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+        val isTv = uiMode?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        val isLandscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        return isTv || isLandscape
+    }
+
+    private fun createBrandSplashView(context: Context, panoramic: Boolean): ImageView {
+        return ImageView(context).apply {
+            setBackgroundColor(BRAND_BG)
+            val bannerRes = context.resources.getIdentifier("tv_banner", "drawable", context.packageName)
+            val introLogoRes = context.resources.getIdentifier("alerta_ec_intro_logo", "drawable", context.packageName)
+            if (panoramic && bannerRes != 0) {
+                setImageResource(bannerRes)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            } else if (introLogoRes != 0) {
+                setImageResource(introLogoRes)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            } else {
+                setImageResource(R.mipmap.ic_launcher)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+            }
+        }
+    }
+
     fun play(
         root: View,
         visualLayers: List<View>,
@@ -55,7 +82,6 @@ internal object AlertaEcVideoIntro {
         reducedMotionControl: View,
         soundControl: View,
     ): Boolean {
-        // Solo insertar VideoView en un contenedor compatible.
         val frame = root as? FrameLayout ?: return false
         val context = frame.context
         val preferences = context.getSharedPreferences("alerta_ec_intro", Context.MODE_PRIVATE)
@@ -77,11 +103,14 @@ internal object AlertaEcVideoIntro {
             return true
         }
 
+        val panoramic = isPanoramicTvOrLandscape(context)
         val view = VideoView(context)
+        val splashView = createBrandSplashView(context, panoramic)
         activeVideo = view
         activeRoot = frame
+        activeSplash = splashView
+
         try {
-            // Ocultar SOLO las capas antiguas de la presentación.
             visualLayers.forEach { layer ->
                 layer.animate().cancel()
                 layer.visibility = View.GONE
@@ -91,16 +120,17 @@ internal object AlertaEcVideoIntro {
 
             frame.alpha = 1f
             frame.visibility = View.VISIBLE
-            frame.setBackgroundColor(BLACK)
+            frame.setBackgroundColor(BRAND_BG)
             previousRootPadding = intArrayOf(frame.paddingLeft, frame.paddingTop, frame.paddingRight, frame.paddingBottom)
-            ViewCompat.setOnApplyWindowInsetsListener(frame) { view, insets ->
+            ViewCompat.setOnApplyWindowInsetsListener(frame) { v, insets ->
                 val safeInsets = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
                 )
-                view.setPadding(safeInsets.left, safeInsets.top, safeInsets.right, safeInsets.bottom)
+                v.setPadding(safeInsets.left, safeInsets.top, safeInsets.right, safeInsets.bottom)
                 insets
             }
             ViewCompat.requestApplyInsets(frame)
+
             (context as? Activity)?.let { activity ->
                 val window = activity.window
                 previousWindowState = WindowState(
@@ -110,13 +140,13 @@ internal object AlertaEcVideoIntro {
                     systemUiVisibility = window.decorView.systemUiVisibility,
                     navigationBarContrastEnforced = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced else null,
                 )
-                window.statusBarColor = BLACK
-                window.navigationBarColor = BLACK
+                window.statusBarColor = BRAND_BG
+                window.navigationBarColor = BRAND_BG
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
             }
-            // SurfaceView necesita un fondo transparente para mostrar el fondo negro del contenedor.
+
             view.setBackgroundColor(Color.TRANSPARENT)
-            // Insertar sobre las capas antiguas, manteniendo Omitir delante.
+            view.visibility = View.INVISIBLE
             frame.addView(
                 view,
                 FrameLayout.LayoutParams(
@@ -124,24 +154,62 @@ internal object AlertaEcVideoIntro {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ).apply { gravity = Gravity.CENTER },
             )
+            // Fase 1: Imagen inicial (vertical en celular / horizontal panoramica en Android TV)
+            splashView.alpha = 1f
+            splashView.visibility = View.VISIBLE
+            frame.addView(
+                splashView,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ).apply { gravity = Gravity.CENTER },
+            )
+
             skip.visibility = View.VISIBLE
             skip.alpha = 1f
             skip.bringToFront()
             skip.setOnClickListener { stop() }
 
-            // No dejar una pantalla negra si el dispositivo no puede decodificar el MP4.
+            var videoPrepared = false
+            var initialHoldElapsed = false
+            var playbackStarted = false
+
+            fun startVideoWhenReady() {
+                if (activeVideo !== view || playbackStarted || !videoPrepared || !initialHoldElapsed) return
+                playbackStarted = true
+                frame.setBackgroundColor(BLACK)
+                view.visibility = View.VISIBLE
+                splashView.animate()
+                    .alpha(0f)
+                    .setDuration(220L)
+                    .withEndAction {
+                        if (activeSplash === splashView) splashView.visibility = View.GONE
+                    }
+                    .start()
+                skip.bringToFront()
+                runCatching { view.start() }
+                    .onFailure { stop() }
+            }
+
+            val holdRunnable = Runnable {
+                if (activeVideo === view) {
+                    initialHoldElapsed = true
+                    startVideoWhenReady()
+                }
+            }
+            handler.postDelayed(holdRunnable, LOGO_HOLD_MS)
+
             val timeout = Runnable { if (activeVideo === view) stop() }
-            scheduleTimeout(timeout, PREPARE_TIMEOUT_MS)
+            scheduleTimeout(timeout, PREPARE_TIMEOUT_MS + LOGO_HOLD_MS)
+
             view.setOnPreparedListener { player ->
                 if (activeVideo === view) {
                     player.isLooping = false
                     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-                    // Nueva preferencia: ON por defecto; sin depender del opt-in de sonidos anteriores.
                     val soundEnabled = preferences.getBoolean("cinematic_sound_enabled", true) &&
                         audioManager?.ringerMode == AudioManager.RINGER_MODE_NORMAL &&
                         ((audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0) > 0)
                     val volume = if (soundEnabled) 1f else 0f
-                    // Preparado no significa que haya imagen. No reproducir audio a ciegas.
                     player.setVolume(0f, 0f)
                     var renderingStarted = false
                     val audioFallback = Runnable {
@@ -157,28 +225,36 @@ internal object AlertaEcVideoIntro {
                         }
                         false
                     }
-                    runCatching { view.start() }
-                        .onSuccess {
-                            // Sustituir el límite de preparación por uno único de reproducción.
-                            val duration = player.duration.takeIf { it > 0 }?.toLong()
-                            scheduleTimeout(
-                                timeout,
-                                (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS,
-                            )
-                            if (soundEnabled) {
-                                pendingAudioFallback = audioFallback
-                                handler.postDelayed(audioFallback, AUDIO_FALLBACK_MS)
-                            }
-                        }
-                        .onFailure { stop() }
+                    val duration = player.duration.takeIf { it > 0 }?.toLong()
+                    scheduleTimeout(
+                        timeout,
+                        LOGO_HOLD_MS + (duration ?: UNKNOWN_DURATION_TIMEOUT_MS) + COMPLETION_GRACE_MS + LOGO_HOLD_MS,
+                    )
+                    if (soundEnabled) {
+                        pendingAudioFallback = audioFallback
+                        handler.postDelayed(audioFallback, LOGO_HOLD_MS + AUDIO_FALLBACK_MS)
+                    }
+                    videoPrepared = true
+                    startVideoWhenReady()
                 }
             }
+
+            // Fase 3: Imagen final de cierre antes de ingresar a la aplicacion
             view.setOnCompletionListener {
                 if (activeVideo === view) {
                     cancelTimeout()
                     cancelAudioFallback()
                     skip.visibility = View.GONE
                     view.visibility = View.GONE
+                    frame.setBackgroundColor(BRAND_BG)
+                    splashView.visibility = View.VISIBLE
+                    splashView.alpha = 0f
+                    splashView.bringToFront()
+                    splashView.animate()
+                        .alpha(1f)
+                        .setDuration(220L)
+                        .start()
+
                     val finish = Runnable {
                         if (activeVideo === view) {
                             frame.animate().cancel()
@@ -191,9 +267,10 @@ internal object AlertaEcVideoIntro {
                                 .start()
                         }
                     }
-                    scheduleTimeout(finish, 0L)
+                    scheduleTimeout(finish, LOGO_HOLD_MS)
                 }
             }
+
             view.setOnErrorListener { _, _, _ ->
                 if (activeVideo === view) stop()
                 true
@@ -205,48 +282,13 @@ internal object AlertaEcVideoIntro {
         } catch (_: RuntimeException) {
             stop()
         }
-        // Aunque falle el vídeo, volver a la pantalla principal sin lanzar animaciones antiguas.
         return true
     }
 
-    fun stop() {
+    private fun scheduleTimeout(runnable: Runnable, delayMs: Long) {
         cancelTimeout()
-        cancelAudioFallback()
-        val view = activeVideo
-        activeVideo = null
-        val root = activeRoot
-        activeRoot = null
-        if (view != null) {
-            runCatching { view.stopPlayback() }
-            (view.parent as? ViewGroup)?.removeView(view)
-        }
-        root?.let { frame ->
-            ViewCompat.setOnApplyWindowInsetsListener(frame, null)
-            previousRootPadding?.let { padding ->
-                frame.setPadding(padding[0], padding[1], padding[2], padding[3])
-            }
-            previousRootPadding = null
-        }
-        previousWindowState?.let { state ->
-            state.window.statusBarColor = state.statusBarColor
-            state.window.navigationBarColor = state.navigationBarColor
-            state.window.decorView.systemUiVisibility = state.systemUiVisibility
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && state.navigationBarContrastEnforced != null) {
-                state.window.isNavigationBarContrastEnforced = state.navigationBarContrastEnforced
-            }
-        }
-        previousWindowState = null
-        root?.let {
-            it.animate().cancel()
-            it.alpha = 1f
-            it.visibility = View.GONE
-        }
-    }
-
-    private fun scheduleTimeout(timeout: Runnable, delayMs: Long) {
-        cancelTimeout()
-        pendingTimeout = timeout
-        handler.postDelayed(timeout, delayMs)
+        pendingTimeout = runnable
+        handler.postDelayed(runnable, delayMs)
     }
 
     private fun cancelTimeout() {
@@ -257,5 +299,37 @@ internal object AlertaEcVideoIntro {
     private fun cancelAudioFallback() {
         pendingAudioFallback?.let(handler::removeCallbacks)
         pendingAudioFallback = null
+    }
+
+    fun stop() {
+        cancelTimeout()
+        cancelAudioFallback()
+        val video = activeVideo
+        val root = activeRoot
+        val splash = activeSplash
+        activeVideo = null
+        activeRoot = null
+        activeSplash = null
+        runCatching { video?.stopPlayback() }
+        if (root != null) {
+            if (video != null) root.removeView(video)
+            if (splash != null) root.removeView(splash)
+            previousRootPadding?.let { p ->
+                if (p.size == 4) root.setPadding(p[0], p[1], p[2], p[3])
+            }
+            previousRootPadding = null
+            ViewCompat.setOnApplyWindowInsetsListener(root, null)
+            root.alpha = 1f
+            root.visibility = View.GONE
+        }
+        previousWindowState?.let { state ->
+            state.window.statusBarColor = state.statusBarColor
+            state.window.navigationBarColor = state.navigationBarColor
+            state.window.decorView.systemUiVisibility = state.systemUiVisibility
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && state.navigationBarContrastEnforced != null) {
+                state.window.isNavigationBarContrastEnforced = state.navigationBarContrastEnforced
+            }
+        }
+        previousWindowState = null
     }
 }

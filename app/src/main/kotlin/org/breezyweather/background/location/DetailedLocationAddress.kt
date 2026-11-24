@@ -21,6 +21,9 @@ data class DetailedLocationAddress(
     val postalCodeProvenance: String? = null,
     val country: String? = null,
     val countryCode: String? = null,
+    val altitudeMeters: Double? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 ) {
     val streetLine: String?
         get() = listOfNotNull(
@@ -30,18 +33,22 @@ data class DetailedLocationAddress(
 
     val completeAddressLines: List<String>
         get() = buildList {
-            streetLine?.takeIf { it.isNotBlank() }?.let(::add)
-            crossStreet?.takeIf { it.isNotBlank() }?.let { add("Intersección: $it") }
+            streetLine?.takeIf { it.isNotBlank() }?.let { add("Calle principal: $it") }
+            crossStreet?.takeIf { it.isNotBlank() }?.let { add("Calle secundaria: $it") }
+            if (latitude != null && longitude != null) {
+                add("Coordenadas: ${LocationHumanFormatter.decimalCoordinates(latitude, longitude)} (${LocationHumanFormatter.dmsCoordinates(latitude, longitude)})")
+            }
+            altitudeMeters?.let { add("Altura / Elevación: ${String.format(java.util.Locale.US, "%.0f m s.n.m.", it)}") }
             postalCode?.takeIf { it.isNotBlank() }?.let { add("Código postal: $it") }
             sector?.takeIf { it.isNotBlank() }?.let { add("Sector: $it") }
             neighborhood?.takeIf { it.isNotBlank() }?.let { add("Barrio: $it") }
             locality?.takeIf { it.isNotBlank() }?.let { add("Localidad/comunidad: $it") }
             ecclesiasticalParish?.takeIf { it.isNotBlank() }?.let { add("Parroquia eclesiástica: $it") }
             parish?.takeIf { it.isNotBlank() }?.let { add("Parroquia civil: $it") }
-            educationalDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito educativo: $it") }
+            educationalDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito: $it") }
             administrativeZone?.takeIf { it.isNotBlank() }?.let { add("Administración zonal: $it") }
             administrativeDistrict?.takeIf { it.isNotBlank() }?.let { add("Distrito administrativo: $it") }
-            canton?.takeIf { it.isNotBlank() }?.let { add("Cantón: $it") }
+            canton?.takeIf { it.isNotBlank() }?.let { add("Ciudad / Cantón: $it") }
             province?.takeIf { it.isNotBlank() }?.let { add("Provincia: $it") }
             country?.takeIf { it.isNotBlank() }?.let { add("País: $it") }
             reference?.takeIf { it.isNotBlank() }?.let { add("Referencia: $it") }
