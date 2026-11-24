@@ -81,6 +81,7 @@
     </queries>
 
     <application
+        android:banner="@drawable/alertaec_logo_acerca"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/brand_name"
         android:name=".BreezyWeather"
