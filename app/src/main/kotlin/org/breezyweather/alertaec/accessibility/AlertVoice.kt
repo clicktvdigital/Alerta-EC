@@ -74,6 +74,39 @@ object AlertVoice {
         }
     }
 
+
+    private var lastBgSpokenKey: String = ""
+    private var lastBgSpokenAt: Long = 0L
+    private var bgEngine: TextToSpeech? = null
+
+    fun speakFromBackground(context: Context, text: String, dedupeKey: String = text) {
+        handler.post {
+            val now = System.currentTimeMillis()
+            if (dedupeKey == lastBgSpokenKey && (now - lastBgSpokenAt) < 90_000L) return@post
+            val settings = SettingsManager.getInstance(context)
+            if (!settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled) return@post
+            lastBgSpokenKey = dedupeKey
+            lastBgSpokenAt = now
+            val appCtx = context.applicationContext
+            bgEngine?.stop()
+            bgEngine?.shutdown()
+            bgEngine = TextToSpeech(appCtx) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    val voice = bgEngine?.voices?.filter {
+                        it.locale.language == "es" &&
+                            android.speech.tts.TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features
+                    }?.sortedBy { if (it.locale.country == "EC") 0 else 1 }?.firstOrNull()
+                    if (voice != null) bgEngine?.voice = voice
+                    else bgEngine?.language = java.util.Locale("es", "EC")
+                    val params = android.os.Bundle().apply {
+                        putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
+                    }
+                    bgEngine?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "alertaec_bg_utterance")
+                }
+            }
+        }
+    }
+
     fun test(activity: Activity, result: (String) -> Unit) {
         speak(activity, null, "Esta es una prueba de voz de ALERTA EC. No es una alerta real.", true, result)
     }
@@ -139,7 +172,7 @@ object AlertVoice {
                 val tts = engine ?: return@post
                 val voice = if (status == TextToSpeech.SUCCESS) {
                     tts.voices?.filter {
-                        it.locale.language == "es" && !it.isNetworkConnectionRequired &&
+                        it.locale.language == "es" &&
                             TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features
                     }?.sortedBy { if (it.locale.country == "EC") 0 else 1 }?.firstOrNull()
                 } else null

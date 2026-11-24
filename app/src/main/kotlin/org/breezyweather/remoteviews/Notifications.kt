@@ -160,7 +160,7 @@ object Notifications {
 
         notificationManager.createNotificationChannelsCompat(
             listOf(
-                buildNotificationChannel(AlertaEcNotificationAppearance.PRECIPITATION_IMMINENT, IMPORTANCE_DEFAULT) {
+                buildNotificationChannel(AlertaEcNotificationAppearance.SOUND_RAIN, IMPORTANCE_DEFAULT) {
                     setName(context.getString(R.string.notification_channel_precipitation))
                     setVibrationEnabled(true)
                     setVibrationPattern(longArrayOf(0, 180))
@@ -406,6 +406,7 @@ object Notifications {
             notificationId,
             buildSingleAlertNotification(context, location, alert, inGroup, notificationId)
         )
+        org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(context, "Alerta meteorológica en ${location.geographicName}. ${alert.headline ?: ""}", dedupeKey = "official_${location.formattedId}_${alert.alertId}")
         if (inGroup) {
             context.notify(
                 ID_ALERT_GROUP,

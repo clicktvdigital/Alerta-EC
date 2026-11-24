@@ -254,6 +254,11 @@ object AlertaEcNotifier {
 
         onNotifyInvoked()
         context.notify(notificationId, notification)
+        org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
+            context,
+            "${event.headline}. ${event.locationName ?: ""}. $compact. ${advice ?: ""}",
+            dedupeKey = "event_${event.id}"
+        )
     }
 
     private fun windDirection(degrees: Int): String = when ((((degrees % 360 + 360) % 360 + 22.5) / 45).toInt() % 8) {
