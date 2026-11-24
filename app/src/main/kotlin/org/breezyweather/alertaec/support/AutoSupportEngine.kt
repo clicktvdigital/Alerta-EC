@@ -235,10 +235,24 @@ internal object AutoSupportEngine {
             Progress(
                 phase = AutoSupportPhase.FINALIZADO,
                 report = report,
-                message = repairMessage ?: if (report.completedWithoutPendingIssues) {
-                    "Diagnostico completado sin problemas detectados"
-                } else {
-                    "Diagnostico completado con ${report.pendingCount} problemas pendientes"
+                message = buildString {
+                    val base = repairMessage ?: if (report.completedWithoutPendingIssues) {
+                        "Diagnostico completado sin problemas detectados"
+                    } else {
+                        "Diagnostico completado con ${report.pendingCount} problemas pendientes"
+                    }
+                    append(base)
+                    val pendingDetails = report.items.filter { !it.passed }.map { item ->
+                        "• ${item.description}: ${item.detail}"
+                    }
+                    if (pendingDetails.isNotEmpty()) {
+                        append("
+
+Detalle detectado:
+")
+                        append(pendingDetails.joinToString("
+"))
+                    }
                 },
             )
         )

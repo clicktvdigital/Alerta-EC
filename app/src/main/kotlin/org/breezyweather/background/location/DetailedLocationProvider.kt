@@ -41,13 +41,22 @@ class DetailedLocationProvider @Inject constructor(
     ): Observable<DetailedLocationAddress> {
         val source = sourceManager.getReverseGeocodingSourceOrDefault(sourceId)
 
+        val fallbackSource = sourceManager.getReverseGeocodingSourceOrDefault("android")
         return source.requestNearestLocation(
             context = context,
             latitude = latitude,
             longitude = longitude,
-        ).map { results ->
-            results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
-                ?: DetailedLocationAddress()
+        ).onErrorResumeNext {
+            fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
+        }.flatMap { results ->
+            val mapped = results.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo)
+            if (mapped != null && (mapped.sector.isNotBlank() || mapped.city.isNotBlank())) {
+                Observable.just(mapped)
+            } else {
+                fallbackSource.requestNearestLocation(context = context, latitude = latitude, longitude = longitude)
+                    .map { fb -> fb.firstOrNull()?.let(EcuadorAddressMapper::fromAddressInfo) ?: mapped ?: DetailedLocationAddress() }
+                    .onErrorReturnItem(mapped ?: DetailedLocationAddress())
+            }
         }.map { address -> applyUserVerifiedZone(latitude, longitude, address) }
     }
 }

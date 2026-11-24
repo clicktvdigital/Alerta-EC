@@ -24,8 +24,8 @@ configure<ApplicationExtension> {
 
     defaultConfig {
         applicationId = "com.clicktvdigital.alertaec"
-        versionCode = 121
-        versionName = "0.1.19"
+        versionCode = 122
+        versionName = "0.1.20"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
@@ -255,7 +255,7 @@ configure<ApplicationExtension> {
         it.buildConfigField(
             "String",
             "DEFAULT_GEOCODING_SOURCE",
-            "\"${localProperties.getProperty("breezy.source.default_geocoding") ?: "naturalearth"}\""
+            "\"${localProperties.getProperty("breezy.source.default_geocoding") ?: "android"}\""
         )
         it.buildConfigField(
             "String",

@@ -70,7 +70,7 @@ class AndroidLocationService @Inject constructor() : LocationSource {
                             if (!continuation.isActive) return
                             if (isBetterLocation(location, callbackBest)) callbackBest = location
                             location.provider?.let(respondedProviders::add)
-                            if (respondedProviders.containsAll(requestedProviders)) {
+                            if (respondedProviders.containsAll(requestedProviders) || location.provider == LocationManager.FUSED_PROVIDER || location.provider == LocationManager.NETWORK_PROVIDER) {
                                 manager.removeUpdates(this)
                                 continuation.resume(callbackBest)
                             }
@@ -156,9 +156,9 @@ class AndroidLocationService @Inject constructor() : LocationSource {
             val nowNanos = SystemClock.elapsedRealtimeNanos()
             val ageNanos = nowNanos - location.elapsedRealtimeNanos
             val monotonicRecent = location.elapsedRealtimeNanos > 0L &&
-                ageNanos in 0..120_000_000_000L
+                ageNanos in 0..1_800_000_000_000L
             val wallAge = System.currentTimeMillis() - location.time
-            val wallRecent = location.time > 0L && wallAge in 0..120_000L
+            val wallRecent = location.time > 0L && wallAge in 0..1_800_000L
             return (monotonicRecent || wallRecent) &&
                 location.latitude.isFinite() && location.latitude in -90.0..90.0 &&
                 location.longitude.isFinite() && location.longitude in -180.0..180.0
