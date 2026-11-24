@@ -56,6 +56,7 @@ class EcuadorAddressMapperTest {
         result.completeAddressLines shouldBe listOf(
             "Sector: Sector de prueba",
             "Localidad/comunidad: Comunidad de prueba",
+            "País: Ecuador",
         )
     }
     @Test
@@ -107,6 +108,7 @@ class EcuadorAddressMapperTest {
             "Sector: Sector sintético",
             "Barrio: Barrio sintético",
             "Localidad/comunidad: Comunidad sintética",
+            "País: Ecuador",
         )
         merged.mergePostalCode(
             PostalCodeCandidate("999999", "lower-confidence", PostalCodeConfidence.REVERSE_GEOCODER)
