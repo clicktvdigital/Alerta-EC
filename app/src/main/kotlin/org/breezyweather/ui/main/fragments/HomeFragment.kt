@@ -234,6 +234,17 @@ class HomeFragment : MainModuleFragment() {
             )
         }
 
+        // Android TV: no pull gesture on a remote. The empty-screen hint becomes a focusable action (OK) and
+        // names the RED button / held DOWN, which MainActivity also accepts.
+        if (requireContext().packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+            binding.emptyText.setText(R.string.alertaec_tv_refresh_hint)
+            binding.emptyText.isFocusable = true
+            binding.emptyText.isClickable = true
+            binding.emptyText.setOnClickListener {
+                viewModel.updateWithUpdatingChecking(triggeredByUser = true, checkPermissions = true)
+            }
+        }
+
         val listAnimationEnabled = SettingsManager
             .getInstance(requireContext())
             .isCardsFadeInEnabled

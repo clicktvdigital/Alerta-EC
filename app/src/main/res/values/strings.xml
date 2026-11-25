@@ -482,6 +482,7 @@
     <string name="action_about">About</string>
     <string name="action_dependencies" translatable="false">@string/about_dependencies</string>
     <string name="action_refresh">Refresh</string>
+    <string name="alertaec_tv_refresh_hint">Press OK or the RED button to refresh (or hold ↓)</string>
     <string name="action_pull_down_to_refresh">Pull down to refresh</string>
     <string name="action_restart">Restart</string>
     <string name="action_more">More</string>

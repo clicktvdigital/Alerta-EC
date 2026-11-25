@@ -122,6 +122,9 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
     val isLocationBasedLightTheme = _isLocationBasedLightTheme.asStateFlow()
 
     companion object {
+        /** Key repeats of a held DOWN (≈1.5 s) that refresh an empty home on a TV remote. */
+        private const val HOLD_DOWN_REFRESH_REPEATS = 15
+
         const val SEARCH_ACTIVITY = 4
 
         const val ACTION_MAIN = "${BuildConfig.APPLICATION_ID}.Main"
@@ -336,6 +339,28 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
             findViewById(R.id.alerta_ec_intro_motion),
             findViewById(R.id.alerta_ec_intro_sound)
         )
+    }
+
+    /**
+     * Remote control: the RED button (or a REFRESH key) refreshes the current location right away, and on an empty
+     * screen holding DOWN ~1.5 s does too. Pull-to-refresh is a touch gesture a TV remote cannot make.
+     */
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent): Boolean {
+        val refreshKey = keyCode == android.view.KeyEvent.KEYCODE_PROG_RED ||
+            keyCode == android.view.KeyEvent.KEYCODE_REFRESH
+        val heldDownOnEmpty = keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN &&
+            event.repeatCount == HOLD_DOWN_REFRESH_REPEATS &&
+            viewModel.currentLocation.value?.location?.let { it.weather == null } == true
+        if ((refreshKey && event.repeatCount == 0) || heldDownOnEmpty) {
+            refreshFromRemote()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    fun refreshFromRemote() {
+        android.util.Log.i("AlertaEcUbicacion", "Actualización pedida con el control remoto")
+        viewModel.updateWithUpdatingChecking(triggeredByUser = true, checkPermissions = true)
     }
 
     /** Set when the user leaves the app (HOME / launcher), not when opening another screen of the app. */

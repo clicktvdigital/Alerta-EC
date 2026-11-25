@@ -38,6 +38,8 @@ import org.breezyweather.ui.main.widgets.TextRelativeClock
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.formatting.format
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
@@ -85,6 +87,7 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             if (!current.weatherText.isNullOrEmpty()) {
                 mWeatherText.visibility = View.VISIBLE
                 mWeatherText.text = current.weatherText
+                appendEcuadorSources(location, current.weatherText.orEmpty())
             } else {
                 mWeatherText.visibility = View.GONE
             }
@@ -159,5 +162,59 @@ class HeaderViewHolder(parent: ViewGroup) : AbstractMainViewHolder(
             mTemperatureFrom.format(decimals = 0, locale = context.currentLocale),
             mTemperatureTo.format(decimals = 0, locale = context.currentLocale)
         )
+    }
+
+    private var ecuadorSourcesJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Ecuador source chain under the forecast text (MET Norway main forecast, Open-Meteo completing it):
+     * EPMAPS rain measured by the nearest Quito rain gauge, then INAMHI's WRF model at this point.
+     * Each part appears only when that source answered; nothing is shown outside their coverage.
+     */
+    private fun appendEcuadorSources(location: Location, forecastText: String) {
+        ecuadorSourcesJob?.cancel()
+        val latitude = location.latitude
+        val longitude = location.longitude
+        if (!org.breezyweather.alertaec.observation.InamhiPointForecast.covers(latitude, longitude)) return
+        ecuadorSourcesJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+            val es = java.util.Locale.forLanguageTag("es-EC")
+            val gauge = async {
+                runCatching {
+                    org.breezyweather.alertaec.observation.QuitoRainGauges.lastHour(latitude, longitude)
+                }.getOrNull()
+            }
+            val inamhi = async {
+                runCatching {
+                    org.breezyweather.alertaec.observation.InamhiPointForecast.at(latitude, longitude)
+                }.getOrNull()
+            }
+            val parts = buildList {
+                gauge.await()?.let { r ->
+                    val where = r.station.code + " a " + String.format(es, "%.1f km", r.distanceKm)
+                    add(
+                        if (r.lastHourMm > 0.0) {
+                            "EPMAPS: " + String.format(es, "%.1f", r.lastHourMm) + " mm medidos · $where"
+                        } else {
+                            "EPMAPS: sin lluvia medida · $where"
+                        }
+                    )
+                }
+                inamhi.await()?.let { v ->
+                    val values = listOfNotNull(
+                        v.precipitation3hMm?.let { String.format(es, "%.1f mm en 3 h", it) },
+                        v.temperatureC?.let { String.format(es, "%.0f °C", it) },
+                    )
+                    if (values.isNotEmpty()) add("INAMHI WRF: " + values.joinToString(" · "))
+                }
+            }
+            if (parts.isNotEmpty() && mWeatherText.text.startsWith(forecastText)) {
+                val detail = "\n" + parts.joinToString("\n")
+                mWeatherText.text = android.text.SpannableStringBuilder(forecastText).apply {
+                    val start = length
+                    append(detail)
+                    setSpan(android.text.style.RelativeSizeSpan(0.55f), start, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+        }
     }
 }

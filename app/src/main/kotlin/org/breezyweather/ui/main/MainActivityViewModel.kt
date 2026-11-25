@@ -299,6 +299,11 @@ class MainActivityViewModel @Inject constructor(
         errors: List<RefreshError> = emptyList(),
     ) {
         snackbarError.postValue(errors)
+        android.util.Log.i(
+            "AlertaEcUbicacion",
+            "Actualización terminada: ${location.city.ifEmpty { location.formattedId }} " +
+                "(${location.latitude}, ${location.longitude}) datos=${location.weather != null} errores=${errors.map { it.error }}"
+        )
 
         updateInnerData(location)
 
@@ -425,6 +430,7 @@ class MainActivityViewModel @Inject constructor(
         }
         if (locationPermissionList.isEmpty()) {
             // already got all permissions -> request data directly.
+            android.util.Log.i("AlertaEcUbicacion", "Actualización iniciada: ${locationToCheck.formattedId}")
             updating = true
             SettingsManager.getInstance(getApplication())
                 .weatherManualUpdateLastTimestamp = Date().time

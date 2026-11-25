@@ -855,6 +855,7 @@
     <string name="content_provider_permission_description">obtener información meteorológica de ALERTA EC, incluidas las coordenadas de tus ubicaciones, como la ubicación actual si la has añadido</string>
     <string name="common_weather_text_mostly_cloudy">Muy nuboso</string>
     <string name="settings_appearance_dark_mode_custom">Modo oscuro de %1$s a %2$s</string>
+    <string name="alertaec_tv_refresh_hint">Pulsa OK o el botón ROJO para actualizar (o mantén ↓)</string>
     <string name="action_pull_down_to_refresh">Desliza abajo para actualizar</string>
     <string name="message_source_non_free_network_title">Esta fuente requiere la versión Standard de la aplicación</string>
     <string name="message_source_non_free_network_content">Estás usando la versión Freenet de la app que solo admite fuentes alojadas en redes libres. Para seguir usando esta fuente cambia a la versión Standard. De lo contrario selecciona una fuente diferente.</string>
