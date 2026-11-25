@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.MediaCodecList
 import android.media.MediaPlayer
@@ -45,6 +46,10 @@ internal object AlertaEcVideoIntro {
     private const val TAG = "AlertaEcIntro"
     private const val BRAND_BG = 0xFF0A244A.toInt()
     private const val LOGO_HOLD_MS = 1_300L
+
+    /** Colores medios de las filas extremas de alertaec_intro_logo_fhd_v (fondo del logo en pantallas 9:19,5+). */
+    private const val POSTER_TOP_EDGE_COLOR = 0xFF051635.toInt()
+    private const val POSTER_BOTTOM_EDGE_COLOR = 0xFF2F2728.toInt()
     private const val LOGO_FADE_MS = 220L
     private const val PREPARE_TIMEOUT_MS = 8_000L
     private const val UNKNOWN_DURATION_TIMEOUT_MS = 30_000L
@@ -144,13 +149,19 @@ internal object AlertaEcVideoIntro {
     /**
      * Logo de apertura y cierre. FIT_CENTER en todos los perfiles: el arte (alas del cóndor incluidas) nunca se
      * recorta ni se difumina. En TV el logo 16:9 a sangre llena la pantalla 16:9.
+     * En celulares más altos que 9:16 el sobrante no queda negro: el fondo es un degradado con los colores medios
+     * del borde superior (azul noche) e inferior (gris basalto) del propio póster, así el arte se continúa sin
+     * franjas negras, sin recorte y sin desenfoque.
      */
     private fun createBrandSplashView(context: Context, logo: Int): ImageView =
         ImageView(context).apply {
             setImageResource(logo)
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = false
-            setBackgroundColor(Color.TRANSPARENT)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(POSTER_TOP_EDGE_COLOR, POSTER_BOTTOM_EDGE_COLOR)
+            )
         }
 
     fun play(

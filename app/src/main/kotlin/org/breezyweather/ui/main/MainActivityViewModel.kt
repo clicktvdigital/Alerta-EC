@@ -51,6 +51,7 @@ import org.breezyweather.ui.main.utils.RefreshErrorType
 import org.breezyweather.ui.main.utils.StatementManager
 import java.util.Date
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 interface WeatherRequestCallback {
@@ -277,13 +278,13 @@ class MainActivityViewModel @Inject constructor(
         postUpdate(locationList)
     }
 
-    private fun setCurrentLocation(location: Location?) {
+    private fun setCurrentLocation(location: Location?, selectedByUser: Boolean = false) {
         _currentLocation.value = location?.let {
             DayNightLocation(location = it)
         }
         savedStateHandle[KEY_FORMATTED_ID] = location?.formattedId
 
-        checkToUpdateCurrentLocation()
+        checkToUpdateCurrentLocation(selectedByUser)
     }
 
     fun locationListSize(): Int {
@@ -305,11 +306,11 @@ class MainActivityViewModel @Inject constructor(
         updating = false
     }
 
-    private fun checkToUpdateCurrentLocation() {
+    private fun checkToUpdateCurrentLocation(selectedByUser: Boolean = false) {
         // is not loading
         if (!updating) {
             // if already valid, just return.
-            if (currentLocationIsValid()) return
+            if (currentLocationIsValid(strict = selectedByUser || isTelevision)) return
 
             // If we don't have any location yet, just return
             if (currentLocation.value?.location == null) {
@@ -340,10 +341,23 @@ class MainActivityViewModel @Inject constructor(
         // is loading, do nothing.
     }
 
-    private fun currentLocationIsValid() =
-        currentLocation.value?.location?.weather?.isValid(
-            SettingsManager.getInstance(getApplication()).updateInterval.validity
+    /**
+     * Android TV has no reliable background refresh (no battery-exempt worker, often deep-idle), and a location the
+     * user just picked must show current data: in both cases data older than [FOREGROUND_VALIDITY] is refreshed
+     * right away in the foreground instead of waiting for the background interval.
+     */
+    private val isTelevision: Boolean by lazy {
+        val pm = getApplication<Application>().packageManager
+        pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) ||
+            pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEVISION)
+    }
+
+    private fun currentLocationIsValid(strict: Boolean = false): Boolean {
+        val validity = SettingsManager.getInstance(getApplication()).updateInterval.validity
+        return currentLocation.value?.location?.weather?.isValid(
+            if (strict) minOf(validity, FOREGROUND_VALIDITY) else validity
         ) ?: false
+    }
 
     // update.
     fun updateWithUpdatingChecking(
@@ -470,7 +484,7 @@ class MainActivityViewModel @Inject constructor(
                 val index = locationList.indexOfFirst { it.formattedId == formattedId }
 
                 if (index >= 0) {
-                    setCurrentLocation(locationList[index])
+                    setCurrentLocation(locationList[index], selectedByUser = true)
 
                     _indicator.value = Indicator(
                         total = locationList.size,
@@ -502,7 +516,7 @@ class MainActivityViewModel @Inject constructor(
         index = (index + offset + (validLocationList.value.size)) % (validLocationList.value.size)
 
         // update location.
-        setCurrentLocation(validLocationList.value[index])
+        setCurrentLocation(validLocationList.value[index], selectedByUser = true)
 
         _indicator.value = Indicator(total = validLocationList.value.size, index = index)
 
@@ -761,5 +775,8 @@ class MainActivityViewModel @Inject constructor(
     companion object {
         private const val KEY_FORMATTED_ID = "formatted_id"
         private val DELAY_BEFORE_NEXT_MANUAL_REFRESH = 10.seconds.inWholeMilliseconds
+
+        /** Freshness for a location the user just picked and for Android TV (see [currentLocationIsValid]). */
+        private val FOREGROUND_VALIDITY = 15.minutes
     }
 }
