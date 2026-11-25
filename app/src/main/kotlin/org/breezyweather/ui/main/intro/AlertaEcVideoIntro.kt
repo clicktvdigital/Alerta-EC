@@ -30,11 +30,13 @@ import androidx.core.view.updateLayoutParams
 
 /**
  * Intro común a los 3 perfiles: logo inicial Full HD (1300 ms) → video → logo final Full HD (1300 ms) → Home.
- * Exactamente 2 apariciones del logo: el video ya no trae logo propio al final (recortado a 8 s) y no hay
- * fondo con el logo detrás del video. Logo y video se muestran completos (FIT_CENTER / proporción nativa).
- * - Android TV: logo 1920×1080 + video horizontal 1920×1080.
- * - TV Box (o TV con pocos recursos): logo 1920×1080 + video horizontal 1280×720.
- * - Celular: logo vertical 1080×1920 + video vertical 720×1280.
+ * Exactamente 2 apariciones del logo: los videos ya no traen logo propio al final y no hay fondo con el logo
+ * detrás del video.
+ * - Android TV: logo 16:9 1920×1080 a sangre + video horizontal nativo 1920×1080 (FIT_CENTER = pantalla llena).
+ * - TV Box (o TV con pocos recursos): el mismo logo + video horizontal nativo 1280×720.
+ * - Celular: logo y video en lienzo 9:21 (1080×2520 / 720×1680). El arte 9:16 completo va al centro y arriba y
+ *   abajo se extiende el mismo arte desenfocado; se escala por cobertura (CENTER_CROP) y solo se recorta esa
+ *   extensión, nunca el logo ni el encuadre del video. Así cubre toda la pantalla vertical sin franjas.
  * Ver [IntroPlaybackPolicy] para la detección del perfil y el respaldo si falta un recurso.
  *
  * Logs con la etiqueta [TAG] mediante Log.println: R8 elimina Log.v/d/i/w/e en release (proguard-rules.pro).
@@ -76,6 +78,26 @@ internal object AlertaEcVideoIntro {
         val navigationBarColor: Int,
         val navigationBarContrastEnforced: Boolean?,
     )
+
+    /**
+     * Celular: escala uniforme (sin deformar) para que el video 9:21 cubra la pantalla. VideoView ya se mide con
+     * la proporción del video; el factor máximo solo recorta la extensión desenfocada del lienzo, no el encuadre.
+     * TV: escala 1 (el video 16:9 ya llena la pantalla 16:9).
+     */
+    private fun applyPhoneCoverScale(view: VideoView, container: View, profile: IntroDeviceProfile) {
+        view.scaleX = 1f
+        view.scaleY = 1f
+        if (profile != IntroDeviceProfile.PHONE) return
+        view.post {
+            val vw = view.width.toFloat()
+            val vh = view.height.toFloat()
+            if (vw <= 0f || vh <= 0f || container.width <= 0 || container.height <= 0) return@post
+            val scale = maxOf(container.width / vw, container.height / vh, 1f)
+            view.scaleX = scale
+            view.scaleY = scale
+            log("Video celular a pantalla completa: escala ${"%.3f".format(scale)} (${vw.toInt()}x${vh.toInt()} en ${container.width}x${container.height})")
+        }
+    }
 
     private fun log(message: String) {
         Log.println(Log.INFO, TAG, message)
@@ -120,13 +142,18 @@ internal object AlertaEcVideoIntro {
         IntroPlaybackPolicy.firstAvailable(names) { context.resources.getIdentifier(it, type, context.packageName) }
 
     /**
-     * Logo de apertura y cierre. FIT_CENTER sin padding: el arte (alas del cóndor incluidas) nunca se recorta.
-     * El espacio sobrante muestra el color institucional [BRAND_BG] del contenedor, nunca otra copia del logo.
+     * Logo de apertura y cierre; el arte (alas del cóndor incluidas) nunca se recorta.
+     * - TV: FIT_CENTER con el logo 16:9 a sangre: llena la pantalla 16:9 sin franjas.
+     * - Celular: CENTER_CROP sobre el lienzo 9:21; solo se recorta la extensión superior/inferior.
      */
-    private fun createBrandSplashView(context: Context, logo: Int): ImageView =
+    private fun createBrandSplashView(context: Context, logo: Int, profile: IntroDeviceProfile): ImageView =
         ImageView(context).apply {
             setImageResource(logo)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = if (profile == IntroDeviceProfile.PHONE) {
+                ImageView.ScaleType.CENTER_CROP
+            } else {
+                ImageView.ScaleType.FIT_CENTER
+            }
             adjustViewBounds = false
             setBackgroundColor(Color.TRANSPARENT)
         }
@@ -170,7 +197,7 @@ internal object AlertaEcVideoIntro {
         }
         log("Recursos: logo=${logo.first}, video=${video.first}")
         val view = VideoView(context)
-        val splashView = createBrandSplashView(context, logo.second)
+        val splashView = createBrandSplashView(context, logo.second, profile)
         activeVideo = view
         activeRoot = frame
         activeSplash = splashView
@@ -291,9 +318,8 @@ internal object AlertaEcVideoIntro {
                     pendingAudioFallback = audioFallback
                     handler.postDelayed(audioFallback, LOGO_HOLD_MS + AUDIO_FALLBACK_MS)
                 }
-                // Sin escalado artificial: VideoView conserva la proporción y muestra el encuadre completo.
-                view.scaleX = 1f
-                view.scaleY = 1f
+                player.setOnVideoSizeChangedListener { _, _, _ -> applyPhoneCoverScale(view, frame, profile) }
+                applyPhoneCoverScale(view, frame, profile)
                 videoDurationMs = player.duration.takeIf { it > 0 }?.toLong()
                 videoPrepared = true
                 log("Video preparado (${player.videoWidth}x${player.videoHeight}, ${videoDurationMs ?: "?"} ms, sonido=$soundEnabled)")

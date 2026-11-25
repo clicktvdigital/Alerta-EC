@@ -69,7 +69,8 @@ class IntroPlaybackPolicyTest {
     @Test
     fun deviceProfilesFollowPowerAndOrientation() {
         profile() shouldBe IntroDeviceProfile.ANDROID_TV
-        profile(memory = 1_700_000_000L) shouldBe IntroDeviceProfile.TV_BOX
+        profile(memory = 1_765_000_000L) shouldBe IntroDeviceProfile.ANDROID_TV
+        profile(memory = 1_200_000_000L) shouldBe IntroDeviceProfile.TV_BOX
         profile(lowRam = true) shouldBe IntroDeviceProfile.TV_BOX
         profile(longSide = 1280) shouldBe IntroDeviceProfile.TV_BOX
         profile(fhd = false) shouldBe IntroDeviceProfile.TV_BOX

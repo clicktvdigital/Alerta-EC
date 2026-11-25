@@ -4,8 +4,11 @@ package org.breezyweather.ui.main.intro
 internal enum class IntroDeviceProfile { ANDROID_TV, TV_BOX, PHONE }
 
 internal object IntroPlaybackPolicy {
-    /** Por debajo de esto un televisor se trata como TV Box: video HD para no saturarlo. */
-    const val FHD_MIN_TOTAL_MEMORY_BYTES = 2_500_000_000L
+    /**
+     * Por debajo de esto un televisor se trata como TV Box: video HD para no saturarlo. 1,5 GB: televisores
+     * Android TV de 2 GB nominales (≈1,7 GB reportados) con decodificador 1080p reproducen el Full HD.
+     */
+    const val FHD_MIN_TOTAL_MEMORY_BYTES = 1_500_000_000L
 
     /**
      * - Celular: retrato sin modo televisión.
