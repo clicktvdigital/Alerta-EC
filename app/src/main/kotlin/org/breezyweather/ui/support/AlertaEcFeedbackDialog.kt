@@ -27,6 +27,9 @@ import androidx.fragment.app.DialogFragment
 import org.breezyweather.background.location.ActiveLocationController
 import java.io.File
 import java.util.Date
+import org.breezyweather.alertaec.community.AlertaEcCommunity
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 
 /** Formulario nativo independiente de la tarjeta Compose reciclable de Inicio.
  * Las pruebas de Android deben verificar IME, URI, retorno de cámara y chooser.
@@ -155,14 +158,55 @@ class AlertaEcFeedbackDialog : DialogFragment() {
             isChecked = false
             column.addView(this)
         } else null
-        if (isReport) description("Este formulario prepara un reporte voluntario; no hay envío comunitario automático ni atención de emergencias.")
+        if (isReport) {
+            description(
+                if (AlertaEcCommunity.isConfigured) {
+                    "«Publicar en la comunidad» lo comparte con otros usuarios de ALERTA EC (sin tu nombre; " +
+                        "el GPS, si lo marcas, se redondea a ~1 km; los archivos adjuntos no se publican). " +
+                        "No es atención de emergencias: ante peligro llama al ECU 911."
+                } else {
+                    "Este formulario prepara un reporte voluntario para enviarlo por la aplicación que elijas. " +
+                        "No es atención de emergencias: ante peligro llama al ECU 911."
+                }
+            )
+        }
         val dialog = AlertDialog.Builder(context)
             .setTitle(if (isReport) "📢 Reporte ALERTA EC" else "⭐ Reseña ALERTA EC")
             .setView(scroll)
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Elegir dónde enviar", null)
+            .apply { if (AlertaEcCommunity.isConfigured) setNeutralButton("Publicar en la comunidad", null) }
             .create()
         dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener { publishButton ->
+                val body = input.text.toString().trim()
+                if (body.length < 5) { input.error = "Escribe al menos 5 caracteres"; input.requestFocus(); return@setOnClickListener }
+                val stars = rating?.rating?.toInt() ?: 0
+                if (!isReport && stars !in 1..5) { showMessage("Selecciona de 1 a 5 estrellas"); return@setOnClickListener }
+                val snapshot = if (includeGps?.isChecked == true) ActiveLocationController.getLatest(context) else null
+                val recent = snapshot?.takeIf { System.currentTimeMillis() - it.timestamp in 0L..600_000L }
+                publishButton.isEnabled = false
+                showMessage("Publicando…")
+                lifecycleScope.launch {
+                    val result = if (isReport) {
+                        AlertaEcCommunity.publishReport(
+                            categories[spinner?.selectedItemPosition ?: 0], body, recent?.latitude, recent?.longitude
+                        )
+                    } else {
+                        AlertaEcCommunity.publishReview(stars, body)
+                    }
+                    when (result) {
+                        is AlertaEcCommunity.Result.Ok -> {
+                            showMessage(if (isReport) "Reporte publicado en la comunidad. ¡Gracias!" else "Reseña enviada. ¡Gracias!")
+                            dismissAllowingStateLoss()
+                        }
+                        is AlertaEcCommunity.Result.Error -> {
+                            publishButton.isEnabled = true
+                            showMessage(result.message)
+                        }
+                    }
+                }
+            }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val body = input.text.toString().trim()
                 if (body.isBlank()) { input.error="Escribe un mensaje"; input.requestFocus(); return@setOnClickListener }

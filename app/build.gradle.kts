@@ -242,6 +242,20 @@ configure<ApplicationExtension> {
                 "\"${globalProperties.getProperty("app.github.release_prefix") ?: ""}\""
             }
         )
+        // ALERTA EC community (Supabase project bnnpdwrduktchmgbwlha): PUBLIC key only, from the
+        // ALERTAEC_SUPABASE_ANON_KEY environment variable (GitHub secret) or local.properties.
+        // A service_role / sb_secret_ key would grant full database access: the build refuses it.
+        val supabaseAnonKey = (System.getenv("ALERTAEC_SUPABASE_ANON_KEY")
+            ?: localProperties.getProperty("alertaec.supabaseAnonKey") ?: "").trim()
+        if (supabaseAnonKey.startsWith("sb_secret_") || supabaseAnonKey.split('.').let { parts ->
+                parts.size == 3 && runCatching {
+                    String(java.util.Base64.getUrlDecoder().decode(parts[1].padEnd((parts[1].length + 3) / 4 * 4, '=')))
+                }.getOrDefault("").contains("service_role")
+            }
+        ) {
+            throw GradleException("ALERTAEC_SUPABASE_ANON_KEY must be the public anon/publishable key, never service_role.")
+        }
+        it.buildConfigField("String", "ALERTAEC_SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
         it.buildConfigField(
             "String",
             "DEFAULT_LOCATION_SOURCE",

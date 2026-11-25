@@ -57,12 +57,18 @@ jobs:
           fi
 
       - name: Ejecutar pruebas unitarias Alerta EC
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
         run: ./gradlew :app:testBasicDebugUnitTest --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
 
       - name: Verificar compilacion Kotlin Release
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
         run: ./gradlew :app:compileBasicReleaseKotlin --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
 
       - name: Compilar APK de prueba previa a release
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
         run: ./gradlew :app:assembleBasicDebug --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
 
       - name: Guardar APK de prueba (sin publicar release)

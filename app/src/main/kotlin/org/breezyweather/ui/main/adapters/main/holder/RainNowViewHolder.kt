@@ -116,15 +116,42 @@ class RainNowViewHolder(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    NeonButton(
-                        onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("🗺️ Abrir mapa", maxLines = 1, softWrap = false)
+                // Phone: one button per line, full width and centred, so no word is cut.
+                // Android TV / tablets: side by side. Both keep the neon focus and no purple fill.
+                androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val openMap: @Composable () -> Unit = {
+                        Text(
+                            "🗺️ Abrir mapa",
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
                     }
-                    NeonButton(onClick = { showSupportBlock() }, modifier = Modifier.weight(1f)) {
-                        Text("🤝 Colaborar", maxLines = 1, softWrap = false)
+                    val support: @Composable () -> Unit = {
+                        Text(
+                            "🤝 Colaborar",
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                    }
+                    val mapAction = { context.startActivity(Intent(context, MapActivity::class.java)) }
+                    if (maxWidth < 420.dp) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            NeonButton(onClick = mapAction, modifier = Modifier.fillMaxWidth()) { openMap() }
+                            NeonButton(onClick = { showSupportBlock() }, modifier = Modifier.fillMaxWidth()) { support() }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            NeonButton(onClick = mapAction, modifier = Modifier.weight(1f)) { openMap() }
+                            NeonButton(onClick = { showSupportBlock() }, modifier = Modifier.weight(1f)) { support() }
+                        }
                     }
                 }
             }

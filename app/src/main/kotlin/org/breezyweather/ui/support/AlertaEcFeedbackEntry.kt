@@ -17,6 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import org.breezyweather.ui.map.MapActivity
 import org.breezyweather.ui.common.widgets.NeonButton
+import org.breezyweather.alertaec.community.AlertaEcCommunity
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 
 /** Entradas de Home sin campos editables dentro del RecyclerView. */
 @Composable
@@ -50,7 +53,9 @@ fun AlertaEcFeedbackEntry(context: Context) {
                     style = MaterialTheme.typography.bodyMedium)
                 NeonButton(onClick = { showFeedback(context, true) },
                     modifier = Modifier.fillMaxWidth()) { Text("Redactar reporte y adjuntar evidencia") }
-                Text("El envío requiere elegir una aplicación externa. No equivale a un reporte recibido por ECU 911.",
+                NeonButton(onClick = { showCommunityReports(context) },
+                    modifier = Modifier.fillMaxWidth()) { Text("👥 Ver reportes de la comunidad") }
+                Text("Los reportes comunitarios son voluntarios y no equivalen a un aviso recibido por ECU 911.",
                     style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -76,5 +81,44 @@ private fun showFeedback(context: Context, isReport: Boolean) {
     val tag = if (isReport) "ALERTA_EC_FORM_REPORTE" else "ALERTA_EC_FORM_RESENA"
     if (host.supportFragmentManager.findFragmentByTag(tag) == null) {
         AlertaEcFeedbackDialog.create(isReport).show(host.supportFragmentManager, tag)
+    }
+}
+
+/** Recent community reports near the latest position (or all Ecuador), read on IO; errors shown plainly. */
+private fun showCommunityReports(context: Context) {
+    val host = findHost(context) ?: return
+    if (!AlertaEcCommunity.isConfigured) {
+        Toast.makeText(context, AlertaEcCommunity.NOT_CONFIGURED, Toast.LENGTH_LONG).show()
+        return
+    }
+    val dialog = android.app.AlertDialog.Builder(context)
+        .setTitle("👥 Reportes de la comunidad (últimas 12 h)")
+        .setMessage("Consultando…")
+        .setPositiveButton("Cerrar", null)
+        .show()
+    val position = org.breezyweather.background.location.ActiveLocationController.getLatest(context)
+    host.lifecycleScope.launch {
+        val result = AlertaEcCommunity.recentReports(position?.latitude, position?.longitude)
+        if (!dialog.isShowing) return@launch
+        dialog.setMessage(
+            when (result) {
+                is AlertaEcCommunity.Result.Error -> result.message
+                is AlertaEcCommunity.Result.Ok -> if (result.value.isEmpty()) {
+                    "No hay reportes recientes " + if (position != null) "cerca de tu zona." else "en Ecuador."
+                } else {
+                    result.value.joinToString("\n\n") { report ->
+                        val hora = runCatching {
+                            java.time.OffsetDateTime.parse(report.createdAt)
+                                .atZoneSameInstant(java.time.ZoneId.of("America/Guayaquil"))
+                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                        }.getOrDefault("")
+                        "• ${report.category} · $hora\n${report.description}" +
+                            if (report.latitude != null && report.longitude != null) {
+                                "\n(zona ~1 km: %.2f, %.2f)".format(java.util.Locale.US, report.latitude, report.longitude)
+                            } else ""
+                    }
+                }
+            }
+        )
     }
 }

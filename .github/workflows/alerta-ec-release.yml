@@ -83,6 +83,8 @@ jobs:
           } >> local.properties
 
       - name: Compilar APK Release
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
         run: ./gradlew :app:assembleBasicRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
 
       - name: Verificar APK, firma, certificado e identidad
