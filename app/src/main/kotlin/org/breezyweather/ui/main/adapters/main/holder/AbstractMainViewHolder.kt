@@ -19,10 +19,14 @@ package org.breezyweather.ui.main.adapters.main.holder
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Color
 import android.view.View
 import androidx.annotation.CallSuper
 import androidx.recyclerview.widget.RecyclerView
 import breezyweather.domain.location.model.Location
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 import org.breezyweather.common.utils.helpers.AsyncHelper
 import org.breezyweather.ui.main.utils.MainModuleUtils
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
@@ -52,6 +56,28 @@ abstract class AbstractMainViewHolder(
         mDelayController = null
         if (listAnimationEnabled) {
             itemView.alpha = 0f
+        }
+        enableRemoteFocus(context)
+    }
+
+    /**
+     * Android TV: each home block is a D-pad focus stop, so the remote scrolls the list block by block and can
+     * enter a block's own controls (tabs, buttons). Focus is shown with a border and a slight zoom.
+     */
+    private fun enableRemoteFocus(context: Context) {
+        if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) return
+        itemView.isFocusable = true
+        itemView.isFocusableInTouchMode = false
+        val card = itemView as? MaterialCardView
+        val focusColor = MaterialColors.getColor(itemView, com.google.android.material.R.attr.colorPrimary, Color.WHITE)
+        val strokePx = (3 * context.resources.displayMetrics.density).toInt()
+        itemView.setOnFocusChangeListener { v, hasFocus ->
+            val scale = if (hasFocus) 1.02f else 1f
+            v.animate().scaleX(scale).scaleY(scale).setDuration(120L).start()
+            card?.apply {
+                strokeColor = focusColor
+                strokeWidth = if (hasFocus) strokePx else 0
+            }
         }
     }
 
