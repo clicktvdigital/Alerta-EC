@@ -12,7 +12,7 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
 - 🔔 Un canal por fenómeno, tono propio para la niebla, voz de lluvia próxima y aviso al despejar.
 - 🏠 Tarjeta de alertas del inicio que se cierra deslizando o con X, y que se puede ubicar arriba, abajo u ocultar.
 - 🔄 Buscador de actualizaciones y «Novedades» alineados con la versión publicada.
-- 🚀 Release v0.1.25 en GitHub con notas completas ([docs/releases/v0.1.25.md](releases/v0.1.25.md)), así las versiones anteriores que consultan GitHub Releases también la ven.
+- 🚀 Notas de Release preparadas en [docs/releases/v0.1.25.md](releases/v0.1.25.md). *Corrección (v0.1.26): la etiqueta `v0.1.25` nunca se publicó; el primer Release después de v0.1.22 es `v0.1.26`.*
 - 🛠️ Mantenimiento: la prueba de Release firmada (`alerta-ec-release-test.yml`) lee la versión desde Gradle en lugar de exigir v0.1.11. La firma de producción y los 4 perfiles de APK no cambian.
 - 🧹 Se cerraron los PR #1 y #2 (v0.1.15 y README antiguo), ya reemplazados por la línea actual.
 - 📦 **Obtainium:** el Release estable de GitHub ahora adjunta los 4 perfiles (`alertaec-phone-arm64-v8a.apk`, `alertaec-phone-armeabi-v7a.apk`, `alertaec-tv-fhd-armeabi-v7a.apk`, `alertaec-tvbox-hd-armeabi-v7a.apk`) y `SHA256SUMS.txt`, además del APK universal. Obtainium mostraba 0.1.22 porque era el último Release publicado. La configuración por equipo está en el README.
@@ -22,6 +22,18 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
   - Mapa ligero de Ecuador y reportes de la comunidad (Supabase, clave pública `anon` inyectada en el despliegue): ver, enviar y denunciar.
   - Guía de instalación en 2 pasos (Compartir → «Agregar a inicio»), funcionamiento a pantalla completa y caché básica sin conexión.
   - Se publica con el mismo workflow de descargas; los 4 APK y `version.json` no cambian.
+
+## v0.1.26 (128) · 25-11-2026
+
+- **Control remoto en Configuración y Acerca de (Smart TV y TV Box):**
+  - Todas las pantallas de Configuración (`PreferenceScreen`) y Autosoporte usan `tvDpadScroll`: ARRIBA/ABAJO mueven el foco a la siguiente opción y la lista la muestra (bring into view); si no hay más opciones y queda contenido, la lista toma el foco y se desplaza por pasos, sin que el foco se pierda fuera de la pantalla.
+  - Si el foco iba a salir hacia la barra superior mientras la lista aún puede subir, se queda en la lista y sube primero.
+  - IZQUIERDA/DERECHA y OK/ENTER conservan su comportamiento en los controles de cada fila.
+  - Foco neón cian (`TvNeonCyan`) con borde de 3 dp y brillo en las tarjetas de Configuración; el realce de foco ya no usa el morado del tema.
+  - Detección de TV ampliada: leanback, television o equipos sin pantalla táctil (TV Box genéricos).
+- **Alertas en el inicio:** se mantiene el cierre deslizando a izquierda o derecha, la X enfocable y la posición arriba/abajo/oculta (v0.1.24).
+- **GitHub Releases y Obtainium:** el workflow `alerta-ec-release.yml` solo publica al subir una etiqueta `v*`; después de `v0.1.22` no se subió ninguna, por eso Obtainium y GitHub mostraban 0.1.22. Se publica la etiqueta `v0.1.26` con los 4 perfiles de APK y `SHA256SUMS.txt`.
+- Firma de producción, iconos y los 4 perfiles de APK sin cambios.
 
 ## v0.1.25 (127) · 25-11-2026
 

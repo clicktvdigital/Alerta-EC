@@ -37,6 +37,7 @@ import org.breezyweather.alertaec.support.AutoSupportPhase
 import org.breezyweather.alertaec.support.AutoSupportResult
 import org.breezyweather.ui.common.widgets.Material3Scaffold
 import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 fun AutoSupportSettingsScreen(
@@ -62,11 +63,13 @@ fun AutoSupportSettingsScreen(
             )
         }
     ) { paddings: PaddingValues ->
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddings)
-                .verticalScroll(rememberScrollState())
+                .tvDpadScroll(scrollState)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

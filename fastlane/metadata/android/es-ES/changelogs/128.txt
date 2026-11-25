@@ -1,0 +1,4 @@
+📺 Control remoto completo en Configuración y Acerca de: las flechas bajan, suben y cambian de opción sin atascarse.
+💠 Foco neón cian en Smart TV y TV Box, sin fondo morado.
+🏠 Alertas del inicio: desliza a izquierda o derecha o pulsa la X para cerrarlas; elige arriba, abajo u ocultas.
+🔄 Obtainium y GitHub muestran de nuevo la última versión.

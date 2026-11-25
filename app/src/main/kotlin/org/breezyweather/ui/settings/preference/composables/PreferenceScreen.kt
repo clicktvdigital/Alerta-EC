@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 fun PreferenceScreen(
@@ -30,8 +32,11 @@ fun PreferenceScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     content: LazyListScope.() -> Unit,
 ) {
+    // Android TV / TV box: D-pad moves through every preference and scrolls the rest (no effect on phones).
+    val listState = rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = listState,
+        modifier = modifier.fillMaxSize().tvDpadScroll(listState),
         contentPadding = paddingValues,
         content = content
     )

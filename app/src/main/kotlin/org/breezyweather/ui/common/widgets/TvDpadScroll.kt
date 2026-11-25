@@ -1,14 +1,20 @@
 package org.breezyweather.ui.common.widgets
 
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -20,36 +26,80 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+/** Neon cyan of the Alerta EC focus ring (same tone as [NeonButton]). */
+val TvNeonCyan = Color(0xFF00E5FF)
+
 /**
- * Android TV remote on a scrolling list whose content is mostly non-focusable (charts, text cards):
- * Down/Up first move focus to the next focusable item, and only when there is none they scroll the list by a
- * step, so every part of the screen can be reached and read without a touch screen. The list itself can hold
- * focus, so it is reachable even when it has no focusable item. No effect outside Android TV.
+ * True on Android TV / Google TV and on TV boxes: leanback or television feature, or no touch screen at all
+ * (cheap boxes often declare neither feature, but a phone or tablet always has a touch screen).
+ */
+fun Context.isTelevisionUi(): Boolean {
+    val pm = packageManager
+    return pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+        pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
+        !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+}
+
+@Composable
+fun rememberIsTelevisionUi(): Boolean {
+    val context = LocalContext.current
+    return remember(context) { context.isTelevisionUi() }
+}
+
+/**
+ * Android TV remote on a scrolling list or column (settings, about, details, alerts):
+ *
+ * - Up/Down first move focus to the next focusable item; the list scrolls to show it (bring into view).
+ * - When there is no focusable item further in that direction but the content can still scroll (text,
+ *   charts, credits), the list itself takes the focus and scrolls by a step, so every part can be read.
+ *   Taking the focus first matters: otherwise the focused item scrolls off screen, is disposed, the focus
+ *   falls out of the screen and the remote seems stuck.
+ * - If moving up or down would make the focus leave the list (for example to the top bar) while the list can
+ *   still scroll that way, the focus stays in the list and it scrolls instead, so the top of the screen is
+ *   shown before reaching the back button.
+ * - Left/Right and OK keep their default behaviour (row controls, clickable items).
+ *
+ * No effect on phones and tablets.
  */
 fun Modifier.tvDpadScroll(state: ScrollableState): Modifier = composed {
-    val context = LocalContext.current
-    val television = remember(context) {
-        context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
-    }
-    if (!television) return@composed this
-    val focusManager = LocalFocusManager.current
+    if (!rememberIsTelevisionUi()) return@composed this
     val scope = rememberCoroutineScope()
-    val step = with(LocalDensity.current) { 320.dp.toPx() }
+    val step = with(LocalDensity.current) { 280.dp.toPx() }
+    val self = remember { FocusRequester() }
+    // Plain fields: onFocusChanged runs synchronously inside moveFocus, so they are current right after it.
+    val focus = remember { TvListFocus() }
+    val focusManager = LocalFocusManager.current
+
     this
+        .focusRequester(self)
+        .onFocusChanged {
+            focus.inside = it.hasFocus
+            focus.self = it.isFocused
+        }
         .onKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-            val sign = when (event.key) {
-                Key.DirectionDown -> 1
-                Key.DirectionUp -> -1
+            val forward = when (event.key) {
+                Key.DirectionDown -> true
+                Key.DirectionUp -> false
                 else -> return@onKeyEvent false
             }
-            if (focusManager.moveFocus(if (sign > 0) FocusDirection.Down else FocusDirection.Up)) {
-                return@onKeyEvent true
+            val canScroll = if (forward) state.canScrollForward else state.canScrollBackward
+            if (focusManager.moveFocus(if (forward) FocusDirection.Down else FocusDirection.Up)) {
+                if (focus.inside || !canScroll) return@onKeyEvent true
+                // The focus left the list although it can still scroll: bring it back and scroll instead.
+                runCatching { self.requestFocus() }
+            } else if (!canScroll) {
+                return@onKeyEvent false
+            } else if (!focus.self) {
+                runCatching { self.requestFocus() }
             }
-            val canScroll = if (sign > 0) state.canScrollForward else state.canScrollBackward
-            if (!canScroll) return@onKeyEvent false
-            scope.launch { state.animateScrollBy(sign * step) }
+            scope.launch { state.animateScrollBy(if (forward) step else -step) }
             true
         }
         .focusable()
+}
+
+private class TvListFocus {
+    var inside = false
+    var self = false
 }

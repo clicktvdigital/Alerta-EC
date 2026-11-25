@@ -66,6 +66,12 @@ fun BreezyWeatherTheme(
 fun themeRipple(
     bounded: Boolean = true,
 ) = ripple(
-    color = MaterialTheme.colorScheme.primary,
+    // Android TV / TV box: the focused state layer is tinted with this colour, so use the Alerta EC neon cyan
+    // instead of the theme primary (a purple background behind the focused row on the TV).
+    color = if (org.breezyweather.ui.common.widgets.rememberIsTelevisionUi()) {
+        org.breezyweather.ui.common.widgets.TvNeonCyan
+    } else {
+        MaterialTheme.colorScheme.primary
+    },
     bounded = bounded
 )

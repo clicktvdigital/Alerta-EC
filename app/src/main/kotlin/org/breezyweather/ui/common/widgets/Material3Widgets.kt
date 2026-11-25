@@ -17,6 +17,7 @@
 package org.breezyweather.ui.common.widgets
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
@@ -41,8 +42,12 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -199,9 +204,8 @@ fun Material3ExpressiveCardListItem(
     isFirst: Boolean = true,
     isLast: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
-) = Card(
-    modifier = modifier,
-    shape = RoundedCornerShape(
+) {
+    val shape = RoundedCornerShape(
         topStart = if (isFirst) {
             dimensionResource(R.dimen.material3_card_settings_list_item_corner_radius)
         } else {
@@ -222,10 +226,31 @@ fun Material3ExpressiveCardListItem(
         } else {
             2.dp
         }
-    ),
-    colors = CardDefaults.cardColors(
-        containerColor = getWidgetSurfaceColor(elevation, surface),
-        contentColor = onSurface
-    ),
-    content = content
-)
+    )
+    // Android TV / TV box: neon ring and glow while the card or a control inside it has the D-pad focus.
+    val television = rememberIsTelevisionUi()
+    var focused by remember { mutableStateOf(false) }
+    val glow = television && focused
+    Card(
+        modifier = if (television) {
+            modifier
+                .onFocusChanged { focused = it.hasFocus }
+                .shadow(
+                    elevation = if (glow) 12.dp else 0.dp,
+                    shape = shape,
+                    clip = false,
+                    ambientColor = TvNeonCyan,
+                    spotColor = TvNeonCyan
+                )
+        } else {
+            modifier
+        },
+        shape = shape,
+        border = if (glow) BorderStroke(3.dp, TvNeonCyan) else null,
+        colors = CardDefaults.cardColors(
+            containerColor = getWidgetSurfaceColor(elevation, surface),
+            contentColor = onSurface
+        ),
+        content = content
+    )
+}
