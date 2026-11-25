@@ -3,6 +3,10 @@
 Registro en español de las compilaciones de ALERTA EC (rama `alerta-ec`). Lo más reciente va arriba.
 Los 4 perfiles de APK de cada compilación se describen en [README.md](../README.md#descargas-directas).
 
+## v0.1.23 (125) · 25-11-2026
+
+- Nueva versión para que Android y los usuarios reconozcan la actualización respecto a v0.1.22 (124). Incluye todos los cambios listados abajo y las descargas directas firmadas.
+
 ## v0.1.22 · compilaciones del 24 y 25-11-2026
 
 ### Descargas y compilación

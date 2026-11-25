@@ -1,0 +1,7 @@
+• Tono y voz propios de ALERTA EC cuando cambia el clima (una sola vez).
+• Índice de riesgo de lluvia 0-100 con sus razones.
+• Reportes de la comunidad con severidad y denuncias.
+• Mapa de Ecuador con capas INAMHI y satélite GOES.
+• Pronóstico de 16 días y unidades de Ecuador con ejemplos.
+• Temperatura en la barra de estado por defecto.
+• Autosoporte que se repara solo y control remoto en TV.
