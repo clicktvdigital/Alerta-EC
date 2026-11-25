@@ -56,7 +56,7 @@
                         android:layout_height="match_parent"
                         android:scrollbars="none"
                         android:clipToPadding="false"
-                        android:descendantFocusability="blocksDescendants" />
+                        android:descendantFocusability="afterDescendants" />
 
                 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

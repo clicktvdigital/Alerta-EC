@@ -332,7 +332,8 @@ class MapFragment : MainModuleFragment() {
         lastAddressPosition = latitude to longitude
         addressRequest?.dispose()
         val requestedView = view
-        addressRequest = addressProvider.request(latitude, longitude)
+        // defer: a failure while building the request reaches onError instead of crashing the main thread.
+        addressRequest = io.reactivex.rxjava3.core.Observable.defer { addressProvider.request(latitude, longitude) }
             .subscribeOn(io.reactivex.rxjava3.schedulers.Schedulers.io())
             .observeOn(io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread())
             .subscribe(

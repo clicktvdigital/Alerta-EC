@@ -39,7 +39,7 @@ class DetailedLocationProvider @Inject constructor(
         sourceId: String = "nominatim",
     ): Observable<DetailedLocationAddress> {
         val primarySource = sourceManager.getReverseGeocodingSourceOrDefault("nominatim")
-        val fallbackSource = sourceManager.getReverseGeocodingSourceOrDefault("android")
+        val fallbackSource = sourceManager.getReverseGeocodingSourceOrDefault(SourceManager.NATIVE_GEOCODER_ID)
 
         return primarySource.requestNearestLocation(
             context = context,

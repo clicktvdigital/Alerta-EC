@@ -384,8 +384,14 @@ class SourceManager @Inject constructor(
     fun getReverseGeocodingSource(id: String): ReverseGeocodingSource? = getReverseGeocodingSources()
         .firstOrNull { it.id == id }
 
+    /**
+     * Never throws: an unknown id (e.g. the legacy "android", whose real id is "nativegeocoder") falls back to the
+     * build default, then to the native geocoder, then to any registered source (Natural Earth is always present).
+     */
     fun getReverseGeocodingSourceOrDefault(id: String): ReverseGeocodingSource = getReverseGeocodingSource(id)
-        ?: getReverseGeocodingSource(BuildConfig.DEFAULT_GEOCODING_SOURCE)!!
+        ?: getReverseGeocodingSource(BuildConfig.DEFAULT_GEOCODING_SOURCE)
+        ?: getReverseGeocodingSource(NATIVE_GEOCODER_ID)
+        ?: getReverseGeocodingSources().first()
 
     // Broadcast
     fun getBroadcastSources(): ImmutableList<BroadcastSource> = sourceList
@@ -563,6 +569,9 @@ class SourceManager @Inject constructor(
     }
 
     companion object {
+        /** Real id of AndroidGeocoderService (older code and the build default used "android"). */
+        const val NATIVE_GEOCODER_ID = "nativegeocoder"
+
         /** Alerta EC order for Ecuador/Quito: MET Norway → EPMAPS Quito → INAMHI → Open-Meteo. */
         val ECUADOR_FORECAST_PRIORITY = listOf("metno", "epmaps", "inamhi", "openmeteo")
 
