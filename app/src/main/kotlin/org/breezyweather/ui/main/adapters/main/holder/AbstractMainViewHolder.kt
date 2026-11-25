@@ -69,7 +69,7 @@ abstract class AbstractMainViewHolder(
         itemView.isFocusable = true
         itemView.isFocusableInTouchMode = false
         val card = itemView as? MaterialCardView
-        val focusColor = MaterialColors.getColor(itemView, com.google.android.material.R.attr.colorPrimary, Color.WHITE)
+        val focusColor = MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary, Color.WHITE)
         val strokePx = (3 * context.resources.displayMetrics.density).toInt()
         itemView.setOnFocusChangeListener { v, hasFocus ->
             val scale = if (hasFocus) 1.02f else 1f
