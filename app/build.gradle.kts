@@ -6,6 +6,7 @@ import breezy.buildlogic.getGitSha
 import breezy.buildlogic.registerLocalesConfigTask
 import com.android.build.api.dsl.ApplicationExtension
 import java.util.Properties
+import java.util.Base64
 
 plugins {
     id("breezy.android.application")
@@ -248,8 +249,8 @@ configure<ApplicationExtension> {
         val supabaseAnonKey = (System.getenv("ALERTAEC_SUPABASE_ANON_KEY")
             ?: localProperties.getProperty("alertaec.supabaseAnonKey") ?: "").trim()
         if (supabaseAnonKey.startsWith("sb_secret_") || supabaseAnonKey.split('.').let { parts ->
-                parts.size == 3 && runCatching {
-                    String(java.util.Base64.getUrlDecoder().decode(parts[1].padEnd((parts[1].length + 3) / 4 * 4, '=')))
+                parts.size == 3 && runCatching<String> {
+                    String(Base64.getUrlDecoder().decode(parts[1].padEnd((parts[1].length + 3) / 4 * 4, '=')))
                 }.getOrDefault("").contains("service_role")
             }
         ) {
