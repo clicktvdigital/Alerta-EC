@@ -160,7 +160,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("precipitation_audible_switch", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("precipitation_audible_switch", false)
+        get() = config.getBoolean("precipitation_audible_switch", true)
 
     var isAlertSoundEnabled: Boolean
         set(value) {
@@ -268,7 +268,7 @@ class SettingsManager private constructor(
     }
 
     fun getSnowfallUnit(context: Context): PrecipitationUnit {
-        return precipitationUnit ?: PrecipitationUnit.getDefaultSnowfallUnit(context.currentLocale)
+        return precipitationUnit ?: PrecipitationUnit.MILLIMETER
     }
 
     var speedUnit: SpeedUnit?
@@ -279,7 +279,8 @@ class SettingsManager private constructor(
         get() = SpeedUnit.getUnit(config.getString("speed_unit", "auto") ?: "auto")
 
     fun getSpeedUnit(context: Context): SpeedUnit {
-        return speedUnit ?: SpeedUnit.METER_PER_SECOND
+        // Ecuador: km/h is the speed people read on the radio, TV and road signs.
+        return speedUnit ?: SpeedUnit.KILOMETER_PER_HOUR
     }
 
     var pressureUnit: PressureUnit?
@@ -448,7 +449,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("widget_monochrome_icons", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("widget_monochrome_icons", false)
+        get() = config.getBoolean("widget_monochrome_icons", true)
 
     // notification widget
     var isWidgetNotificationEnabled: Boolean

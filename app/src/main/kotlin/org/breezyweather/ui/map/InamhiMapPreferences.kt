@@ -7,16 +7,22 @@ internal object InamhiMapPreferences {
     private const val KEY_RAIN_VISIBLE = "rain_visible"
     private const val KEY_RAIN_24H_VISIBLE = "rain_24h_visible"
     private const val KEY_TEMPERATURE_VISIBLE = "temperature_visible"
+    private const val KEY_TEMPERATURE_1H_VISIBLE = "temperature_1h_visible"
+    private const val KEY_WIND_VISIBLE = "wind_3h_visible"
 
     data class Selection(
         val rain3h: Boolean = true,
         val rain24h: Boolean = true,
         val temperature: Boolean = true,
+        val temperature1h: Boolean = false,
+        val wind3h: Boolean = false,
     ) {
         fun enabled(layer: String): Boolean = when (layer) {
             InamhiLayers.PRECIPITATION_3H -> rain3h
             InamhiLayers.PRECIPITATION_24H -> rain24h
             InamhiLayers.TEMPERATURE_3H -> temperature
+            InamhiLayers.TEMPERATURE_1H -> temperature1h
+            InamhiLayers.WIND_3H -> wind3h
             else -> throw IllegalArgumentException("Unsupported INAMHI layer: $layer")
         }
     }
@@ -31,7 +37,15 @@ internal object InamhiMapPreferences {
             }
             legacy.edit().remove("inamhi_rain_3h_enabled").apply()
         }
-        return Selection(isRainVisible(context), isRain24hVisible(context), isTemperatureVisible(context))
+        val prefs2 = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+        return Selection(
+            isRainVisible(context),
+            isRain24hVisible(context),
+            isTemperatureVisible(context),
+            // Extra layers start off so the map is not covered by five overlays at once.
+            prefs2.getBoolean(KEY_TEMPERATURE_1H_VISIBLE, false),
+            prefs2.getBoolean(KEY_WIND_VISIBLE, false),
+        )
     }
 
     fun setEnabled(context: Context, layer: String, enabled: Boolean) {
@@ -39,6 +53,12 @@ internal object InamhiMapPreferences {
             InamhiLayers.PRECIPITATION_3H -> setRainVisible(context, enabled)
             InamhiLayers.PRECIPITATION_24H -> setRain24hVisible(context, enabled)
             InamhiLayers.TEMPERATURE_3H -> setTemperatureVisible(context, enabled)
+            InamhiLayers.TEMPERATURE_1H, InamhiLayers.WIND_3H -> context
+                .getSharedPreferences(NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(
+                    if (layer == InamhiLayers.WIND_3H) KEY_WIND_VISIBLE else KEY_TEMPERATURE_1H_VISIBLE,
+                    enabled
+                ).apply()
             else -> throw IllegalArgumentException("Unsupported INAMHI layer: $layer")
         }
     }

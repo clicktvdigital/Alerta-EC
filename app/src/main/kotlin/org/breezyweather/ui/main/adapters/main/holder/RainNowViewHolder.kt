@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +28,7 @@ import org.breezyweather.ui.map.MapActivity
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
+import org.breezyweather.ui.common.widgets.NeonButton
 
 /**
  * Light "rain right now" card at the top of the home (nowcasting): the next hour from the forecast
@@ -118,10 +117,10 @@ class RainNowViewHolder(
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) }) {
+                    NeonButton(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) }) {
                         Text("🗺️ Abrir mapa")
                     }
-                    OutlinedButton(onClick = { showSupportBlock() }) {
+                    NeonButton(onClick = { showSupportBlock() }) {
                         Text("🤝 Colaborar")
                     }
                 }

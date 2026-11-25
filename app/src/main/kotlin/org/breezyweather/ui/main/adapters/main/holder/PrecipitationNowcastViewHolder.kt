@@ -226,10 +226,12 @@ class PrecipitationNowcastViewHolder(parent: ViewGroup) : AbstractMainCardViewHo
                 trendHorizontalLines.entries.map { line ->
                     HorizontalLine(
                         y = { line.key.millimeters.inMicrometers },
-                        verticalLabelPosition = Position.Vertical.Bottom,
+                        // Guía ligera / moderada / torrencial: a la izquierda, centrada en vertical con su línea.
+                        horizontalLabelPosition = Position.Horizontal.Start,
+                        verticalLabelPosition = Position.Vertical.Center,
                         line = LineComponent(fill = Fill(lineColor.toArgb())),
-                        labelComponent = TextComponent(color = labelColor),
-                        label = { "" } // Etiquetas en leyenda separada para no tapar las barras
+                        labelComponent = TextComponent(color = labelColor, padding = Insets(4f, 1f)),
+                        label = { line.value }
                     )
                 }
             } else {

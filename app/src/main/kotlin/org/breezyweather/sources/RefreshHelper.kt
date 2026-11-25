@@ -757,6 +757,8 @@ class RefreshHelper @Inject constructor(
                             }
                         }.awaitAll()
                 }
+                // Alerta EC: MET Norway stops at ~9 days; Open-Meteo (16 days, free) fills in the days after its last one.
+                extendDailyWithOpenMeteo(context, location, sourceCalls)
 
                 for ((k, v) in sourceCalls) {
                     v?.failedFeatures?.entries?.forEach { entry ->
@@ -1494,5 +1496,30 @@ class RefreshHelper @Inject constructor(
 
         const val CACHING_DISTANCE_LIMIT = 5000 // 5 km
         const val REVERSE_GEOCODING_DISTANCE_LIMIT = 50000 // 50 km
+    }
+
+    private suspend fun extendDailyWithOpenMeteo(
+        context: Context,
+        location: Location,
+        sourceCalls: MutableMap<String, WeatherWrapper?>,
+    ) {
+        val mainId = location.forecastSource
+        if (mainId.isEmpty() || mainId == "openmeteo") return
+        val main = sourceCalls[mainId] ?: return
+        val mainDaily = main.dailyForecast?.takeIf { it.isNotEmpty() } ?: return
+        val openMeteo = sourceManager.getWeatherSource("openmeteo") ?: return
+        if (!openMeteo.isFeatureSupportedForLocation(location, SourceFeature.FORECAST)) return
+        val extra = try {
+            openMeteo.requestWeather(context, location.copy(), listOf(SourceFeature.FORECAST))
+                .awaitFirstOrElse { null }?.dailyForecast.orEmpty()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            emptyList()
+        }
+        val lastDay = mainDaily.maxOf { it.date }
+        val added = extra.filter { it.date.after(lastDay) }.sortedBy { it.date }
+        if (added.isNotEmpty()) {
+            sourceCalls[mainId] = main.copy(dailyForecast = mainDaily + added)
+        }
     }
 }

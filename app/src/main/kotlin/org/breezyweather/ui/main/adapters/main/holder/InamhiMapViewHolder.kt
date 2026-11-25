@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +39,7 @@ import org.breezyweather.ui.map.MapActivity
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
+import org.breezyweather.ui.common.widgets.NeonButton
 
 private fun createReportMediaUri(context: Context, extension: String): Uri? = runCatching {
     // El FileProvider existente solo autoriza external-cache-path.
@@ -183,7 +182,7 @@ private fun HomeMapAndFeedback(context: Context) {
                     "datos recientes para todos los puntos del país.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(
+                NeonButton(
                     onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Explorar mapa meteorológico") }
@@ -195,7 +194,7 @@ private fun HomeMapAndFeedback(context: Context) {
                 Text("⭐ Reseñas y opiniones", style = MaterialTheme.typography.titleLarge)
                 Text("Cuéntanos qué mejorar, sin salir de Inicio.",
                     style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = { reviewExpanded = !reviewExpanded }, modifier = Modifier.fillMaxWidth()) {
+                NeonButton(onClick = { reviewExpanded = !reviewExpanded }, modifier = Modifier.fillMaxWidth()) {
                     Text(if (reviewExpanded) "Ocultar reseña" else "Escribir reseña")
                 }
                 if (reviewExpanded) {
@@ -214,7 +213,7 @@ private fun HomeMapAndFeedback(context: Context) {
                         modifier = Modifier.fillMaxWidth().focusRequester(focoOpinion),
                         minLines = 2, maxLines = 5
                     )
-                    Button(onClick = { startReviewEmail(context, rating, opinion) },
+                    NeonButton(onClick = { startReviewEmail(context, rating, opinion) },
                         enabled = rating > 0, modifier = Modifier.fillMaxWidth()) {
                         Text("Preparar reseña por correo")
                     }
@@ -229,17 +228,17 @@ private fun HomeMapAndFeedback(context: Context) {
                 Text("📣 Reportar clima o fallos", style = MaterialTheme.typography.titleLarge)
                 Text("Comunica condiciones del tiempo o fallos de la aplicación. " +
                     "No reemplaza una llamada al ECU 911.", style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = { reportExpanded = !reportExpanded }, modifier = Modifier.fillMaxWidth()) {
+                NeonButton(onClick = { reportExpanded = !reportExpanded }, modifier = Modifier.fillMaxWidth()) {
                     Text(if (reportExpanded) "Ocultar reporte" else "Preparar reporte")
                 }
                 if (reportExpanded) {
                     Text("¿Qué quieres reportar?", style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
+                        NeonButton(
                             onClick = { reportKind = "Fenómeno meteorológico" }, modifier = Modifier.weight(1f)
                         ) { Text(if (reportKind == "Fenómeno meteorológico") "✓ Clima" else "Clima") }
-                        OutlinedButton(
+                        NeonButton(
                             onClick = { reportKind = "Error o sugerencia de la aplicación" },
                             modifier = Modifier.weight(1f)
                         ) { Text(if (reportKind != "Fenómeno meteorológico") "✓ Aplicación" else "Aplicación") }
@@ -254,22 +253,22 @@ private fun HomeMapAndFeedback(context: Context) {
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(onClick = { photoPicker.launch("image/*") },
+                        NeonButton(onClick = { photoPicker.launch("image/*") },
                             modifier = Modifier.weight(1f)) { Text("🖼️ Foto") }
-                        OutlinedButton(onClick = { videoPicker.launch("video/*") },
+                        NeonButton(onClick = { videoPicker.launch("video/*") },
                             modifier = Modifier.weight(1f)) { Text("🎞️ Video") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(onClick = { audioPicker.launch("audio/*") },
+                        NeonButton(onClick = { audioPicker.launch("audio/*") },
                             modifier = Modifier.weight(1f)) { Text("🎵 Audio") }
-                        OutlinedButton(onClick = {
+                        NeonButton(onClick = {
                             val uri = createReportMediaUri(context, "jpg")
                             if (uri == null) {
                                 Toast.makeText(context, "La cámara no está disponible", Toast.LENGTH_SHORT).show()
                             } else { pendingCameraUri = uri; takePhoto.launch(uri) }
                         }, modifier = Modifier.weight(1f)) { Text("📷 Cámara") }
                     }
-                    OutlinedButton(onClick = {
+                    NeonButton(onClick = {
                         val uri = createReportMediaUri(context, "mp4")
                         if (uri == null) {
                             Toast.makeText(context, "La videocámara no está disponible", Toast.LENGTH_SHORT).show()
@@ -285,7 +284,7 @@ private fun HomeMapAndFeedback(context: Context) {
                             modifier = Modifier.weight(1f).padding(top = 8.dp),
                             style = MaterialTheme.typography.bodySmall)
                     }
-                    Button(onClick = {
+                    NeonButton(onClick = {
                         shareReport(context, reportKind, reportText, includeGps, attachment)
                     }, enabled = reportText.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                         Text("Elegir aplicación para enviar")

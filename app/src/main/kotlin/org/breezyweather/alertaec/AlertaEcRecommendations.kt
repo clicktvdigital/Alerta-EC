@@ -57,6 +57,25 @@ internal object AlertaEcRecommendations {
         if (strongWind) {
             tips += "Aléjate de objetos inestables y evita usar sombrilla con ráfagas intensas."
         }
+        // Conducción y precauciones (vías de Ecuador: lluvia intensa, neblina en la Sierra, quebradas).
+        val heavy = event.phenomenon == AlertaEcPhenomenon.HEAVY_RAIN ||
+            (intensity != null && intensity >= BOOTS_INTENSITY_MM_PER_HOUR) ||
+            (amount != null && amount >= BOOTS_ACCUMULATION_MM)
+        when {
+            rainExpected && heavy -> tips += "Al conducir: baja la velocidad, enciende luces bajas y no cruces calles " +
+                "inundadas (30 cm de agua pueden arrastrar un auto)."
+            rainExpected -> tips += "Al conducir: reduce la velocidad, enciende luces bajas y deja el doble de " +
+                "distancia de frenado."
+        }
+        if (strongWind) {
+            tips += "En moto o bicicleta extrema la precaución; sujeta el volante con firmeza en tramos abiertos."
+        }
+        if (temp != null && temp <= 8.0) {
+            tips += "Vístete por capas (térmica, chompa y chaqueta) y protege manos y orejas."
+        }
+        if (temp != null && temp >= 30.0) {
+            tips += "Hidrátate con frecuencia y no dejes niños ni mascotas dentro del auto."
+        }
         val normalized = basic.lowercase()
         val uniqueTips = tips.filterNot { tip ->
             val text = tip.lowercase()

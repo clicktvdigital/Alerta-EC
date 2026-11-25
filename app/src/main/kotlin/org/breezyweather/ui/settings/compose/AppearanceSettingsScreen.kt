@@ -125,12 +125,15 @@ fun AppearanceSettingsScreen(
                     onNavigateTo(SettingsScreenRouter.Unit.route)
                 }
             }
-            smallSeparatorItem()
-            listPreferenceItem(R.string.settings_appearance_calendar_title) { id ->
-                CalendarPreferenceView(
-                    titleId = id,
-                    isLast = true
-                )
+            // Ecuador uses the Gregorian calendar: the alternate calendar option only shows if one was chosen.
+            if (SettingsManager.getInstance(context).alternateCalendar.isNotEmpty()) {
+                smallSeparatorItem()
+                listPreferenceItem(R.string.settings_appearance_calendar_title) { id ->
+                    CalendarPreferenceView(
+                        titleId = id,
+                        isLast = true
+                    )
+                }
             }
             sectionFooterItem(R.string.settings_appearance_section_regional)
 

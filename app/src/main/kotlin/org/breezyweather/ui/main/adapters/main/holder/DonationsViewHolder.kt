@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +23,7 @@ import org.breezyweather.ui.support.SupportSection
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
+import org.breezyweather.ui.common.widgets.NeonButton
 
 /** Invitación discreta bajo el primer pronóstico, nunca por encima de alertas. */
 class DonationsViewHolder(
@@ -70,7 +70,7 @@ class DonationsViewHolder(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Button(
+                NeonButton(
                     onClick = { expanded.value = !expanded.value },
                     modifier = Modifier.fillMaxWidth(),
                 ) {

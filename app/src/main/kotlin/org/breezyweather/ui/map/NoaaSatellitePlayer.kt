@@ -15,6 +15,10 @@ import kotlinx.coroutines.CancellationException
 
 internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: Boolean = false) : LinearLayout(context) {
     private var selectedMode = 0
+    private val modeLabels = listOf("☁ Nubes", "🌧 Lluvia", "⚡ Rayos", "🌎 Amplia")
+    /** Android TV boxes: smaller JPEGs and fewer frames so the animation starts fast on slow Wi-Fi. */
+    private val compact = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) ||
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager).isLowRamDevice
     private val modeButtons = mutableListOf<Button>()
     private val image = NoaaZoomImageView(context).apply {
         setBackgroundColor(android.graphics.Color.rgb(8, 14, 20))
@@ -57,9 +61,10 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         modeJob = scope.launch {
             val result = runCatching {
                 when (position) {
-                    1 -> NoaaSatelliteFrames.lightningRecent()
-                    2 -> NoaaSatelliteFrames.fullDiskRecent()
-                    else -> NoaaSatelliteFrames.recent()
+                    1 -> NoaaSatelliteFrames.rainRecent(compact)
+                    2 -> NoaaSatelliteFrames.lightningRecent(compact)
+                    3 -> NoaaSatelliteFrames.fullDiskRecent(compact)
+                    else -> NoaaSatelliteFrames.recent(compact)
                 }
             }.onFailure { if (it is CancellationException) throw it }
             if (request == modeRequestId) {
@@ -133,7 +138,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         val choices = android.widget.LinearLayout(context).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
         }
-        listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia").forEachIndexed { position, label ->
+        modeLabels.forEachIndexed { position, label ->
             val button = Button(context).apply {
                 textSize = 12f
                 isAllCaps = false
@@ -157,6 +162,20 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         })
         refreshModeButtons()
         addView(image, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        // The image takes D-pad focus (neon frame when focused) and steps through frames with the remote.
+        image.isFocusable = true
+        image.setOnKeyListener { _, keyCode, event ->
+            event.action == android.view.KeyEvent.ACTION_DOWN && handleRemoteKey(keyCode)
+        }
+        image.setOnFocusChangeListener { view, focused ->
+            view.foreground = if (focused) {
+                android.graphics.drawable.GradientDrawable().apply {
+                    setStroke((4f * resources.displayMetrics.density).toInt(), android.graphics.Color.rgb(0, 229, 255))
+                }
+            } else {
+                null
+            }
+        }
         addView(timeLabel)
         playButton.text = "▶ Reproducir"
         addView(playButton)
@@ -197,7 +216,7 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
     }
 
     private fun refreshModeButtons() {
-        val labels = listOf("☁ Nubes", "⚡ Rayos", "🌎 Amplia")
+        val labels = modeLabels
         modeButtons.forEachIndexed { index, button ->
             button.text = if (selectedMode == index) "✓ ${labels[index]}" else labels[index]
             button.contentDescription = "${labels[index]}" +
@@ -290,6 +309,34 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         }
     }
 
+    /** Selects a mode (0 Nubes, 1 Lluvia, 2 Rayos, 3 Amplia), e.g. from the map's shortcuts. */
+    fun selectMode(position: Int) {
+        val target = position.coerceIn(0, modeLabels.size - 1)
+        if (selectedMode == target && displayedMode == target) return
+        selectedMode = target
+        refreshModeButtons()
+        loadSelectedMode(target)
+    }
+
+    /** Remote / keyboard on the image: Left/Right step one frame (pausing), OK plays or pauses. Up/Down move focus. */
+    fun handleRemoteKey(keyCode: Int): Boolean = when (keyCode) {
+        android.view.KeyEvent.KEYCODE_DPAD_LEFT, android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+            if (frames.isNotEmpty()) {
+                if (playing) playButton.performClick()
+                val step = if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) 1 else -1
+                index = (index + step + frames.size) % frames.size
+                showFrame()
+            }
+            true
+        }
+        android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+        android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, android.view.KeyEvent.KEYCODE_SPACE -> {
+            playButton.performClick()
+            true
+        }
+        else -> false
+    }
+
     fun updateTimeZone(isGalapagos: Boolean) {
         if (galapagosTime == isGalapagos) return
         galapagosTime = isGalapagos
@@ -297,6 +344,11 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
             timeLabel.text = EcuadorTimeFormatter.format(frame.observedAt, galapagosTime) +
                 if (frame.imageUrl in failedFrameUrls) " · Imagen no disponible" else ""
         }
+    }
+
+    /** Gives D-pad focus to the image so Left/Right/OK work straight away on Android TV. */
+    fun focusImage() {
+        image.requestFocus()
     }
 
     fun resume() {

@@ -29,11 +29,14 @@
             android:accessibilityHeading="true"
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="?attr/colorSurfaceInverse"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/large_margin"
             android:layout_marginStart="8dp"
+            android:layout_marginEnd="@dimen/large_margin"
+            android:maxLines="2"
             app:layout_constraintStart_toEndOf="@+id/nowcasting_block_title_icon"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
@@ -55,7 +58,7 @@
             android:layout_marginTop="12dp"
             android:layout_marginStart="@dimen/large_margin"
             android:layout_marginEnd="@dimen/large_margin"
-            android:text="Guía de intensidad: ligera · moderada · torrencial"
+            android:text="Intensidad por hora: las líneas marcan lluvia ligera, moderada y torrencial"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorSurfaceInverse"
             app:layout_constraintStart_toStartOf="parent"

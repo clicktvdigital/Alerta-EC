@@ -252,7 +252,9 @@ internal object InamhiWmsTimes {
     internal fun horizonHoursFor(layerName: String): Long = when (layerName) {
         InamhiLayers.PRECIPITATION_24H -> 24L
         InamhiLayers.PRECIPITATION_3H,
-        InamhiLayers.TEMPERATURE_3H -> 6L
+        InamhiLayers.TEMPERATURE_3H,
+        InamhiLayers.WIND_3H -> 6L
+        InamhiLayers.TEMPERATURE_1H -> 2L
         else -> throw IllegalArgumentException("Unsupported INAMHI layer: $layerName")
     }
 

@@ -5,11 +5,7 @@ import java.time.Instant
 
 internal object InamhiWmsTiles {
     fun url(layer: String, time: Instant): String {
-        require(layer in setOf(
-            InamhiLayers.PRECIPITATION_3H,
-            InamhiLayers.PRECIPITATION_24H,
-            InamhiLayers.TEMPERATURE_3H
-        ))
+        require(layer in InamhiLayers.all)
         val params = listOf(
             "SERVICE=WMS",
             "VERSION=1.1.1",

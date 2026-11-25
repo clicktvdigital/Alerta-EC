@@ -292,6 +292,95 @@ class MapFragment : MainModuleFragment() {
     private var inamhiSelection = InamhiMapPreferences.Selection()
     private val inamhiStates = mutableMapOf<String, InamhiLayerStatus.State>()
     private val inamhiButtons = mutableMapOf<String, android.widget.Switch>()
+
+    // Alerta EC: INAMHI forecast animation (steps through upcoming WMS times), cached capabilities.
+    private var inamhiStep = 0
+    private var inamhiPlaying = false
+    private var inamhiCatalog: Pair<Long, InamhiWmsTimes.Catalog>? = null
+    private var inamhiPlayButton: android.widget.Button? = null
+    private val inamhiAnimator = object : Runnable {
+        override fun run() {
+            if (!inamhiPlaying || !isResumed) return
+            inamhiStep++
+            loadInamhiOverlay()
+            gpsHandler.postDelayed(this, INAMHI_FRAME_MS)
+        }
+    }
+
+    // Overlays closed by Back before leaving the map: satellite panel, then the layer panel.
+    private var rootLayout: android.widget.FrameLayout? = null
+    private var satellitePanel: View? = null
+    private var layersPanel: View? = null
+    private var layersButton: View? = null
+
+    private fun setInamhiPlaying(play: Boolean) {
+        inamhiPlaying = play
+        gpsHandler.removeCallbacks(inamhiAnimator)
+        inamhiPlayButton?.text = if (play) "⏸ Pausar pronóstico INAMHI" else "▶ Animar pronóstico INAMHI"
+        if (play) {
+            gpsHandler.postDelayed(inamhiAnimator, INAMHI_FRAME_MS)
+        } else if (inamhiStep != 0) {
+            inamhiStep = 0
+            loadInamhiOverlay()
+        }
+    }
+
+    /** Next forecast time for [layer]; while animating, walks the upcoming times one step per frame. */
+    private fun pickInamhiTime(layer: String, times: List<Instant>, now: Instant): Instant? {
+        if (inamhiStep == 0) return InamhiWmsTimes.selectUpcoming(times, now, InamhiWmsTimes.horizonHoursFor(layer))
+        val upcoming = times.filter { !it.isBefore(now) && !it.isAfter(now.plusSeconds(48 * 3600L)) }.sorted()
+        return upcoming.getOrNull(inamhiStep % upcoming.size.coerceAtLeast(1))
+    }
+
+    private fun openSatellite(mode: Int) {
+        val root = rootLayout ?: return
+        satellitePlayer?.let {
+            it.selectMode(mode)
+            return
+        }
+        val context = root.context
+        val panel = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
+            isClickable = true
+        }
+        val gpsPosition = latestMapLocation()
+        val galapagosTime = gpsPosition != null &&
+            EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
+        val player = NoaaSatellitePlayer(context, galapagosTime)
+        satellitePlayer = player
+        satellitePanel = panel
+        panel.addView(android.widget.Button(context).apply {
+            text = "← Volver al mapa"
+            setOnClickListener { closeSatellite() }
+        })
+        panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+        player.selectMode(mode)
+        // Garantiza la primera consulta aunque aún no haya una selección.
+        player.resume()
+        player.focusImage()
+    }
+
+    private fun closeSatellite() {
+        satellitePlayer?.release()
+        satellitePlayer = null
+        satellitePanel?.let { rootLayout?.removeView(it) }
+        satellitePanel = null
+        layersButton?.requestFocus()
+    }
+
+    private fun neonFocus(view: View) {
+        view.setOnFocusChangeListener { v, focused ->
+            v.foreground = if (focused) {
+                android.graphics.drawable.GradientDrawable().apply {
+                    setStroke((4f * v.resources.displayMetrics.density).toInt(), android.graphics.Color.rgb(0, 229, 255))
+                }
+            } else {
+                null
+            }
+        }
+    }
     private var lastInamhiAttemptAt = -300_000L
 
     private var addressRequest: io.reactivex.rxjava3.disposables.Disposable? = null
@@ -533,7 +622,9 @@ class MapFragment : MainModuleFragment() {
         renderInamhiStatus()
         inamhiJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val catalog = InamhiWmsTimes.catalogAsync()
+                val nowMs = android.os.SystemClock.elapsedRealtime()
+                val catalog = inamhiCatalog?.takeIf { nowMs - it.first < 10 * 60 * 1000L }?.second
+                    ?: InamhiWmsTimes.catalogAsync().also { inamhiCatalog = nowMs to it }
                 ensureActive()
                 if (!inamhiRequests.isCurrent(token) || view !== requestedView ||
                     inamhiOverlay !== overlay || !isResumed) return@launch
@@ -547,9 +638,7 @@ class MapFragment : MainModuleFragment() {
                     if (selection.enabled(layer)) {
                         try {
                             check(layer !in catalog.errors) { "Invalid WMS time dimension: $layer" }
-                            val time = InamhiWmsTimes.selectUpcoming(
-                                catalog.times[layer].orEmpty(), now, InamhiWmsTimes.horizonHoursFor(layer)
-                            )
+                            val time = pickInamhiTime(layer, catalog.times[layer].orEmpty(), now)
                             overlay.apply(layer, time)
                             inamhiStates[layer] = InamhiLayerStatus.State(
                                 if (time == null) InamhiLayerStatus.Phase.NO_DATA
@@ -582,6 +671,21 @@ class MapFragment : MainModuleFragment() {
         }
     }
 
+    private fun panMap(dx: Float, dy: Float): Boolean {
+        val map = currentMap ?: return false
+        map.scrollBy(dx, dy, 250L)
+        return true
+    }
+
+    private fun zoomMap(zoomIn: Boolean): Boolean {
+        val map = currentMap ?: return false
+        map.animateCamera(
+            if (zoomIn) org.maplibre.android.camera.CameraUpdateFactory.zoomIn()
+            else org.maplibre.android.camera.CameraUpdateFactory.zoomOut()
+        )
+        return true
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -594,6 +698,7 @@ class MapFragment : MainModuleFragment() {
             view.onCreate(savedInstanceState)
         }
         return android.widget.FrameLayout(requireContext()).apply {
+            rootLayout = this
             addView(gpsMap)
             addressLabel = android.widget.TextView(context).apply {
                 text = "📍 Obteniendo ubicación y dirección..."
@@ -737,31 +842,13 @@ class MapFragment : MainModuleFragment() {
                 setBackgroundColor(android.graphics.Color.rgb(31, 43, 60))
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             mapButtons.addView(android.widget.Button(context).apply {
-                text = "🛰️ Satélite y rayos"
-                setOnClickListener {
-                    if (satellitePlayer != null) return@setOnClickListener
-                    val panel = android.widget.LinearLayout(context).apply {
-                        orientation = android.widget.LinearLayout.VERTICAL
-                        setBackgroundColor(android.graphics.Color.rgb(20, 30, 42))
-                    }
-                    val gpsPosition = latestMapLocation()
-                    val galapagosTime = gpsPosition != null &&
-                        EcuadorTimeFormatter.isGalapagosCoordinates(gpsPosition.latitude, gpsPosition.longitude)
-                    val player = NoaaSatellitePlayer(context, galapagosTime)
-                    satellitePlayer = player
-                    panel.addView(android.widget.Button(context).apply {
-                        text = "← Volver al mapa"
-                        setOnClickListener {
-                            player.release()
-                            satellitePlayer = null
-                            root.removeView(panel)
-                        }
-                    })
-                    panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
-                    root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
-                    // Garantiza la primera consulta aunque Spinner aún no haya emitido su selección.
-                    player.resume()
-                }
+                text = "▶ Animar pronóstico INAMHI"
+                inamhiPlayButton = this
+                setOnClickListener { setInamhiPlaying(!inamhiPlaying) }
+            }, android.widget.LinearLayout.LayoutParams(-1, -2))
+            mapButtons.addView(android.widget.Button(context).apply {
+                text = "🛰️ Satélite, lluvia y rayos"
+                setOnClickListener { openSatellite(0) }
             }, android.widget.LinearLayout.LayoutParams(-1, -2))
             // Limitar todos los controles juntos para conservar mapa visible con paneles abiertos.
             val controlsScroll = object : android.widget.ScrollView(context) {
@@ -773,6 +860,7 @@ class MapFragment : MainModuleFragment() {
                     ))
                 }
             }.apply { addView(mapButtons); visibility = android.view.View.GONE }
+            layersPanel = controlsScroll
             val accesos = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
                 setBackgroundColor(android.graphics.Color.rgb(27, 37, 52))
@@ -788,6 +876,7 @@ class MapFragment : MainModuleFragment() {
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
                     text = "☰ Capas"
+                    layersButton = this
                     setOnClickListener {
                         controlsScroll.visibility = if (controlsScroll.visibility ==
                             android.view.View.VISIBLE) android.view.View.GONE
@@ -799,9 +888,38 @@ class MapFragment : MainModuleFragment() {
                     setOnClickListener { editarMiSector() }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
             }
+            // Quick access to the GOES satellite: clouds and lightning one press away.
+            val accesosSatelite = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setBackgroundColor(android.graphics.Color.rgb(27, 37, 52))
+                listOf("🛰️ Satélite" to 0, "🌧 Lluvia" to 1, "⚡ Rayos" to 2).forEach { (label, mode) ->
+                    addView(android.widget.Button(context).apply {
+                        text = label
+                        setOnClickListener { openSatellite(mode) }
+                    }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+                }
+            }
+            // Zoom + / − (touch and remote).
+            val zoomColumn = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                listOf("+" to true, "−" to false).forEach { (label, zoomIn) ->
+                    addView(android.widget.Button(context).apply {
+                        text = label
+                        textSize = 22f
+                        contentDescription = if (zoomIn) "Acercar mapa" else "Alejar mapa"
+                        setOnClickListener { zoomMap(zoomIn) }
+                    }, android.widget.LinearLayout.LayoutParams(
+                        (56f * resources.displayMetrics.density).toInt(), -2
+                    ))
+                }
+            }
+            addView(zoomColumn, android.widget.FrameLayout.LayoutParams(
+                -2, -2, android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+            ))
             val panel = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 addView(controlsScroll, android.widget.LinearLayout.LayoutParams(-1, -2))
+                addView(accesosSatelite, android.widget.LinearLayout.LayoutParams(-1, -2))
                 addView(accesos, android.widget.LinearLayout.LayoutParams(-1, -2))
             }
             addView(panel, android.widget.FrameLayout.LayoutParams(
@@ -814,15 +932,59 @@ class MapFragment : MainModuleFragment() {
         super.onViewCreated(view, savedInstanceState)
         inamhiSelection = InamhiMapPreferences.read(requireContext())
         renderInamhiStatus()
+        // Back closes the satellite panel, then the layer panel, then leaves the map focus (TV), and only
+        // then returns to the home screen: it never jumps out of everything at once.
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    when {
+                        satellitePanel != null -> closeSatellite()
+                        layersPanel?.visibility == View.VISIBLE -> {
+                            layersPanel?.visibility = View.GONE
+                            layersButton?.requestFocus()
+                        }
+                        mapView?.hasFocus() == true && layersButton != null -> layersButton?.requestFocus()
+                        else -> {
+                            isEnabled = false
+                            requireActivity().onBackPressedDispatcher.onBackPressed()
+                        }
+                    }
+                }
+            }
+        )
+        // Android TV: the map takes D-pad focus (neon frame); arrows pan, OK / +/- zoom.
+        mapView?.let { focusMap ->
+            focusMap.isFocusable = true
+            neonFocus(focusMap)
+            focusMap.setOnKeyListener { _, keyCode, event ->
+                if (event.action != android.view.KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                val step = 160f * resources.displayMetrics.density
+                when (keyCode) {
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> panMap(-step, 0f)
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> panMap(step, 0f)
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> panMap(0f, -step)
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> panMap(0f, step)
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_PLUS, android.view.KeyEvent.KEYCODE_ZOOM_IN,
+                    android.view.KeyEvent.KEYCODE_CHANNEL_UP -> zoomMap(true)
+                    android.view.KeyEvent.KEYCODE_MINUS, android.view.KeyEvent.KEYCODE_ZOOM_OUT,
+                    android.view.KeyEvent.KEYCODE_CHANNEL_DOWN -> zoomMap(false)
+                    else -> false
+                }
+            }
+        }
         val requestedMapView = mapView ?: return
         requestedMapView.getMapAsync { map ->
             if (this.view !== view || mapView !== requestedMapView || !isAdded) return@getMapAsync
             currentMap = map
             if (savedInstanceState == null) {
                 val location = latestMapLocation()
+                // Ecuador framed directly (not an empty South America): the whole country without GPS,
+                // the city around the user with it.
                 map.cameraPosition = CameraPosition.Builder()
-                    .target(location?.let { LatLng(it.latitude, it.longitude) } ?: LatLng(-1.5, -78.5))
-                    .zoom(if (location == null) 5.0 else 15.0)
+                    .target(location?.let { LatLng(it.latitude, it.longitude) } ?: LatLng(-1.6, -78.4))
+                    .zoom(if (location == null) 6.2 else 11.0)
                     .build()
             }
             loadInamhiBaseStyle()
@@ -976,6 +1138,7 @@ class MapFragment : MainModuleFragment() {
             renderInamhiStatus()
         }
         satellitePlayer?.pause()
+        setInamhiPlaying(false)
         mapView?.onPause()
         super.onPause()
     }
@@ -1020,6 +1183,14 @@ class MapFragment : MainModuleFragment() {
         inamhiStatusLabel = null
         satellitePlayer?.release()
         satellitePlayer = null
+        gpsHandler.removeCallbacks(inamhiAnimator)
+        inamhiPlaying = false
+        inamhiStep = 0
+        inamhiPlayButton = null
+        rootLayout = null
+        satellitePanel = null
+        layersPanel = null
+        layersButton = null
         val destroyedMapView = mapView
         mapView = null
         destroyedMapView?.onDestroy()
@@ -1028,5 +1199,9 @@ class MapFragment : MainModuleFragment() {
 
     override fun setSystemBarStyle() {
         requireActivity().window.setSystemBarStyle(false)
+    }
+
+    companion object {
+        private const val INAMHI_FRAME_MS = 3000L
     }
 }

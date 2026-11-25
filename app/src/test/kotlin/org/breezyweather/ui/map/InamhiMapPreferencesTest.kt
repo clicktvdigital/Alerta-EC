@@ -19,6 +19,7 @@ class InamhiMapPreferencesTest {
         every { context.getSharedPreferences("alerta_ec_map_layers", Context.MODE_PRIVATE) } returns legacy
         every { legacy.contains(any()) } returns false
         every { prefs.getBoolean(any(), true) } returns true
+        every { prefs.getBoolean(any(), false) } returns true
     }
 
     @Test
@@ -31,6 +32,7 @@ class InamhiMapPreferencesTest {
     @Test
     fun savedDisabledPreferencesAreRespected() {
         every { prefs.getBoolean(any(), true) } returns false
+        every { prefs.getBoolean(any(), false) } returns false
         val selection = InamhiMapPreferences.read(context)
         InamhiLayers.all.forEach { assertFalse(selection.enabled(it)) }
         verify(exactly = 0) { prefs.edit() }

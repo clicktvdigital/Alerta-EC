@@ -33,47 +33,65 @@ internal object NoaaSatelliteFrames {
         connection.readTimeout = 20000
         connection.setRequestProperty("User-Agent", "AlertaEC/0.1 (GOES NOAA satellite viewer)")
         try {
-            val html = connection.inputStream.bufferedReader().use { it.readText() }
             val now = Instant.now()
-            imageName.findAll(html).mapNotNull { match ->
-                runCatching {
-                    // YYYY + day-of-year + HH + mm (UTC), 11 digits.
-                    val stamp = match.groupValues[1]
-                    val day = LocalDate.ofYearDay(
-                        stamp.substring(0, 4).toInt(),
-                        stamp.substring(4, 7).toInt()
-                    )
-                    val observedAt = day.atTime(
-                        stamp.substring(7, 9).toInt(),
-                        stamp.substring(9, 11).toInt()
-                    ).toInstant(ZoneOffset.UTC)
-                    NoaaSatelliteFrame(observedAt, base + match.value)
-                }.getOrNull()
-            }.distinctBy { it.observedAt }
-                .filter { frame ->
-                    val age = java.time.Duration.between(frame.observedAt, now)
-                    !age.isNegative && age.toMinutes() < 360
+            // The directory listing is 1-2 MB: read it line by line instead of holding it as one string.
+            val found = ArrayList<NoaaSatelliteFrame>()
+            connection.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    imageName.findAll(line).forEach { match ->
+                        runCatching {
+                            // YYYY + day-of-year + HH + mm (UTC), 11 digits.
+                            val stamp = match.groupValues[1]
+                            val day = LocalDate.ofYearDay(
+                                stamp.substring(0, 4).toInt(),
+                                stamp.substring(4, 7).toInt()
+                            )
+                            val observedAt = day.atTime(
+                                stamp.substring(7, 9).toInt(),
+                                stamp.substring(9, 11).toInt()
+                            ).toInstant(ZoneOffset.UTC)
+                            val age = java.time.Duration.between(observedAt, now)
+                            if (!age.isNegative && age.toMinutes() < 360) {
+                                found += NoaaSatelliteFrame(observedAt, base + match.value)
+                            }
+                        }
+                    }
                 }
+            }
+            found.distinctBy { it.observedAt }
                 .sortedBy { it.observedAt }
-                .toList()
                 .takeLast(limit)
         } finally {
             connection.disconnect()
         }
     }
 
-    suspend fun recent(): List<NoaaSatelliteFrame> = fetch(
+    /** Android TV / low-memory boxes get the 900x540 (678 px full disk) JPEGs and fewer frames: 4x less to download. */
+    private fun size(compact: Boolean) = if (compact) "900x540" else "1800x1080"
+    private fun frames(compact: Boolean) = if (compact) 12 else 24
+
+    suspend fun recent(compact: Boolean = false): List<NoaaSatelliteFrame> = fetch(
         "ABI/SECTOR/nsa/GEOCOLOR",
-        Regex("([0-9]{11})_GOES19-ABI-nsa-GEOCOLOR-1800x1080[.]jpg")
+        Regex("([0-9]{11})_GOES19-ABI-nsa-GEOCOLOR-${size(compact)}[.]jpg"),
+        frames(compact)
     )
 
-    suspend fun lightningRecent(): List<NoaaSatelliteFrame> = fetch(
+    /** Rain: the "Sandwich" product highlights deep convective (storm) clouds, where heavy rain falls. */
+    suspend fun rainRecent(compact: Boolean = false): List<NoaaSatelliteFrame> = fetch(
+        "ABI/SECTOR/nsa/Sandwich",
+        Regex("([0-9]{11})_GOES19-ABI-nsa-Sandwich-${size(compact)}[.]jpg"),
+        frames(compact)
+    )
+
+    suspend fun lightningRecent(compact: Boolean = false): List<NoaaSatelliteFrame> = fetch(
         "GLM/SECTOR/nsa/EXTENT3",
-        Regex("([0-9]{11})_GOES19-GLM-nsa-EXTENT3-1800x1080[.]jpg")
+        Regex("([0-9]{11})_GOES19-GLM-nsa-EXTENT3-${size(compact)}[.]jpg"),
+        frames(compact)
     )
 
-    suspend fun fullDiskRecent(): List<NoaaSatelliteFrame> = fetch(
+    suspend fun fullDiskRecent(compact: Boolean = false): List<NoaaSatelliteFrame> = fetch(
         "ABI/FD/GEOCOLOR",
-        Regex("([0-9]{11})_GOES19-ABI-FD-GEOCOLOR-1808x1808[.]jpg")
+        Regex("([0-9]{11})_GOES19-ABI-FD-GEOCOLOR-${if (compact) "678x678" else "1808x1808"}[.]jpg"),
+        frames(compact)
     )
 }

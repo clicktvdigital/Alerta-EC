@@ -8,16 +8,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import org.breezyweather.ui.map.MapActivity
+import org.breezyweather.ui.common.widgets.NeonButton
 
 /** Entradas de Home sin campos editables dentro del RecyclerView. */
 @Composable
@@ -33,14 +32,14 @@ fun AlertaEcFeedbackEntry(context: Context) {
                 Text("Lluvia, temperatura y capas INAMHI", style = MaterialTheme.typography.bodyMedium)
                 Text("Las capas se consultan por separado; activadas no significa que haya datos recientes.",
                     style = MaterialTheme.typography.bodySmall)
-                Button(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
+                NeonButton(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
                     modifier = Modifier.fillMaxWidth()) { Text("Abrir mapa meteorológico") }
             }
         }
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("⭐ Reseñas de ALERTA EC", style = MaterialTheme.typography.titleLarge)
-                OutlinedButton(onClick = { showFeedback(context, false) },
+                NeonButton(onClick = { showFeedback(context, false) },
                     modifier = Modifier.fillMaxWidth()) { Text("Escribir reseña") }
             }
         }
@@ -49,7 +48,7 @@ fun AlertaEcFeedbackEntry(context: Context) {
                 Text("📢 Reporte meteorológico", style = MaterialTheme.typography.titleLarge)
                 Text("Incluye texto, foto, video o audio y GPS voluntario.",
                     style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = { showFeedback(context, true) },
+                NeonButton(onClick = { showFeedback(context, true) },
                     modifier = Modifier.fillMaxWidth()) { Text("Redactar reporte y adjuntar evidencia") }
                 Text("El envío requiere elegir una aplicación externa. No equivale a un reporte recibido por ECU 911.",
                     style = MaterialTheme.typography.bodySmall)
