@@ -53,9 +53,11 @@ class GetApplicationRelease @Inject constructor(
         SettingsManager.getInstance(context).appUpdateCheckLastTimestamp = now
 
         // Check if latest version is different from current version
-        val isNewVersion = isNewVersion(
-            arguments.versionName,
-            release.version
+        val isNewVersion = isNewer(
+            localName = arguments.versionName,
+            localCode = arguments.versionCode,
+            remoteName = release.version,
+            remoteCode = release.versionCode,
         )
         return when {
             isNewVersion -> Result.NewUpdate(release)
@@ -63,28 +65,28 @@ class GetApplicationRelease @Inject constructor(
         }
     }
 
-    private fun isNewVersion(
-        versionName: String,
-        versionTag: String,
-    ): Boolean {
-        // Removes "v" prefixes
-        val newVersion = versionTag.replace("[^\\d.]".toRegex(), "")
-        val oldVersion = versionName.replace("[^\\d.]".toRegex(), "")
-
-        val newSemVer = newVersion.split(".").map { it.toInt() }
-        val oldSemVer = oldVersion.split(".").map { it.toInt() }
-
-        oldSemVer.mapIndexed { index, i ->
-            // Useful in case of pre-releases, where the newer stable version is older than the pre-release
-            if (newSemVer[index] < i) {
-                return false
+    companion object {
+        /**
+         * The published versionCode decides when it is known (download site); otherwise the version names are
+         * compared part by part ("v0.1.24", "0.1.24-r3" and "0.1.24" are the same version).
+         */
+        internal fun isNewer(localName: String, localCode: Int?, remoteName: String, remoteCode: Int?): Boolean {
+            if (localCode != null && localCode > 0 && remoteCode != null && remoteCode > 0) {
+                return remoteCode > localCode
             }
-            if (newSemVer[index] > i) {
-                return true
+            val remote = numericParts(remoteName)
+            val local = numericParts(localName)
+            for (i in 0 until maxOf(remote.size, local.size)) {
+                val r = remote.getOrElse(i) { 0 }
+                val l = local.getOrElse(i) { 0 }
+                if (r != l) return r > l
             }
+            return false
         }
 
-        return false
+        private fun numericParts(version: String): List<Int> =
+            version.trim().removePrefix("v").substringBefore('-').substringBefore('_')
+                .split('.').mapNotNull { part -> part.takeWhile(Char::isDigit).toIntOrNull() }
     }
 
     data class Arguments(
@@ -92,6 +94,7 @@ class GetApplicationRelease @Inject constructor(
         val org: String,
         val repository: String,
         val forceCheck: Boolean = false,
+        val versionCode: Int? = null,
     )
 
     sealed interface Result {

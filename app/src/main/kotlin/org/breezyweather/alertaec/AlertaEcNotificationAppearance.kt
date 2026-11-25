@@ -13,32 +13,40 @@ internal enum class AlertaEcSoundProfile(
     val sound: Int,
     val vibration: LongArray,
     val highImportance: Boolean,
+    /** Spanish name shown in Android's notification settings (one channel per phenomenon). */
+    val label: String,
 ) {
-    RAIN("rain", R.raw.alertaec_intro_rain, longArrayOf(0, 120, 90, 120, 90, 120), false),
-    STORM("storm", R.raw.alertaec_intro_storm, longArrayOf(0, 600, 180, 220, 120, 220), false),
-    HAIL("hail", R.raw.alertaec_tono_granizo, longArrayOf(0, 60, 40, 60, 40, 60, 40, 60, 40, 60), true),
-    WIND("wind", R.raw.alertaec_intro_wind, longArrayOf(0, 800, 300, 800), false),
-    SEISMIC("seismic", R.raw.alertaec_intro_seismic, longArrayOf(0, 100, 50, 100, 50, 100, 50, 700), true),
-    FLOOD_LANDSLIDE("flood_landslide", R.raw.alertaec_tono_inundacion_deslizamiento_grave, longArrayOf(0, 500, 200, 500), true),
-    VOLCANIC("volcanic", R.raw.alertaec_tono_actividad_volcanica, longArrayOf(0, 700, 250, 700), true),
-    CRITICAL("critical", R.raw.alertaec_tono_emergencia_critica, longArrayOf(0, 500, 200, 500, 200, 500), true),
+    RAIN("rain", R.raw.alertaec_intro_rain, longArrayOf(0, 120, 90, 120, 90, 120), false, "Lluvia"),
+    STORM("storm", R.raw.alertaec_intro_storm, longArrayOf(0, 600, 180, 220, 120, 220), false, "Tormenta y rayos"),
+    HAIL("hail", R.raw.alertaec_tono_granizo, longArrayOf(0, 60, 40, 60, 40, 60, 40, 60, 40, 60), true, "Granizo"),
+    WIND("wind", R.raw.alertaec_intro_wind, longArrayOf(0, 800, 300, 800), false, "Viento fuerte"),
+    FOG("fog", R.raw.alertaec_tono_niebla, longArrayOf(0, 300, 300, 300), false, "Niebla y neblina"),
+    SEISMIC("seismic", R.raw.alertaec_intro_seismic, longArrayOf(0, 100, 50, 100, 50, 100, 50, 700), true, "Sismo y tsunami"),
+    FLOOD_LANDSLIDE("flood_landslide", R.raw.alertaec_tono_inundacion_deslizamiento_grave, longArrayOf(0, 500, 200, 500), true, "Inundación y deslizamiento"),
+    VOLCANIC("volcanic", R.raw.alertaec_tono_actividad_volcanica, longArrayOf(0, 700, 250, 700), true, "Actividad volcánica e incendios"),
+    CRITICAL("critical", R.raw.alertaec_tono_emergencia_critica, longArrayOf(0, 500, 200, 500, 200, 500), true, "Alerta crítica"),
     ;
 
     val channelId: String get() = "alertaec_sound_${key}_$CHANNEL_VERSION"
-    val silentVibrationChannelId: String get() = "alertaec_sound_${key}_no_vibration_$CHANNEL_VERSION"
+
+    /** v6: a single channel per phenomenon; the app vibrates by itself when vibration is enabled. */
+    val silentVibrationChannelId: String get() = channelId
 
     companion object {
         // v4: v3 rain channel could be created without its sound (system default tone), and phenomena
         // shared a single 180 ms vibration.
         // v5: the channel stores the tone by resource NAME (android.resource://pkg/raw/name). v4 stored the
         // numeric id, which shifts whenever raw resources change, leaving frozen channels on a wrong/missing tone.
-        const val CHANNEL_VERSION = "v5"
+        // v6: one channel per phenomenon with a Spanish name and high importance (v5 had a duplicate
+        // "no vibration" twin of each channel, with the same name, and rain/storm/wind at default importance).
+        const val CHANNEL_VERSION = "v6"
 
         fun forPhenomenon(phenomenon: AlertaEcPhenomenon): AlertaEcSoundProfile? = when (phenomenon) {
             AlertaEcPhenomenon.RAIN, AlertaEcPhenomenon.HEAVY_RAIN -> RAIN
             AlertaEcPhenomenon.THUNDERSTORM, AlertaEcPhenomenon.TROPICAL_CYCLONE -> STORM
             AlertaEcPhenomenon.HAIL, AlertaEcPhenomenon.SNOW -> HAIL
             AlertaEcPhenomenon.STRONG_WIND -> WIND
+            AlertaEcPhenomenon.FOG -> FOG
             AlertaEcPhenomenon.EARTHQUAKE, AlertaEcPhenomenon.TSUNAMI -> SEISMIC
             AlertaEcPhenomenon.FLOOD, AlertaEcPhenomenon.LANDSLIDE -> FLOOD_LANDSLIDE
             AlertaEcPhenomenon.VOLCANIC_ACTIVITY, AlertaEcPhenomenon.WILDFIRE -> VOLCANIC
@@ -78,6 +86,8 @@ internal object AlertaEcNotificationAppearance {
         listOf("alertaec_sound_${it}_v3", "alertaec_sound_${it}_no_vibration_v3")
     } + AlertaEcSoundProfile.entries.flatMap {
         listOf("alertaec_sound_${it.key}_v4", "alertaec_sound_${it.key}_no_vibration_v4")
+    } + AlertaEcSoundProfile.entries.flatMap {
+        listOf("alertaec_sound_${it.key}_v5", "alertaec_sound_${it.key}_no_vibration_v5")
     }
 
     // Only official provider severity authorizes an intrusive channel.

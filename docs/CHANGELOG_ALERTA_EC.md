@@ -3,6 +3,25 @@
 Registro en español de las compilaciones de ALERTA EC (rama `alerta-ec`). Lo más reciente va arriba.
 Los 4 perfiles de APK de cada compilación se describen en [README.md](../README.md#descargas-directas).
 
+## v0.1.25 (127) · 25-11-2026
+
+- **Buscar actualizaciones (Acerca de):**
+  - Compara el `versionCode` publicado en `version.json` del sitio de descargas y, si falta, compara el `versionName` parte por parte.
+  - Abre la página del perfil correcto (`celular`, `celular-v7` o `tv`). Si no hay novedades, muestra la versión y el código instalados.
+  - Las versiones 0.1.23 y anteriores todavía consultan GitHub Releases (última: v0.1.22), así que no pueden ver las nuevas hasta actualizar una vez a mano.
+- **Sonidos sin duplicados:**
+  - Hay un solo canal por fenómeno, con nombre en español: Lluvia, Tormenta y rayos, Granizo, Viento fuerte, Niebla y neblina, Sismo y tsunami, Inundación y deslizamiento, Actividad volcánica e incendios, y Alerta crítica.
+  - Se eliminan las copias «sin vibración» de la v5, que tenían el mismo nombre. La app vibra con el patrón del fenómeno si la vibración está activada.
+  - Los canales de solo vibración y sin sonido muestran su variante en el nombre.
+- **Sonido del fenómeno real:**
+  - La niebla y la neblina tienen un tono propio, nuevo y original.
+  - Al despejar tras lluvia, tormenta, niebla o viento suena un tono suave y la voz dice «Ya despejó en …».
+- **Sin silencio:** todos los canales de sonido de ALERTA EC tienen importancia alta, con aviso emergente y sonido. Alertas, lluvia, sonido, vibración y voz vienen activados.
+- **Voz de lluvia próxima:** «Atención, va a llover pronto en …», una vez por episodio de lluvia.
+- **Una sola notificación sonora y una sola voz por actualización:**
+  - Si en el mismo ciclo coinciden alerta oficial, lluvia próxima, eventos y condición actual, solo suena el primero en ese orden; los demás se publican en silencio.
+  - Las alertas extremas oficiales siempre suenan.
+
 ## v0.1.24 (126) · 25-11-2026
 
 - **Alertas en el inicio:**

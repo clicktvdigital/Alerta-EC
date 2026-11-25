@@ -53,7 +53,8 @@ class AppUpdateChecker @Inject constructor(
                     BuildConfig.VERSION_NAME,
                     BuildConfig.GITHUB_ORG,
                     BuildConfig.GITHUB_REPO,
-                    forceCheck
+                    forceCheck,
+                    versionCode = BuildConfig.VERSION_CODE,
                 )
             )
 

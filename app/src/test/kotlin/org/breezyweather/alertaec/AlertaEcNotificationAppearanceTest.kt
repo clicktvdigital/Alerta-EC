@@ -45,7 +45,13 @@ class AlertaEcNotificationAppearanceTest {
         AlertaEcNotificationAppearance.soundResource(AlertaEcSoundProfile.RAIN.silentVibrationChannelId) shouldBe R.raw.alertaec_intro_rain
         val patterns = AlertaEcSoundProfile.entries.map { it.vibration.toList() }
         patterns.distinct().size shouldBe patterns.size
-        AlertaEcSoundProfile.entries.all { it.channelId.endsWith("_v5") } shouldBe true
+        AlertaEcSoundProfile.entries.all { it.channelId.endsWith("_v6") } shouldBe true
+        // v6: one channel per phenomenon, no duplicate "no vibration" twin, distinct Spanish names.
+        AlertaEcSoundProfile.entries.all { it.silentVibrationChannelId == it.channelId } shouldBe true
+        AlertaEcSoundProfile.entries.map { it.label }.distinct().size shouldBe AlertaEcSoundProfile.entries.size
+        AlertaEcNotificationAppearance.eventSoundChannel(AlertaEcPhenomenon.FOG, AlertaEcSeverity.WATCH) shouldBe
+            AlertaEcSoundProfile.FOG.channelId
+        AlertaEcNotificationAppearance.soundResource(AlertaEcSoundProfile.FOG.channelId) shouldBe R.raw.alertaec_tono_niebla
         AlertaEcNotificationAppearance.OBSOLETE_SOUND_CHANNELS.none { id ->
             AlertaEcSoundProfile.entries.any { it.channelId == id || it.silentVibrationChannelId == id }
         } shouldBe true

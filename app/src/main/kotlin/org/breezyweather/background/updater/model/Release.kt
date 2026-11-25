@@ -34,6 +34,8 @@ data class Release(
     val info: String,
     val releaseLink: String,
     private val assets: List<String>,
+    /** versionCode of the published build (download site); null for GitHub Releases. */
+    val versionCode: Int? = null,
 ) {
 
     /**

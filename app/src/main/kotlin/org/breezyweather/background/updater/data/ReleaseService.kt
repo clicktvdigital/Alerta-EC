@@ -73,6 +73,7 @@ class ReleaseService @Inject constructor(
             info = "",
             releaseLink = pages[profile] ?: "$DOWNLOAD_SITE_URL/",
             assets = apks,
+            versionCode = json.optInt("version_code", 0).takeIf { it > 0 },
         )
     }
 

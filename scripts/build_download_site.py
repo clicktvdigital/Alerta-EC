@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera el sitio de descargas directas de ALERTA EC (GitHub Pages).
 
-Uso: python3 -I scripts/build_download_site.py <carpeta_salida> <version> <commit>
+Uso: python3 -I scripts/build_download_site.py <carpeta_salida> <version> <commit> [version_code]
 
 La carpeta de salida debe contener ya apk/ con los 4 perfiles. Cada perfil tiene una
 página corta (p. ej. /celular/) con metadatos Open Graph para la vista previa de WhatsApp
@@ -83,13 +83,14 @@ STEPS = """<ol>
 
 def main() -> None:
     out, version, commit = Path(sys.argv[1]), sys.argv[2], sys.argv[3][:9]
+    version_code = int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].isdigit() else None
     notes_file = Path(__file__).resolve().parent.parent / "docs" / "descargas" / "novedades.txt"
     notes = [line.strip() for line in notes_file.read_text(encoding="utf-8").splitlines() if line.strip()] \
         if notes_file.is_file() else []
     news = ("<h2>Novedades de esta versión</h2><ul>" +
             "".join(f"<li>{html.escape(n)}</li>" for n in notes) + "</ul>") if notes else ""
     apk_dir = out / "apk"
-    manifest = {"version": version, "commit": commit, "perfiles": []}
+    manifest = {"version": version, "version_code": version_code, "commit": commit, "perfiles": []}
     sums = []
     for slug, filename, label, about in PROFILES:
         apk = apk_dir / filename

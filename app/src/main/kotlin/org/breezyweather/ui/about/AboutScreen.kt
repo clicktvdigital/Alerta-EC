@@ -250,7 +250,8 @@ internal fun AboutScreen(
 
                                                     is GetApplicationRelease.Result.NoNewUpdate -> {
                                                         SnackbarHelper.showSnackbar(
-                                                            context.getString(R.string.about_no_new_updates)
+                                                            context.getString(R.string.about_no_new_updates) +
+                                                                " (${BuildConfig.VERSION_NAME}, código ${BuildConfig.VERSION_CODE})"
                                                         )
                                                     }
 

@@ -212,6 +212,8 @@ object AlertaEcNotifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // One sound/voice per update cycle (emergencies always sound); the rest are posted silently.
+        val audible = AlertaEcAudibleGate.claim(context, priority = event.severity == AlertaEcSeverity.EMERGENCY)
         val requestedChannel = org.breezyweather.remoteviews.Notifications.selectChannel(
             settings.isAlertSoundEnabled,
             settings.isAlertVibrationEnabled,
@@ -229,6 +231,7 @@ object AlertaEcNotifier {
             setStyle(NotificationCompat.BigTextStyle().bigText(content))
             setAutoCancel(true)
             setOnlyAlertOnce(true)
+            if (!audible) setSilent(true)
             // Android < 8 ignores channels: apply the phenomenon sound and vibration on the builder.
             if (settings.isAlertVibrationEnabled) {
                 setVibrate(AlertaEcNotificationAppearance.vibrationPattern(event.phenomenon, event.severity))
@@ -265,6 +268,13 @@ object AlertaEcNotifier {
 
         onNotifyInvoked()
         context.notify(notificationId, notification)
+        if (!audible) return
+        if (settings.isAlertSoundEnabled) {
+            AlertaEcAudibleGate.vibrate(
+                context,
+                AlertaEcNotificationAppearance.vibrationPattern(event.phenomenon, event.severity)
+            )
+        }
         org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
             context,
             org.breezyweather.alertaec.accessibility.AlertVoicePolicy.conciseSpeech(

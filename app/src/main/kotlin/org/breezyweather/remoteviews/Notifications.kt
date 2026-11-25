@@ -200,16 +200,19 @@ object Notifications {
         )
 
         notificationManager.createNotificationChannelsCompat(
-            listOfNotNull(
-                *AlertaEcSoundProfile.entries.flatMap { profile ->
-                    listOf(true, false).map { vibrate -> soundChannel(context, profile, vibrate) }
-                }.toTypedArray(),
+            AlertaEcSoundProfile.entries.map { profile -> soundChannel(context, profile) }
+                .filter { notificationManager.getNotificationChannel(it.id) == null }
+        )
+        // Created or renamed every time (Android only updates name/description of existing channels), so
+        // the "only vibration" and "silent" variants are no longer listed with the same name as the sound ones.
+        notificationManager.createNotificationChannelsCompat(
+            listOf(
                 vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_FORECAST, IMPORTANCE_LOW, R.string.notification_channel_forecast),
                 vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_SEVERE, IMPORTANCE_HIGH, R.string.notification_channel_severe),
                 vibrationChannel(context, AlertaEcNotificationAppearance.VIBRATION_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
                 silentChannel(context, AlertaEcNotificationAppearance.SILENT_SEVERE, IMPORTANCE_HIGH, R.string.notification_channel_severe),
                 silentChannel(context, AlertaEcNotificationAppearance.SILENT_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
-            ).filter { notificationManager.getNotificationChannel(it.id) == null }
+            )
         )
         if (notificationManager.getNotificationChannel(CHANNEL_WIDGET_OLD) != null) {
             notificationManager.deleteNotificationChannel(CHANNEL_WIDGET_OLD)
@@ -219,19 +222,14 @@ object Notifications {
         }
     }
 
+    /** One channel per phenomenon: its own ALERTA EC tone, high importance; the app vibrates by itself. */
     private fun soundChannel(
         context: Context,
         profile: AlertaEcSoundProfile,
-        vibrationEnabled: Boolean,
     ): NotificationChannelCompat {
-        val id = if (vibrationEnabled) profile.channelId else profile.silentVibrationChannelId
-        val name = when {
-            profile == AlertaEcSoundProfile.CRITICAL -> R.string.notification_channel_extreme
-            profile.highImportance -> R.string.notification_channel_severe
-            else -> R.string.notification_channel_precipitation
-        }
-        return buildNotificationChannel(id, if (profile.highImportance) IMPORTANCE_HIGH else IMPORTANCE_DEFAULT) {
-            setName(context.getString(name) + " · " + profile.key.replace('_', ' '))
+        return buildNotificationChannel(profile.channelId, IMPORTANCE_HIGH) {
+            setName("Sonido · ${profile.label}")
+            setDescription("Tono propio de ALERTA EC para ${profile.label.lowercase()}.")
             setGroup(GROUP_BREEZY_WEATHER)
             setSound(
                 alertaEcSoundUri(context, profile.sound),
@@ -240,8 +238,7 @@ object Notifications {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
             )
-            setVibrationEnabled(vibrationEnabled)
-            if (vibrationEnabled) setVibrationPattern(profile.vibration)
+            setVibrationEnabled(false)
         }
     }
 
@@ -261,7 +258,7 @@ object Notifications {
 
     private fun vibrationChannel(context: Context, id: String, importance: Int, name: Int): NotificationChannelCompat =
         buildNotificationChannel(id, importance) {
-            setName(context.getString(name))
+            setName(context.getString(name) + " (solo vibración)")
             setGroup(GROUP_BREEZY_WEATHER)
             setSound(null, null)
             setVibrationEnabled(true)
@@ -270,7 +267,7 @@ object Notifications {
 
     private fun silentChannel(context: Context, id: String, importance: Int, name: Int): NotificationChannelCompat =
         buildNotificationChannel(id, importance) {
-            setName(context.getString(name))
+            setName(context.getString(name) + " (sin sonido)")
             setGroup(GROUP_BREEZY_WEATHER)
             setSound(null, null)
             setVibrationEnabled(false)
@@ -320,9 +317,6 @@ object Notifications {
         channelBlocked: Boolean,
     ): Boolean = notificationsEnabled && postNotificationsGranted && importance != 0 && !channelBlocked
 
-    private fun noVibrationSoundChannel(channel: String): String =
-        AlertaEcSoundProfile.forChannel(channel)?.silentVibrationChannelId ?: channel
-
     private fun silentChannel(fallbackChannel: String): String = when (fallbackChannel) {
         AlertaEcNotificationAppearance.SEVERE -> AlertaEcNotificationAppearance.SILENT_SEVERE
         AlertaEcNotificationAppearance.EXTREME -> AlertaEcNotificationAppearance.SILENT_EXTREME
@@ -330,7 +324,8 @@ object Notifications {
     }
 
     internal fun selectChannel(soundEnabled: Boolean, vibrationEnabled: Boolean, soundChannel: String?, fallbackChannel: String): String = when {
-        soundEnabled && soundChannel != null -> if (vibrationEnabled) soundChannel else noVibrationSoundChannel(soundChannel)
+        // v6: the same channel with or without vibration (the app vibrates when it is enabled).
+        soundEnabled && soundChannel != null -> soundChannel
         vibrationEnabled -> when (fallbackChannel) {
             AlertaEcNotificationAppearance.SEVERE -> AlertaEcNotificationAppearance.VIBRATION_SEVERE
             AlertaEcNotificationAppearance.EXTREME -> AlertaEcNotificationAppearance.VIBRATION_EXTREME
@@ -416,24 +411,36 @@ object Notifications {
         inGroup: Boolean,
     ) {
         val notificationId = getAlertNotificationId(context)
+        // One sound/voice per update; extreme official alerts always sound.
+        val audible = org.breezyweather.alertaec.AlertaEcAudibleGate.claim(
+            context,
+            priority = alert.severity == AlertSeverity.EXTREME
+        )
         context.notify(
             notificationId,
-            buildSingleAlertNotification(context, location, alert, inGroup, notificationId)
+            buildSingleAlertNotification(context, location, alert, inGroup, notificationId, audible)
         )
         val phenomenon = AlertaEcWeatherAdapter.phenomenonFromText(alert.headline.orEmpty() + " " + alert.description.orEmpty())
-        val currentCelsius = location.weather?.current?.temperature?.temperature?.inCelsius
-        org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
-            context,
-            "Alerta oficial. " + org.breezyweather.alertaec.accessibility.AlertVoicePolicy.conciseSpeech(
-                phenomenon = phenomenon,
-                degrees = org.breezyweather.alertaec.AlertaEcNotifier.spokenDegrees(
-                    currentCelsius,
-                    SettingsManager.getInstance(context).getTemperatureUnit(context)
+        if (audible) {
+            if (SettingsManager.getInstance(context).isAlertSoundEnabled) {
+                AlertaEcNotificationAppearance.officialSoundChannel(phenomenon, alert.severity)
+                    ?.let { AlertaEcSoundProfile.forChannel(it) }
+                    ?.let { org.breezyweather.alertaec.AlertaEcAudibleGate.vibrate(context, it.vibration) }
+            }
+            val currentCelsius = location.weather?.current?.temperature?.temperature?.inCelsius
+            org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
+                context,
+                "Alerta oficial. " + org.breezyweather.alertaec.accessibility.AlertVoicePolicy.conciseSpeech(
+                    phenomenon = phenomenon,
+                    degrees = org.breezyweather.alertaec.AlertaEcNotifier.spokenDegrees(
+                        currentCelsius,
+                        SettingsManager.getInstance(context).getTemperatureUnit(context)
+                    ),
+                    celsius = currentCelsius,
                 ),
-                celsius = currentCelsius,
-            ),
-            dedupeKey = "official_${location.formattedId}_${alert.alertId}"
-        )
+                dedupeKey = "official_${location.formattedId}_${alert.alertId}"
+            )
+        }
         if (inGroup) {
             context.notify(
                 ID_ALERT_GROUP,
@@ -449,6 +456,7 @@ object Notifications {
         alert: Alert,
         inGroup: Boolean,
         notificationId: Int,
+        audible: Boolean = true,
     ): Notification {
         val time = alert.startDate?.let {
             // FIXME: Timezone
@@ -497,7 +505,7 @@ object Notifications {
             builder.setGroup(ALERT_GROUP_KEY)
             builder.setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         }
-        if (shouldSetSilent(settings.isAlertSoundEnabled, settings.isAlertVibrationEnabled)) builder.setSilent(true)
+        if (!audible || shouldSetSilent(settings.isAlertSoundEnabled, settings.isAlertVibrationEnabled)) builder.setSilent(true)
         return builder.build()
     }
 
@@ -589,7 +597,9 @@ object Notifications {
         )
         val audibleKey = "PRECIPITATION_AUDIBLE_$locationKey"
         val alreadyNotified = transitionKey != null && config.getString(audibleKey, null) == transitionKey
-        val audible = settings.isPrecipitationAudibleEnabled && decision.canNotifyPreventively && !alreadyNotified
+        // The gate is claimed last: only a new rain transition may take this cycle's single sound/voice.
+        val audible = settings.isPrecipitationAudibleEnabled && decision.canNotifyPreventively && !alreadyNotified &&
+            !quietUpdate && org.breezyweather.alertaec.AlertaEcAudibleGate.claim(context)
         val channel = if (audible) {
             weatherChannel(
                 context,
@@ -635,6 +645,25 @@ object Notifications {
             .putString(transitionKeyName, transitionKey)
             .apply()
         if (audible && transitionKey != null) config.edit().putString(audibleKey, transitionKey).apply()
+        if (audible && settings.isAlertSoundEnabled) {
+            org.breezyweather.alertaec.AlertaEcAudibleGate.vibrate(context, AlertaEcSoundProfile.RAIN.vibration)
+            // Voice for imminent rain, once per rain transition.
+            val celsius = weather.current?.temperature?.temperature?.inCelsius
+            val place = location.city.ifBlank { location.geographicName }
+            org.breezyweather.alertaec.accessibility.AlertVoice.speakFromBackground(
+                context,
+                "Atención, va a llover pronto" + (if (place.isNotBlank()) " en $place. " else ". ") +
+                    org.breezyweather.alertaec.accessibility.AlertVoicePolicy.conciseSpeech(
+                        phenomenon = org.breezyweather.alertaec.AlertaEcPhenomenon.RAIN,
+                        degrees = org.breezyweather.alertaec.AlertaEcNotifier.spokenDegrees(
+                            celsius,
+                            settings.getTemperatureUnit(context)
+                        ),
+                        celsius = celsius,
+                    ),
+                dedupeKey = "rain_${transitionKey ?: locationKey}"
+            )
+        }
         if (!quietUpdate && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             config.edit().putLong(regularKey, now).apply()
         }

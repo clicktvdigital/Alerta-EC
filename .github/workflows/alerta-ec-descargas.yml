@@ -98,7 +98,10 @@ jobs:
             "$aapt" dump badging "$apk" | sed -n '1p' | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId inesperado en $apk" >&2; exit 1; }
           done
           version="$("$aapt" dump badging "$a64" | sed -n "1s/.*versionName='\([^']*\)'.*/\1/p")"
+          version_code="$("$aapt" dump badging "$a64" | sed -n "1s/.*versionCode='\([0-9]*\)'.*/\1/p")"
+          test -n "$version" && test -n "$version_code" || { echo "No se pudo leer versionName/versionCode." >&2; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           mkdir -p site/apk
           cp "$v7"  site/apk/alertaec-tv-fhd-armeabi-v7a.apk
           cp "$v7"  site/apk/alertaec-tvbox-hd-armeabi-v7a.apk
@@ -108,7 +111,7 @@ jobs:
           rm -f app/alerta-ec-release.jks
 
       - name: Generar paginas de descarga
-        run: python3 -I scripts/build_download_site.py site "$VERSION" "$GITHUB_SHA"
+        run: python3 -I scripts/build_download_site.py site "$VERSION" "$GITHUB_SHA" "$VERSION_CODE"
 
       - name: Preparar Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
