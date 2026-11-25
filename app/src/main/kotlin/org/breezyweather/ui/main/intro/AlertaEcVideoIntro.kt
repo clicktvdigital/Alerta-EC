@@ -20,6 +20,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.VideoView
@@ -251,7 +252,9 @@ internal object AlertaEcVideoIntro {
             }
 
             log("Etapa 1: logo inicial Full HD (${logo.first}) durante $LOGO_HOLD_MS ms")
-            scheduleHold(LOGO_HOLD_MS)
+            // Los 1300 ms cuentan desde que el logo se dibuja: en Android TV la actividad tarda segundos en
+            // pintar su primer fotograma y, si se contaba desde onCreate, el logo inicial casi no se veía.
+            scheduleHoldAfterFirstDraw(splashView)
             scheduleTimeout(
                 Runnable {
                     if (activeVideo === view) {
@@ -322,6 +325,25 @@ internal object AlertaEcVideoIntro {
             stop()
         }
         return true
+    }
+
+    private fun scheduleHoldAfterFirstDraw(splash: ImageView) {
+        val listener = object : ViewTreeObserver.OnDrawListener {
+            private var fired = false
+            override fun onDraw() {
+                if (fired) return
+                fired = true
+                // No se puede quitar un OnDrawListener dentro de onDraw.
+                splash.post { if (splash.viewTreeObserver.isAlive) splash.viewTreeObserver.removeOnDrawListener(this) }
+                handler.post {
+                    if (activeSplash === splash && phase == Phase.INITIAL_LOGO && !initialHoldElapsed) {
+                        log("Logo inicial en pantalla")
+                        scheduleHold(LOGO_HOLD_MS)
+                    }
+                }
+            }
+        }
+        splash.viewTreeObserver.addOnDrawListener(listener)
     }
 
     private fun scheduleHold(delayMs: Long) {
