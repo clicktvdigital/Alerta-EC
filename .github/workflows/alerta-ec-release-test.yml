@@ -19,15 +19,15 @@ jobs:
 
       - name: Validar etiqueta y version de Gradle
         id: version
-        env:
-          RELEASE_TAG: "v0.1.11"
         run: |
           python3 - <<'PYVERSION'
           import os
           import re
           from pathlib import Path
 
-          tag = os.environ["RELEASE_TAG"]
+          # La version sale de Gradle: la prueba sirve para cualquier version estable.
+          gradle_name = re.search(r'versionName\s*=\s*"([^"]+)"', Path("app/build.gradle.kts").read_text())
+          tag = "v" + (gradle_name.group(1) if gradle_name else "")
           if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag):
               raise SystemExit("La etiqueta debe tener formato estable vMAJOR.MINOR.PATCH")
           gradle = Path("app/build.gradle.kts").read_text()
@@ -41,8 +41,8 @@ jobs:
               raise SystemExit("La etiqueta no coincide con versionName de app/build.gradle.kts")
           if package.group(1) != "com.clicktvdigital.alertaec":
               raise SystemExit("applicationId no coincide con el paquete de produccion esperado")
-          if int(code.group(1)) != 111:
-              raise SystemExit("versionCode debe ser 111 para v0.1.11")
+          if int(code.group(1)) < 111:
+              raise SystemExit("versionCode debe ser >= 111 (lineas estables de Alerta EC)")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={tag_version}\n")
               output.write(f"version_code={code.group(1)}\n")
@@ -122,9 +122,9 @@ jobs:
       - name: Entregar APK de prueba sin publicar Release
         uses: actions/upload-artifact@v4
         with:
-          name: ALERTA-EC-v0.1.11-RELEASE-PRUEBA
+          name: ALERTA-EC-v${{ steps.version.outputs.version }}-RELEASE-PRUEBA
           path: |
-            release-assets/Alerta-EC-v0.1.11.apk
-            release-assets/Alerta-EC-v0.1.11.apk.sha256
+            release-assets/Alerta-EC-v${{ steps.version.outputs.version }}.apk
+            release-assets/Alerta-EC-v${{ steps.version.outputs.version }}.apk.sha256
           if-no-files-found: error
           retention-days: 7

@@ -3,6 +3,19 @@
 Registro en español de las compilaciones de ALERTA EC (rama `alerta-ec`). Lo más reciente va arriba.
 Los 4 perfiles de APK de cada compilación se describen en [README.md](../README.md#descargas-directas).
 
+## 🗓️ Resumen del 25-11-2026
+
+<img src="../artwork/alerta-ec/alerta-ec-master.png" alt="ALERTA EC" width="120" align="right" />
+
+Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso se escuche **una sola vez y con el sonido correcto**:
+
+- 🔔 Un canal por fenómeno, tono propio para la niebla, voz de lluvia próxima y aviso al despejar.
+- 🏠 Tarjeta de alertas del inicio que se cierra deslizando o con X, y que se puede ubicar arriba, abajo u ocultar.
+- 🔄 Buscador de actualizaciones y «Novedades» alineados con la versión publicada.
+- 🚀 Release v0.1.25 en GitHub con notas completas ([docs/releases/v0.1.25.md](releases/v0.1.25.md)), así las versiones anteriores que consultan GitHub Releases también la ven.
+- 🛠️ Mantenimiento: la prueba de Release firmada (`alerta-ec-release-test.yml`) lee la versión desde Gradle en lugar de exigir v0.1.11. La firma de producción y los 4 perfiles de APK no cambian.
+- 🧹 Se cerraron los PR #1 y #2 (v0.1.15 y README antiguo), ya reemplazados por la línea actual.
+
 ## v0.1.25 (127) · 25-11-2026
 
 - **Buscar actualizaciones (Acerca de):**

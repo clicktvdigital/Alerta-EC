@@ -1,2 +1,2 @@
-Notas sobre la versión disponibles en GitHub.
-https://github.com/breezy-weather/breezy-weather/releases
+🌦️ ALERTA EC: alertas de clima, lluvia y riesgos para Ecuador.
+Novedades: https://github.com/clicktvdigital/Alerta-EC/blob/alerta-ec/docs/CHANGELOG_ALERTA_EC.md

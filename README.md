@@ -2,6 +2,8 @@
 
 Alertas de clima, lluvia y riesgos para Ecuador, en celular, Smart TV y TV Box. Paquete `com.clicktvdigital.alertaec` (versión de pruebas `.debug`), rama de trabajo `alerta-ec`.
 
+> 🆕 **Novedades del 25-11-2026 · v0.1.25 (127):** un solo sonido por fenómeno, tono propio para la niebla, voz de lluvia próxima, aviso al despejar y tarjeta de alertas del inicio que se cierra deslizando o con X. Notas completas en [docs/releases/v0.1.25.md](docs/releases/v0.1.25.md).
+
 ## Descargas directas
 
 Enlaces fijos para compartir por WhatsApp o redes. Cada uno abre una página corta con vista previa (logo, título y descripción) y descarga solo su APK firmado con la clave de producción. Siempre apuntan a la última compilación publicada por `.github/workflows/alerta-ec-descargas.yml`.

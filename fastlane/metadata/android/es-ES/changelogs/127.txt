@@ -1,5 +1,5 @@
-• Buscar actualizaciones detecta la última versión y abre el enlace de tu equipo.
-• Un solo sonido por fenómeno (sin duplicados) y tono propio para la niebla.
-• Voz cuando va a llover pronto y aviso cuando despeja.
-• Alertas con importancia alta y sonido por defecto.
-• Una sola notificación sonora y una sola voz por actualización.
+🔔 Un solo sonido por fenómeno, sin duplicados, y tono propio para la niebla.
+🌧️ Voz cuando va a llover pronto y aviso cuando despeja.
+🔊 Una sola notificación sonora y una sola voz por actualización.
+📣 Alertas con importancia alta y sonido por defecto.
+🔄 Buscar actualizaciones detecta la última versión y abre el enlace de tu equipo.

@@ -121,10 +121,19 @@ jobs:
           echo "apk=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk" >> "$GITHUB_OUTPUT"
           echo "checksum=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk.sha256" >> "$GITHUB_OUTPUT"
 
+      - name: Preparar notas del Release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          notes="docs/releases/v${VERSION}.md"
+          if [ -s "$notes" ]; then cp "$notes" release-notes.md; else : > release-notes.md; fi
+
       - name: Publicar GitHub Release estable
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           name: Alerta EC v${{ steps.version.outputs.version }}
+          body_path: release-notes.md
           generate_release_notes: true
           prerelease: false
           files: |
