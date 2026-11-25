@@ -28,6 +28,8 @@ object AlertaEcCommunity {
     private const val TIMEOUT_MS = 12_000
 
     data class Report(
+        val id: Long,
+        val severity: String,
         val category: String,
         val description: String,
         val latitude: Double?,
@@ -60,8 +62,21 @@ object AlertaEcCommunity {
         String.format(Locale.US, "%.2f", it).toDouble()
     }
 
+    /** Severity scale shown in the report form (stored as text, checked by the database). */
+    val SEVERITIES = listOf("Leve", "Moderada", "Alta", "Crítica")
+
+    /** Reasons to flag a report; three flags hide it until someone reviews it. */
+    val FLAG_REASONS = listOf(
+        "Información falsa o engañosa",
+        "Muestra rostros, placas o documentos",
+        "Lenguaje ofensivo",
+        "Publicidad o spam",
+        "Otro motivo",
+    )
+
     suspend fun publishReport(
         category: String,
+        severity: String,
         description: String,
         latitude: Double?,
         longitude: Double?,
@@ -69,10 +84,19 @@ object AlertaEcCommunity {
         "community_reports",
         JSONObject().apply {
             put("category", category.take(60))
+            put("severity", severity.takeIf { it in SEVERITIES } ?: "Leve")
             put("description", description.trim().take(1000))
             round(latitude)?.let { put("latitude", it) }
             round(longitude)?.let { put("longitude", it) }
             put("app_version", BuildConfig.VERSION_NAME.take(40))
+        }
+    )
+
+    suspend fun flagReport(reportId: Long, reason: String): Result<Unit> = post(
+        "report_flags",
+        JSONObject().apply {
+            put("report_id", reportId)
+            put("reason", reason.take(60))
         }
     )
 
@@ -91,7 +115,7 @@ object AlertaEcCommunity {
             if (!isConfigured) return@withContext Result.Error(NOT_CONFIGURED)
             val since = Instant.now().minusSeconds(hours * 3600).toString()
             val filters = buildString {
-                append("select=category,description,latitude,longitude,created_at")
+                append("select=id,severity,category,description,latitude,longitude,created_at")
                 append("&created_at=gte.").append(URLEncoder.encode(since, "UTF-8"))
                 if (latitude != null && longitude != null && latitude.isFinite() && longitude.isFinite()) {
                     append(String.format(Locale.US, "&latitude=gte.%.2f&latitude=lte.%.2f", latitude - 0.5, latitude + 0.5))
@@ -108,6 +132,8 @@ object AlertaEcCommunity {
                             (0 until array.length()).map { i ->
                                 val o = array.getJSONObject(i)
                                 Report(
+                                    id = o.optLong("id"),
+                                    severity = o.optString("severity", "Leve"),
                                     category = o.optString("category"),
                                     description = o.optString("description"),
                                     latitude = o.optDouble("latitude").takeIf { it.isFinite() },

@@ -12,8 +12,12 @@ create table if not exists public.community_reports (
   latitude    numeric(5,2) check (latitude  between -6 and 2),
   longitude   numeric(6,2) check (longitude between -92.5 and -75),
   app_version text check (char_length(app_version) <= 40),
+  severity    text not null default 'Leve' check (severity in ('Leve', 'Moderada', 'Alta', 'Crítica')),
   hidden      boolean not null default false   -- moderación desde el panel
 );
+-- Si la tabla ya existía de una versión anterior del script:
+alter table public.community_reports add column if not exists severity text not null default 'Leve'
+  check (severity in ('Leve', 'Moderada', 'Alta', 'Crítica'));
 
 create index if not exists community_reports_created_idx on public.community_reports (created_at desc);
 create index if not exists community_reports_area_idx on public.community_reports (latitude, longitude);
@@ -67,3 +71,33 @@ end $$;
 drop trigger if exists alerta_ec_limit_reports on public.community_reports;
 create trigger alerta_ec_limit_reports before insert on public.community_reports
   for each row execute function public.alerta_ec_limit_reports();
+
+-- 4) Denuncias de reportes: 3 denuncias ocultan el reporte hasta revisarlo --------
+create table if not exists public.report_flags (
+  id         bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  report_id  bigint not null references public.community_reports (id) on delete cascade,
+  reason     text not null check (char_length(reason) between 3 and 60)
+);
+
+alter table public.report_flags enable row level security;
+
+drop policy if exists "anon denuncia reportes" on public.report_flags;
+create policy "anon denuncia reportes" on public.report_flags
+  for insert to anon, authenticated
+  with check (created_at >= now() - interval '1 minute');
+
+revoke select, update, delete on public.report_flags from anon, authenticated;
+
+create or replace function public.alerta_ec_hide_flagged() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from public.report_flags where report_id = new.report_id) >= 3 then
+    update public.community_reports set hidden = true where id = new.report_id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists alerta_ec_hide_flagged on public.report_flags;
+create trigger alerta_ec_hide_flagged after insert on public.report_flags
+  for each row execute function public.alerta_ec_hide_flagged();

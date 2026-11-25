@@ -91,34 +91,65 @@ private fun showCommunityReports(context: Context) {
         Toast.makeText(context, AlertaEcCommunity.NOT_CONFIGURED, Toast.LENGTH_LONG).show()
         return
     }
-    val dialog = android.app.AlertDialog.Builder(context)
-        .setTitle("👥 Reportes de la comunidad (últimas 12 h)")
+    val title = "👥 Reportes de la comunidad (últimas 12 h)"
+    val loading = android.app.AlertDialog.Builder(context)
+        .setTitle(title)
         .setMessage("Consultando…")
-        .setPositiveButton("Cerrar", null)
+        .setNegativeButton("Cerrar", null)
         .show()
     val position = org.breezyweather.background.location.ActiveLocationController.getLatest(context)
     host.lifecycleScope.launch {
         val result = AlertaEcCommunity.recentReports(position?.latitude, position?.longitude)
-        if (!dialog.isShowing) return@launch
-        dialog.setMessage(
-            when (result) {
-                is AlertaEcCommunity.Result.Error -> result.message
-                is AlertaEcCommunity.Result.Ok -> if (result.value.isEmpty()) {
-                    "No hay reportes recientes " + if (position != null) "cerca de tu zona." else "en Ecuador."
-                } else {
-                    result.value.joinToString("\n\n") { report ->
-                        val hora = runCatching {
-                            java.time.OffsetDateTime.parse(report.createdAt)
-                                .atZoneSameInstant(java.time.ZoneId.of("America/Guayaquil"))
-                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))
-                        }.getOrDefault("")
-                        "• ${report.category} · $hora\n${report.description}" +
-                            if (report.latitude != null && report.longitude != null) {
-                                "\n(zona ~1 km: %.2f, %.2f)".format(java.util.Locale.US, report.latitude, report.longitude)
-                            } else ""
-                    }
-                }
-            }
-        )
+        if (!loading.isShowing) return@launch
+        val reports = (result as? AlertaEcCommunity.Result.Ok)?.value
+        if (reports.isNullOrEmpty()) {
+            loading.setMessage(
+                (result as? AlertaEcCommunity.Result.Error)?.message
+                    ?: ("No hay reportes recientes " + if (position != null) "cerca de tu zona." else "en Ecuador.")
+            )
+            return@launch
+        }
+        loading.dismiss()
+        val items = reports.map { report ->
+            val hora = runCatching {
+                java.time.OffsetDateTime.parse(report.createdAt)
+                    .atZoneSameInstant(java.time.ZoneId.of("America/Guayaquil"))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+            }.getOrDefault("")
+            "${severityMark(report.severity)} ${report.category} · ${report.severity} · $hora\n${report.description}" +
+                if (report.latitude != null && report.longitude != null) {
+                    "\n(zona ~1 km: %.2f, %.2f)".format(java.util.Locale.US, report.latitude, report.longitude)
+                } else ""
+        }.toTypedArray()
+        android.app.AlertDialog.Builder(context)
+            .setTitle("$title · toca uno para denunciarlo")
+            .setItems(items) { _, index -> flagReport(context, host, reports[index]) }
+            .setNegativeButton("Cerrar", null)
+            .show()
     }
+}
+
+private fun severityMark(severity: String) = when (severity) {
+    "Crítica" -> "🔴"
+    "Alta" -> "🟠"
+    "Moderada" -> "🟡"
+    else -> "🟢"
+}
+
+/** Flag a community report: three flags hide it until it is reviewed (database trigger). */
+private fun flagReport(context: Context, host: FragmentActivity, report: AlertaEcCommunity.Report) {
+    val reasons = AlertaEcCommunity.FLAG_REASONS.toTypedArray()
+    android.app.AlertDialog.Builder(context)
+        .setTitle("Denunciar este reporte")
+        .setItems(reasons) { _, index ->
+            host.lifecycleScope.launch {
+                val message = when (val result = AlertaEcCommunity.flagReport(report.id, reasons[index])) {
+                    is AlertaEcCommunity.Result.Ok -> "Gracias. Con varias denuncias el reporte se oculta y se revisa."
+                    is AlertaEcCommunity.Result.Error -> result.message
+                }
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
+        }
+        .setNegativeButton("Cancelar", null)
+        .show()
 }

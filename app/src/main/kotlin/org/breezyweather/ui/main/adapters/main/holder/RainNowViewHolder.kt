@@ -29,6 +29,9 @@ import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import org.breezyweather.ui.theme.resource.providers.ResourceProvider
 import org.breezyweather.ui.common.widgets.NeonButton
+import org.breezyweather.alertaec.community.AlertaEcCommunity
+import org.breezyweather.alertaec.AlertaEcRainRisk
+import androidx.compose.runtime.setValue
 
 /**
  * Light "rain right now" card at the top of the home (nowcasting): the next hour from the forecast
@@ -77,21 +80,73 @@ class RainNowViewHolder(
         ).joinToString(" · ").ifEmpty { "Sin datos de lluvia para la próxima hora" }
     }
 
+    /** Forecast part of the risk index: next 3 h probability (max) and amount (sum), first wet minute. */
+    private fun forecastInputs(location: Location): AlertaEcRainRisk.Inputs {
+        val weather = location.weather ?: return AlertaEcRainRisk.Inputs()
+        val now = Date()
+        val in3h = Date(now.time + 3 * 60 * 60 * 1000L)
+        val hours = weather.hourlyForecast.filter { it.date >= Date(now.time - 60 * 60 * 1000L) && it.date < in3h }
+        val probability = hours.mapNotNull {
+            it.precipitationProbability?.total?.inPercent?.takeIf { p -> p.isFinite() && p in 0.0..100.0 }
+        }.maxOrNull()?.roundToInt()
+        val amount = hours.mapNotNull {
+            it.precipitation?.total?.inMillimeters?.takeIf { mm -> mm.isFinite() && mm >= 0.0 }
+        }.takeIf { it.isNotEmpty() }?.sum()
+        val firstWet = weather.minutelyForecast
+            .filter { it.date >= now && it.date < Date(now.time + 60 * 60 * 1000L) }
+            .firstOrNull { (it.precipitationIntensity?.inMillimeters ?: 0.0) > 0.0 }
+        return AlertaEcRainRisk.Inputs(
+            probabilityPercent = probability,
+            forecastMm3h = amount,
+            rainingWithinMinutes = firstWet?.let { ((it.date.time - now.time) / 60_000L).toInt().coerceAtLeast(0) },
+        )
+    }
+
+    private data class EcuadorData(
+        val lines: List<String> = emptyList(),
+        val measuredMm: Double? = null,
+        val inamhiMm: Double? = null,
+        val reports: Int = 0,
+    )
+
     @Composable
     private fun RainNowCard(context: Context, location: Location, forecastLine: String) {
-        val ecuadorLines by produceState(initialValue = emptyList<String>(), location.latitude, location.longitude) {
+        val baseInputs = androidx.compose.runtime.remember(location) { forecastInputs(location) }
+        val ecuador by produceState(initialValue = EcuadorData(), location.latitude, location.longitude) {
             if (!InamhiPointForecast.covers(location.latitude, location.longitude)) return@produceState
             val es = Locale.forLanguageTag("es-EC")
             val gauge = runCatching { QuitoRainGauges.lastHour(location.latitude, location.longitude) }.getOrNull()
             val inamhi = runCatching { InamhiPointForecast.at(location.latitude, location.longitude) }.getOrNull()
-            value = listOfNotNull(
-                gauge?.let {
-                    "EPMAPS " + it.station.code + ": " +
-                        if (it.lastHourMm > 0.0) String.format(es, "%.1f mm medidos", it.lastHourMm) else "sin lluvia medida"
-                },
-                inamhi?.precipitation3hMm?.let { String.format(es, "INAMHI WRF: %.1f mm en 3 h", it) },
+            // Community reports of rain / flooding nearby in the last 3 h (only when Supabase is configured).
+            val reports = if (AlertaEcCommunity.isConfigured) {
+                (AlertaEcCommunity.recentReports(location.latitude, location.longitude, hours = 3)
+                    as? AlertaEcCommunity.Result.Ok)?.value
+                    ?.count { it.category != "Error de aplicación" } ?: 0
+            } else {
+                0
+            }
+            value = EcuadorData(
+                lines = listOfNotNull(
+                    gauge?.let {
+                        "EPMAPS " + it.station.code + ": " +
+                            if (it.lastHourMm > 0.0) String.format(es, "%.1f mm medidos", it.lastHourMm) else "sin lluvia medida"
+                    },
+                    inamhi?.precipitation3hMm?.let { String.format(es, "INAMHI WRF: %.1f mm en 3 h", it) },
+                ),
+                measuredMm = gauge?.lastHourMm,
+                inamhiMm = inamhi?.precipitation3hMm,
+                reports = reports,
             )
         }
+        val ecuadorLines = ecuador.lines
+        val risk = AlertaEcRainRisk.evaluate(
+            baseInputs.copy(
+                measuredLastHourMm = ecuador.measuredMm,
+                inamhi3hMm = ecuador.inamhiMm,
+                communityReports = ecuador.reports,
+            )
+        )
+        var showWhy by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
         ElevatedCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
@@ -104,11 +159,40 @@ class RainNowViewHolder(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                // Risk index 0-100 with its level; "¿Por qué?" shows every source that moved it.
+                Text(
+                    text = "${risk.level.emoji} ${risk.level.label} · índice ${risk.score}/100",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = risk.level.advice,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     text = forecastLine,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                androidx.compose.material3.TextButton(onClick = { showWhy = !showWhy }) {
+                    Text(if (showWhy) "Ocultar el porqué ▲" else "¿Por qué este nivel? ▼")
+                }
+                if (showWhy) {
+                    risk.reasons.forEach {
+                        Text("• $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text(
+                        AlertaEcRainRisk.Level.entries.joinToString("\n") { "${it.emoji} ${it.label}: ${it.advice}" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Guía orientativa de ALERTA EC; no reemplaza los avisos de la SNGR ni del INAMHI.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 ecuadorLines.forEach {
                     Text(
                         text = it,

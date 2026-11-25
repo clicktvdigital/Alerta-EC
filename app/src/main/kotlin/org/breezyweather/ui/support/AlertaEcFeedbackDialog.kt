@@ -125,6 +125,13 @@ class AlertaEcFeedbackDialog : DialogFragment() {
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, categories)
             column.addView(this)
         } else null
+        val severity = if (isReport) {
+            description("Gravedad")
+            Spinner(context).apply {
+                adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, AlertaEcCommunity.SEVERITIES)
+                column.addView(this)
+            }
+        } else null
         description(if (isReport) "¿Qué ocurrió y cuándo?" else "Escribe tu opinión sobre ALERTA EC")
         val input = EditText(context).apply {
             hint = if (isReport) "Describe lo observado..." else "Escribe tu reseña..."
@@ -135,6 +142,9 @@ class AlertaEcFeedbackDialog : DialogFragment() {
             setHorizontallyScrolling(false)
         }
         column.addView(input)
+        if (isReport) {
+            description("🔒 Al fotografiar o grabar, enfoca el agua, el cauce o el daño: sin rostros, placas ni documentos.")
+        }
         attachedLabel = if (isReport) description("Sin archivos adjuntos") else null
         if (isReport) {
             button("🖼️ Adjuntar fotografía") { pickMedia.launch(arrayOf("image/*")) }
@@ -190,7 +200,11 @@ class AlertaEcFeedbackDialog : DialogFragment() {
                 lifecycleScope.launch {
                     val result = if (isReport) {
                         AlertaEcCommunity.publishReport(
-                            categories[spinner?.selectedItemPosition ?: 0], body, recent?.latitude, recent?.longitude
+                            categories[spinner?.selectedItemPosition ?: 0],
+                            AlertaEcCommunity.SEVERITIES[severity?.selectedItemPosition ?: 0],
+                            body,
+                            recent?.latitude,
+                            recent?.longitude
                         )
                     } else {
                         AlertaEcCommunity.publishReview(stars, body)
