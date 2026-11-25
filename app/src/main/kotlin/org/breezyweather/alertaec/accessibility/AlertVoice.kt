@@ -92,11 +92,29 @@ object AlertVoice {
     ) {
         if (text.isBlank()) return
         val appCtx = context.applicationContext
-        bgHandler.postDelayed({
-            val now = System.currentTimeMillis()
-            if (dedupeKey == lastBgSpokenKey && (now - lastBgSpokenAt) < 90_000L) return@postDelayed
-            val settings = SettingsManager.getInstance(appCtx)
-            if (!settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled) return@postDelayed
+        bgHandler.postDelayed({ speakQueued(appCtx, text, dedupeKey, attempt = 0) }, delayMillis.coerceAtLeast(0L))
+    }
+
+    /**
+     * One utterance per notification/event: a key or an identical text already spoken within [VOICE_DEDUPE_MILLIS]
+     * is dropped, also across processes (WeatherUpdateJob, queue worker and official alerts each run their own).
+     * While another utterance is playing the new one waits instead of cutting it off.
+     */
+    private fun speakQueued(appCtx: Context, text: String, dedupeKey: String, attempt: Int) {
+        val now = System.currentTimeMillis()
+        if (dedupeKey == lastBgSpokenKey && (now - lastBgSpokenAt) < 90_000L) return
+        val settings = SettingsManager.getInstance(appCtx)
+        if (!settings.isAlertVoiceEnabled || !settings.isAlertSoundEnabled) return
+        if (bgEngine != null && attempt < VOICE_QUEUE_MAX_WAITS) {
+            bgHandler.postDelayed({ speakQueued(appCtx, text, dedupeKey, attempt + 1) }, VOICE_QUEUE_WAIT_MILLIS)
+            return
+        }
+        if (!claimUtterance(appCtx, dedupeKey, text, now)) {
+            android.util.Log.i("AlertaEcVoz", "Voz omitida (ya pronunciada): $dedupeKey")
+            return
+        }
+        android.util.Log.i("AlertaEcVoz", "Voz: $dedupeKey")
+        run {
             lastBgSpokenKey = dedupeKey
             lastBgSpokenAt = now
             releaseBackgroundEngine()
@@ -146,7 +164,26 @@ object AlertVoice {
             bgEngine = created
             // Never keep the engine alive if the utterance callbacks are lost.
             bgHandler.postDelayed({ if (bgEngine === created) releaseBackgroundEngine() }, 30_000L)
-        }, delayMillis.coerceAtLeast(0L))
+        }
+    }
+
+    private const val VOICE_PREFS = "alertaec_voice_dedupe"
+    private const val VOICE_DEDUPE_MILLIS = 30 * 60_000L
+    private const val VOICE_QUEUE_WAIT_MILLIS = 1_000L
+    private const val VOICE_QUEUE_MAX_WAITS = 30
+
+    /** Persistent, synchronized check-and-record of the key and of the normalized text. */
+    @Synchronized
+    private fun claimUtterance(context: Context, key: String, text: String, now: Long): Boolean {
+        val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
+        val textKey = "t:" + text.trim().lowercase().replace(Regex("\\s+"), " ").hashCode()
+        val keyKey = "k:$key"
+        fun recent(k: String) = now - prefs.getLong(k, 0L) in 0 until VOICE_DEDUPE_MILLIS
+        if (recent(keyKey) || recent(textKey)) return false
+        val editor = prefs.edit()
+        prefs.all.forEach { (k, v) -> if (v is Long && now - v >= VOICE_DEDUPE_MILLIS) editor.remove(k) }
+        editor.putLong(keyKey, now).putLong(textKey, now).commit()
+        return true
     }
 
     private fun releaseBackgroundEngine() {
