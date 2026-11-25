@@ -1,3 +1,61 @@
+# ALERTA EC
+
+Alertas de clima, lluvia y riesgos para Ecuador, en celular, Smart TV y TV Box. Paquete `com.clicktvdigital.alertaec` (versión de pruebas `.debug`), rama de trabajo `alerta-ec`.
+
+## Descargas directas
+
+Enlaces fijos para compartir por WhatsApp o redes. Cada uno abre una página corta con vista previa (logo, título y descripción) y descarga solo su APK firmado con la clave de producción. Siempre apuntan a la última compilación publicada por `.github/workflows/alerta-ec-descargas.yml`.
+
+| Equipo | Enlace para compartir | APK |
+| --- | --- | --- |
+| Celular (recomendado, 64 bits) | https://clicktvdigital.github.io/Alerta-EC/celular/ | `alertaec-phone-arm64-v8a.apk` |
+| Celular antiguo (32 bits) | https://clicktvdigital.github.io/Alerta-EC/celular-v7/ | `alertaec-phone-armeabi-v7a.apk` |
+| Smart TV Full HD | https://clicktvdigital.github.io/Alerta-EC/tv/ | `alertaec-tv-fhd-armeabi-v7a.apk` |
+| TV Box HD | https://clicktvdigital.github.io/Alerta-EC/tvbox/ | `alertaec-tvbox-hd-armeabi-v7a.apk` |
+
+Página con los 4 perfiles: https://clicktvdigital.github.io/Alerta-EC/ · Sumas SHA-256: `/apk/SHA256SUMS.txt` · Versión publicada: `/version.json`.
+
+Las novedades de la landing están en `docs/descargas/novedades.txt`. El historial completo de cambios está en [docs/CHANGELOG_ALERTA_EC.md](docs/CHANGELOG_ALERTA_EC.md).
+
+## Herramientas del flujo de trabajo
+
+- **graphify**: grafo de conocimiento del código. Se actualiza con `graphify update .` sobre los archivos cambiados, y la CI `code-graph-audit.yml` lo regenera.
+- **jcode (`jcodemunch-mcp`)**: índice de símbolos y búsqueda. Se indexa con `jcodemunch-mcp index $PWD --no-ai-summaries --paths-from <lista>` y se consulta con `search_text` / `get_file_outline`.
+- **replica-skill** (`~/.claude/skills/replica-*`, MIT): estudio clean-room de apps de referencia. Solo se toman ideas de experiencia de usuario; nunca código, marcas ni recursos. El mapa de recon está en `docs/replica/`.
+- **Validador**: `python -I scripts/validate_alerta_ec.py` tiene que terminar en «VALIDACION ALERTA EC: OK».
+- **`~/alertaec-validar.sh`** (Termux):
+  - `apks <run_id>` descarga el artefacto de la CI y arma los 4 perfiles debug en `~/apks_4_perfiles_v5`;
+  - `install` hace una instalación limpia;
+  - `record` graba 60 s y extrae fotogramas y logs.
+- **CI**:
+  - `alerta-ec-ci.yml`: pruebas unitarias, compilación release Kotlin y APK debug;
+  - `alerta-ec-descargas.yml`: 4 APK firmados publicados en Pages;
+  - `alerta-ec-release.yml`: Release por etiqueta, solo con autorización.
+
+## Fuentes meteorológicas
+
+- MET Norway y Open-Meteo: pronóstico; Open-Meteo extiende el diario hasta 16 días.
+- INAMHI: WRF por GeoServer WMS (lluvia, humedad, temperatura y viento) y pronóstico por punto.
+- EPMAPS: pluviómetros de Quito, lluvia medida en la última hora.
+- NOAA GOES-19: imágenes de satélite en modos GEOCOLOR, Sandwich y rayos GLM.
+- Alertas oficiales de los proveedores; solo la severidad oficial habilita canales intrusivos.
+
+## Comunidad (Supabase)
+
+- Proyecto `bnnpdwrduktchmgbwlha`, con acceso por REST (PostgREST) usando solo la clave pública (`sb_publishable_` o JWT con rol `anon`). La clave viene del secreto `ALERTAEC_SUPABASE_ANON_KEY`.
+- Nunca se usa `service_role`: Gradle y la app la rechazan.
+- Las tablas, RLS, límites y denuncias están en `docs/supabase/alerta_ec_comunidad.sql` (ya aplicado).
+- No se publican datos privados: no hay cuentas ni identificador del equipo, y las coordenadas se redondean a unos 1 km.
+
+## Reglas de conservación
+
+- No tocar `mipmap/ic_launcher*`, la firma de release ni el `applicationId`.
+- Conservar los 4 perfiles de APK.
+- No subir `local.properties` ni keystores.
+- Etiquetas y Releases solo con autorización expresa.
+
+---
+
 ## Continuidad ALERTA EC — pasos 1053–1063
 
 La corrección local de compatibilidad JVM y el estado de CI están documentados cronológicamente en [docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md#alerta-ec--continuidad-de-los-pasos-1053-1063-22-10-2026). Todavía no se ha compilado ni publicado; requiere revisión, commit y push autorizados, y nueva validación remota.

@@ -1,3 +1,7 @@
+# ALERTA EC
+
+- [Cambios de ALERTA EC (español)](docs/CHANGELOG_ALERTA_EC.md)
+
 # Old changelogs
 
 - [Changelog for v5.x](docs/CHANGELOG_5.x.md)

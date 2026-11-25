@@ -1,0 +1,130 @@
+name: Alerta EC - Descargas directas (4 APK firmados)
+
+# Publica en GitHub Pages los 4 perfiles firmados con la clave de produccion y una
+# pagina corta por perfil para compartir por WhatsApp/redes:
+#   https://clicktvdigital.github.io/Alerta-EC/celular/     -> alertaec-phone-arm64-v8a.apk
+#   https://clicktvdigital.github.io/Alerta-EC/celular-v7/  -> alertaec-phone-armeabi-v7a.apk
+#   https://clicktvdigital.github.io/Alerta-EC/tv/          -> alertaec-tv-fhd-armeabi-v7a.apk
+#   https://clicktvdigital.github.io/Alerta-EC/tvbox/       -> alertaec-tvbox-hd-armeabi-v7a.apk
+# No crea etiquetas ni Releases.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - alerta-ec
+    paths:
+      - "app/**"
+      - "domain/**"
+      - "data/**"
+      - "docs/descargas/**"
+      - "scripts/build_download_site.py"
+      - ".github/workflows/alerta-ec-descargas.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: alerta-ec-descargas
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'clicktvdigital/Alerta-EC'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+
+      - name: Configurar firma de produccion
+        env:
+          KEYSTORE_B64: ${{ secrets.ALERTAEC_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ALERTAEC_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ALERTAEC_KEY_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Falta uno o mas secretos obligatorios de firma (se omiten sus valores)." >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > app/alerta-ec-release.jks
+          test -s app/alerta-ec-release.jks
+          {
+            printf '%s\n' "alertaec.storeFile=alerta-ec-release.jks"
+            printf 'alertaec.storePassword=%s\n' "$STORE_PASSWORD"
+            printf '%s\n' "alertaec.keyAlias=alerta-ec"
+            printf 'alertaec.keyPassword=%s\n' "$KEY_PASSWORD"
+          } >> local.properties
+
+      - name: Compilar APK Release
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
+        run: ./gradlew :app:assembleBasicRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Verificar firma y armar los 4 perfiles
+        env:
+          EXPECTED_CERT_SHA256: 06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e
+          EXPECTED_PACKAGE: com.clicktvdigital.alertaec
+        run: |
+          set -eu
+          out=app/build/outputs/apk/basic/release
+          v7="$out/app-basic-armeabi-v7a-release.apk"
+          a64="$out/app-basic-arm64-v8a-release.apk"
+          test -s "$v7" && test -s "$a64" || { ls -la "$out"; echo "Faltan los splits ABI de Release." >&2; exit 1; }
+          build_tools="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools"
+          apksigner="$(find "$build_tools" -type f -name apksigner -perm -u+x | sort -V | tail -n 1)"
+          aapt="$(find "$build_tools" -type f -name aapt -perm -u+x | sort -V | tail -n 1)"
+          for apk in "$v7" "$a64"; do
+            "$apksigner" verify "$apk" >/dev/null
+            cert="$("$apksigner" verify --print-certs "$apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+            test "$cert" = "$EXPECTED_CERT_SHA256" || { echo "Certificado distinto al de produccion en $apk" >&2; exit 1; }
+            "$aapt" dump badging "$apk" | sed -n '1p' | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId inesperado en $apk" >&2; exit 1; }
+          done
+          version="$("$aapt" dump badging "$a64" | sed -n "1s/.*versionName='\([^']*\)'.*/\1/p")"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          mkdir -p site/apk
+          cp "$v7"  site/apk/alertaec-tv-fhd-armeabi-v7a.apk
+          cp "$v7"  site/apk/alertaec-tvbox-hd-armeabi-v7a.apk
+          cp "$v7"  site/apk/alertaec-phone-armeabi-v7a.apk
+          cp "$a64" site/apk/alertaec-phone-arm64-v8a.apk
+          cp docs/descargas/og-alertaec.jpg site/
+          rm -f app/alerta-ec-release.jks
+
+      - name: Generar paginas de descarga
+        run: python3 -I scripts/build_download_site.py site "$VERSION" "$GITHUB_SHA"
+
+      - name: Preparar Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Subir sitio
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

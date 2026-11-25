@@ -1,0 +1,7 @@
+Tono y voz propios de ALERTA EC cuando cambia el clima (una sola vez), sin el tono genérico de Android.
+Índice de riesgo de lluvia 0-100 con sus razones: pronóstico, pluviómetros EPMAPS, INAMHI y comunidad.
+Reportes de la comunidad con severidad, lista de reportes cercanos y denuncias.
+Mapa de Ecuador con capas INAMHI, leyenda, reproducción y satélite GOES (nubes, lluvia y rayos).
+Pronóstico de 16 días y unidades de Ecuador (°C, mm, km/h, km, hPa) con ejemplos.
+Temperatura en la barra de estado y sensación térmica activadas por defecto.
+Autosoporte que se repara solo y control remoto completo en Smart TV y TV Box.

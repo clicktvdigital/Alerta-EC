@@ -1,3 +1,30 @@
+## Continuidad ALERTA EC — 25-11-2026 (punto de partida actual)
+
+**Base estable:**
+- rama `alerta-ec`, último commit con CI en verde;
+- se trabaja siempre encima de esa base, nunca desde versiones antiguas (p. ej. v11).
+
+**Ciclo por tanda:**
+1. Indexar y verificar con graphify y jcode.
+2. Hacer cambios acotados y pasar `python -I scripts/validate_alerta_ec.py`.
+3. Hacer commit y push a `alerta-ec`, y esperar la CI `alerta-ec-ci.yml` en verde.
+4. Ejecutar `bash ~/alertaec-validar.sh apks <run_id>`.
+5. Instalar y grabar 60 s en el celular (`192.168.100.164:5555`) y en el TV (`192.168.100.11:5555`) solo cuando estén libres y desbloqueados.
+
+**Descargas públicas:**
+- `alerta-ec-descargas.yml` compila los 4 perfiles en release firmado y los publica en https://clicktvdigital.github.io/Alerta-EC/ (`/celular/`, `/celular-v7/`, `/tv/`, `/tvbox/`).
+- Se lanza con cada push que toque la app o a mano con `gh workflow run alerta-ec-descargas.yml`.
+
+**Limpieza:**
+- en Termux solo se conserva `~/apks_4_perfiles_v5`;
+- las descargas `~/alerta-ci-*` y la carpeta `~/alertaec-validacion` son temporales y se borran después de validar;
+- en el celular no se dejan grabaciones ni volcados en `/sdcard`.
+
+**Documentación:**
+- herramientas, fuentes y Supabase en `README.md`;
+- historial en `docs/CHANGELOG_ALERTA_EC.md`;
+- novedades de la landing en `docs/descargas/novedades.txt`.
+
 ## Paso 632 — Correcciones de auditoría INAMHI (18-10-2026)
 
 Estado: implementación local en `alerta-ec`, pendiente de pruebas unitarias y validación Android. Esta sección sustituye las limitaciones de la revisión INAMHI anterior; el resto del historial se conserva.
