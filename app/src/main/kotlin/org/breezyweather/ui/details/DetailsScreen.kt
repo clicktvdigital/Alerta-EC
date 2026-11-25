@@ -107,6 +107,8 @@ import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
 import java.util.Calendar
 import java.util.Date
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusRequester
 
 @Composable
 internal fun DailyWeatherScreen(
@@ -207,12 +209,23 @@ fun DailyPagerIndicator(
         CalendarHelper.getAlternateCalendarSetting(context)
     }
 
+    // Android TV: the selected day's tab takes focus on entry and Left/Right changes day directly.
+    val television = remember(context) {
+        context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+    }
+    val selectedTabFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    if (television) {
+        androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { selectedTabFocus.requestFocus() } }
+    }
     PrimaryScrollableTabRow(
         selectedTabIndex = selected,
         modifier = modifier.fillMaxWidth()
     ) {
         pages.forEachIndexed { i, date ->
             Tab(
+                modifier = Modifier
+                    .then(if (i == selected) Modifier.focusRequester(selectedTabFocus) else Modifier)
+                    .onFocusChanged { if (television && it.isFocused && selected != i) onClick(i) },
                 selected = (selected == i),
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = {

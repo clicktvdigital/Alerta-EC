@@ -77,6 +77,7 @@ import org.shredzone.commons.suncalc.SunPosition
 import java.util.Calendar
 import java.util.Date
 import kotlin.time.DurationUnit
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 fun DetailsSunMoon(
@@ -86,8 +87,10 @@ fun DetailsSunMoon(
     moonTimes: List<Astro>,
     modifier: Modifier = Modifier,
 ) {
+    val tvListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = tvListState,
+        modifier = modifier.fillMaxSize().tvDpadScroll(tvListState),
         contentPadding = PaddingValues(
             horizontal = dimensionResource(R.dimen.normal_margin),
             vertical = dimensionResource(R.dimen.small_margin)

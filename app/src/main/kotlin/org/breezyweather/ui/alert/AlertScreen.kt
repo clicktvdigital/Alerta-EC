@@ -70,6 +70,7 @@ import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
 import org.breezyweather.ui.common.widgets.insets.bottomInsetItem
 import org.breezyweather.ui.theme.ThemeManager
 import org.breezyweather.ui.theme.compose.BreezyWeatherTheme
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 internal fun AlertScreen(
@@ -119,7 +120,7 @@ internal fun AlertScreen(
             }
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxHeight(),
+                modifier = Modifier.fillMaxHeight().tvDpadScroll(listState),
                 contentPadding = it.plus(
                     PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin))
                 ),

@@ -66,8 +66,17 @@ abstract class AbstractMainViewHolder(
      */
     private fun enableRemoteFocus(context: Context) {
         if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) return
-        itemView.isFocusable = true
+        // Compose blocks (map, review/report, support, footer) move focus between their own buttons.
+        if (itemView is androidx.compose.ui.platform.ComposeView) return
         itemView.isFocusableInTouchMode = false
+        // A block with its own controls (tabs, buttons, trend items) hands focus straight to them, so OK runs
+        // the control; a block without any becomes a focus stop itself so the list can still scroll to it.
+        itemView.isFocusable = false
+        itemView.post {
+            val inner = ArrayList<View>()
+            itemView.addFocusables(inner, View.FOCUS_DOWN)
+            itemView.isFocusable = inner.none { it !== itemView }
+        }
         val card = itemView as? MaterialCardView
         val focusColor = MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary, Color.WHITE)
         val strokePx = (3 * context.resources.displayMetrics.density).toInt()

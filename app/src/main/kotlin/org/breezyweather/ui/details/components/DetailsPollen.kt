@@ -35,6 +35,7 @@ import org.breezyweather.domain.weather.model.getPollenWithMaxIndex
 import org.breezyweather.domain.weather.model.isIndexValid
 import org.breezyweather.ui.common.composables.PollenGrid
 import org.breezyweather.ui.common.widgets.Material3ExpressiveCardListItem
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 /**
  * TODO: Save pollen hourly data, and display a hourly index chart of the pollen with the maximum index on that day
@@ -45,8 +46,10 @@ fun DetailsPollen(
     pollenIndexSource: PollenIndexSource?,
     modifier: Modifier = Modifier,
 ) {
+    val tvListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = tvListState,
+        modifier = modifier.fillMaxSize().tvDpadScroll(tvListState),
         contentPadding = PaddingValues(
             horizontal = dimensionResource(R.dimen.normal_margin),
             vertical = dimensionResource(R.dimen.small_margin)

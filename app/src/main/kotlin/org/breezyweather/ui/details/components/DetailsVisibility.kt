@@ -86,6 +86,7 @@ import org.breezyweather.unit.formatting.UnitWidth
 import org.breezyweather.unit.formatting.format
 import java.util.Date
 import kotlin.math.max
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 fun DetailsVisibility(
@@ -124,8 +125,10 @@ fun DetailsVisibility(
         }
     }
 
+    val tvListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = tvListState,
+        modifier = modifier.fillMaxSize().tvDpadScroll(tvListState),
         contentPadding = PaddingValues(
             horizontal = dimensionResource(R.dimen.normal_margin),
             vertical = dimensionResource(R.dimen.small_margin)

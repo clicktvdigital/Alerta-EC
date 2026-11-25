@@ -77,6 +77,7 @@ import org.breezyweather.unit.pressure.toPressure
 import java.util.Date
 import kotlin.math.max
 import kotlin.math.min
+import org.breezyweather.ui.common.widgets.tvDpadScroll
 
 @Composable
 fun DetailsPressure(
@@ -115,8 +116,10 @@ fun DetailsPressure(
         }
     }
 
+    val tvListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = tvListState,
+        modifier = modifier.fillMaxSize().tvDpadScroll(tvListState),
         contentPadding = PaddingValues(
             horizontal = dimensionResource(R.dimen.normal_margin),
             vertical = dimensionResource(R.dimen.small_margin)
