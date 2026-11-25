@@ -209,7 +209,10 @@ class RefreshHelper @Inject constructor(
 
         // STEP 1 - Update coordinates if current position
         val locationWithUpdatedCoordinates = if (location.isCurrentPosition) {
-            val coordinatesChanged = currentLocationStore.isRecent && (
+            // A current position without coordinates yet (0,0: just added, e.g. on Android TV whose network fix is
+            // rarely under 2 min old) takes the last usable fix right away instead of never loading any weather.
+            val hasNoCoordinates = location.latitude == 0.0 && location.longitude == 0.0
+            val coordinatesChanged = (currentLocationStore.isRecent || hasNoCoordinates && currentLocationStore.isUsable) && (
                 location.latitude != currentLocationStore.lastKnownLatitude ||
                     location.longitude != currentLocationStore.lastKnownLongitude
             )
