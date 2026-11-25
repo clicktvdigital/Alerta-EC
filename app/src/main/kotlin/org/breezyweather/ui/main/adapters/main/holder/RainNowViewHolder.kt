@@ -116,12 +116,15 @@ class RainNowViewHolder(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NeonButton(onClick = { context.startActivity(Intent(context, MapActivity::class.java)) }) {
-                        Text("🗺️ Abrir mapa")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    NeonButton(
+                        onClick = { context.startActivity(Intent(context, MapActivity::class.java)) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("🗺️ Abrir mapa", maxLines = 1, softWrap = false)
                     }
-                    NeonButton(onClick = { showSupportBlock() }) {
-                        Text("🤝 Colaborar")
+                    NeonButton(onClick = { showSupportBlock() }, modifier = Modifier.weight(1f)) {
+                        Text("🤝 Colaborar", maxLines = 1, softWrap = false)
                     }
                 }
             }
