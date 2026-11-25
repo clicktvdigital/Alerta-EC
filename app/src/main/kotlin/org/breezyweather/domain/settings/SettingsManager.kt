@@ -481,14 +481,14 @@ class SettingsManager private constructor(
             config.edit().putBoolean("notification_widget_temp_icon_switch", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("notification_widget_temp_icon_switch", false)
+        get() = config.getBoolean("notification_widget_temp_icon_switch", true)
 
     var isWidgetNotificationUsingFeelsLike: Boolean
         set(value) {
             config.edit().putBoolean("notification_widget_feelslike", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("notification_widget_feelslike", false)
+        get() = config.getBoolean("notification_widget_feelslike", true)
 
     var useNumberFormatter: Boolean
         set(value) {

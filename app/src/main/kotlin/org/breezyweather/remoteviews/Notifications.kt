@@ -80,7 +80,9 @@ object Notifications {
     const val ID_UPDATING_TODAY_FORECAST = 7
     const val ID_UPDATING_TOMORROW_FORECAST = 8
 
-    const val CHANNEL_WIDGET = "widget"
+    // v2: silent. The old "widget" channel (default importance) played Android's generic tone on every refresh.
+    const val CHANNEL_WIDGET = "widget_silent_v2"
+    private const val CHANNEL_WIDGET_OLD = "widget"
     const val ID_WIDGET = 1
     const val ID_UPDATING_WIDGET = 6
 
@@ -171,10 +173,12 @@ object Notifications {
                     setSound(null, null)
                     setGroup(GROUP_BREEZY_WEATHER)
                 },
-                buildNotificationChannel(CHANNEL_WIDGET, IMPORTANCE_DEFAULT) {
+                buildNotificationChannel(CHANNEL_WIDGET, IMPORTANCE_LOW) {
                     setName(context.getString(R.string.notification_channel_widget))
                     setGroup(GROUP_BREEZY_WEATHER)
                     setShowBadge(false)
+                    setSound(null, null)
+                    setVibrationEnabled(false)
                 },
                 buildNotificationChannel(CHANNEL_ACTIVE_LOCATION, IMPORTANCE_LOW) {
                     setName(context.getString(R.string.notification_channel_active_location))
@@ -207,6 +211,9 @@ object Notifications {
                 silentChannel(context, AlertaEcNotificationAppearance.SILENT_EXTREME, IMPORTANCE_HIGH, R.string.notification_channel_extreme),
             ).filter { notificationManager.getNotificationChannel(it.id) == null }
         )
+        if (notificationManager.getNotificationChannel(CHANNEL_WIDGET_OLD) != null) {
+            notificationManager.deleteNotificationChannel(CHANNEL_WIDGET_OLD)
+        }
         AlertaEcNotificationAppearance.OBSOLETE_SOUND_CHANNELS.forEach {
             if (notificationManager.getNotificationChannel(it) != null) notificationManager.deleteNotificationChannel(it)
         }

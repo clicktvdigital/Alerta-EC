@@ -72,8 +72,8 @@ fun UnitSettingsScreen(
                 val nameArray = arrayOf(
                     stringResource(
                         R.string.parenthesis,
-                        stringResource(R.string.settings_regional_preference),
-                        TemperatureUnit.getDefaultUnit(context.currentLocale)
+                        "Predeterminado Ecuador",
+                        SettingsManager.getInstance(context).getTemperatureUnit(context)
                             .getDisplayName(context, context.currentLocale, UnitWidth.LONG, useMeasureFormat)
                     )
                 ) + allowedTemperatureUnits.map {
@@ -82,7 +82,7 @@ fun UnitSettingsScreen(
                 ListPreferenceViewWithCard(
                     title = stringResource(id),
                     summary = { _, value ->
-                        valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }
+                        (valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }) + "\n" + "Grados Celsius (°C): 0 °C congela el agua; Quito suele estar entre 10 y 22 °C, la Costa entre 24 y 32 °C."
                     },
                     selectedKey = SettingsManager.getInstance(context).temperatureUnit?.id ?: "auto",
                     valueArray = valueArray,
@@ -105,12 +105,12 @@ fun UnitSettingsScreen(
             listPreferenceItem(R.string.settings_units_precipitation) { id ->
                 val allowedPrecipitationUnits = PrecipitationUnit.entries.filter { it != PrecipitationUnit.MICROMETER }
                 val valueArray = arrayOf("auto") + allowedPrecipitationUnits.map { it.id }
-                val defaultUnit = PrecipitationUnit.getDefaultUnit(context.currentLocale)
-                val snowfallUnit = PrecipitationUnit.getDefaultSnowfallUnit(context.currentLocale)
+                val defaultUnit = SettingsManager.getInstance(context).getPrecipitationUnit(context)
+                val snowfallUnit = SettingsManager.getInstance(context).getSnowfallUnit(context)
                 val nameArray = arrayOf(
                     stringResource(
                         R.string.parenthesis,
-                        stringResource(R.string.settings_regional_preference),
+                        "Predeterminado Ecuador",
                         if (defaultUnit != snowfallUnit) {
                             defaultUnit.getDisplayName(
                                 context,
@@ -135,7 +135,7 @@ fun UnitSettingsScreen(
                 ListPreferenceViewWithCard(
                     title = stringResource(id),
                     summary = { _, value ->
-                        valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }
+                        (valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }) + "\n" + "Milímetros (mm): 1 mm es 1 litro de agua por metro cuadrado. 2 mm/h es lluvia ligera; más de 10 mm/h, fuerte."
                     },
                     selectedKey = SettingsManager.getInstance(context).precipitationUnit?.id ?: "auto",
                     valueArray = valueArray,
@@ -160,8 +160,8 @@ fun UnitSettingsScreen(
                 val nameArray = arrayOf(
                     stringResource(
                         R.string.parenthesis,
-                        stringResource(R.string.settings_regional_preference),
-                        SpeedUnit.getDefaultUnit(context.currentLocale)
+                        "Predeterminado Ecuador",
+                        SettingsManager.getInstance(context).getSpeedUnit(context)
                             .getDisplayName(context, context.currentLocale, UnitWidth.LONG, useMeasureFormat)
                     )
                 ) + allowedSpeedUnits.map {
@@ -170,7 +170,7 @@ fun UnitSettingsScreen(
                 ListPreferenceViewWithCard(
                     title = stringResource(id),
                     summary = { _, value ->
-                        valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }
+                        (valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }) + "\n" + "Kilómetros por hora (km/h): 20 km/h mueve ramas; desde 50 km/h es viento fuerte, cuida techos y árboles."
                     },
                     selectedKey = SettingsManager.getInstance(context).speedUnit?.id ?: "auto",
                     valueArray = valueArray,
@@ -195,8 +195,8 @@ fun UnitSettingsScreen(
                 val nameArray = arrayOf(
                     stringResource(
                         R.string.parenthesis,
-                        stringResource(R.string.settings_regional_preference),
-                        DistanceUnit.getDefaultUnit(context.currentLocale)
+                        "Predeterminado Ecuador",
+                        SettingsManager.getInstance(context).getDistanceUnit(context)
                             .getDisplayName(context, context.currentLocale, UnitWidth.LONG, useMeasureFormat)
                     )
                 ) + allowedDistanceUnits.map {
@@ -205,7 +205,7 @@ fun UnitSettingsScreen(
                 ListPreferenceViewWithCard(
                     title = stringResource(id),
                     summary = { _, value ->
-                        valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }
+                        (valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }) + "\n" + "Kilómetros (km): la visibilidad con neblina puede bajar de 1 km; con cielo despejado supera los 10 km."
                     },
                     selectedKey = SettingsManager.getInstance(context).distanceUnit?.id ?: "auto",
                     valueArray = valueArray,
@@ -230,8 +230,8 @@ fun UnitSettingsScreen(
                 val nameArray = arrayOf(
                     stringResource(
                         R.string.parenthesis,
-                        stringResource(R.string.settings_regional_preference),
-                        PressureUnit.getDefaultUnit(context.currentLocale)
+                        "Predeterminado Ecuador",
+                        SettingsManager.getInstance(context).getPressureUnit(context)
                             .getDisplayName(context, context.currentLocale, UnitWidth.LONG, useMeasureFormat)
                     )
                 ) + allowedPressureUnits.map {
@@ -240,7 +240,7 @@ fun UnitSettingsScreen(
                 ListPreferenceViewWithCard(
                     title = stringResource(id),
                     summary = { _, value ->
-                        valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }
+                        (valueArray.indexOfFirst { it == value }.let { if (it == -1) nameArray[0] else nameArray[it] }) + "\n" + "Hectopascales (hPa): igual a milibares. Al nivel del mar ~1013 hPa = 1 atm; en Quito ~730 hPa (0,72 atm). Si baja rápido, puede llegar mal tiempo."
                     },
                     selectedKey = SettingsManager.getInstance(context).pressureUnit?.id ?: "auto",
                     valueArray = valueArray,

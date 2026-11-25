@@ -256,6 +256,9 @@ configure<ApplicationExtension> {
         ) {
             throw GradleException("ALERTAEC_SUPABASE_ANON_KEY must be the public anon/publishable key, never service_role.")
         }
+        if (supabaseAnonKey.isEmpty()) {
+            logger.warn("ALERTA EC: ALERTAEC_SUPABASE_ANON_KEY vacia en ${it.name}; la comunidad quedara desactivada en este APK.")
+        }
         it.buildConfigField("String", "ALERTAEC_SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
         it.buildConfigField(
             "String",

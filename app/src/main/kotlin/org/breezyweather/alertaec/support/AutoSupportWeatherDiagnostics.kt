@@ -49,11 +49,18 @@ internal object AutoSupportWeatherDiagnostics {
         val (hasCurrent, hasDaily, hasHourly) =
             AutoSupportWeatherContent.summary(weather, now)
 
+        // Verifiable fallback: when a section has no date of its own (current conditions taken from the
+        // forecast source, or hourly records stored before acquisition tracking), the date of the refresh
+        // that stored them is the acquisition date. Never in the future.
+        val general = listOfNotNull(weather.base.forecastUpdateTime?.time, weather.base.refreshTime?.time)
+            .filter { it in 1..now }
+            .maxOrNull()
+
         return listOf(
             contentAwareFreshness(
                 "weather_current",
                 "Condiciones actuales",
-                weather.base.currentUpdateTime?.time,
+                weather.base.currentUpdateTime?.time ?: general,
                 now,
                 configuredInterval,
                 hasCurrent,
@@ -61,7 +68,7 @@ internal object AutoSupportWeatherDiagnostics {
             contentAwareFreshness(
                 "weather_daily",
                 "Pronostico diario",
-                weather.base.forecastUpdateTime?.time,
+                weather.base.forecastUpdateTime?.time ?: general,
                 now,
                 configuredInterval,
                 hasDaily,
@@ -69,7 +76,7 @@ internal object AutoSupportWeatherDiagnostics {
             contentAwareFreshness(
                 "weather_hourly",
                 "Pronostico horario",
-                hourlyAcquisition,
+                hourlyAcquisition ?: general,
                 now,
                 configuredInterval,
                 hasHourly,

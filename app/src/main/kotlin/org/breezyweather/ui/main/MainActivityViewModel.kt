@@ -306,6 +306,12 @@ class MainActivityViewModel @Inject constructor(
         )
 
         updateInnerData(location)
+        // Weather news after a manual refresh: ALERTA EC tone + voice, once per change.
+        if (location.weather != null) {
+            runCatching {
+                org.breezyweather.alertaec.AlertaEcCurrentConditionVoice.announceIfNew(getApplication(), location)
+            }
+        }
 
         _loading.value = false
         updating = false

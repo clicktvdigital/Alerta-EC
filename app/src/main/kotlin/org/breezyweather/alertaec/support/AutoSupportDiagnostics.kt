@@ -35,8 +35,14 @@ internal object AutoSupportDiagnostics {
             check(
                 id = "gps_enabled",
                 description = "Servicios de ubicacion",
-                ok = locationServicesEnabled(appContext),
-                success = "Los servicios de ubicacion del dispositivo estan activados.",
+                // Android TV boxes have no GPS: location comes from the network or is chosen by the user.
+                ok = locationServicesEnabled(appContext) ||
+                    appContext.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK),
+                success = if (appContext.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+                    "Android TV: sin GPS; se usa la ubicacion por red o la ciudad elegida."
+                } else {
+                    "Los servicios de ubicacion del dispositivo estan activados."
+                },
                 failure = "Los servicios de ubicacion estan desactivados o no se pueden verificar. Android requiere revisar sus ajustes.",
             ),
             check(

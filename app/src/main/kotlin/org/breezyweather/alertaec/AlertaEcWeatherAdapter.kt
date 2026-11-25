@@ -151,7 +151,7 @@ object AlertaEcWeatherAdapter {
         AlertSeverity.UNKNOWN -> AlertaEcSeverity.INFORMATION
     }
 
-    private fun phenomenonFromWeatherCode(code: WeatherCode): AlertaEcPhenomenon? = when (code) {
+    internal fun phenomenonFromWeatherCode(code: WeatherCode): AlertaEcPhenomenon? = when (code) {
         WeatherCode.RAIN -> AlertaEcPhenomenon.RAIN
         WeatherCode.SNOW -> AlertaEcPhenomenon.SNOW
         WeatherCode.WIND -> AlertaEcPhenomenon.STRONG_WIND
