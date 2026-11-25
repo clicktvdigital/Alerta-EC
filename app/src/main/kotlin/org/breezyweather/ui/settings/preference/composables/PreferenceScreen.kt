@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.breezyweather.ui.common.widgets.tvDpadScroll
+import org.breezyweather.ui.common.widgets.tvDpadList
 
 @Composable
 fun PreferenceScreen(
@@ -36,7 +36,7 @@ fun PreferenceScreen(
     val listState = rememberLazyListState()
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize().tvDpadScroll(listState),
+        modifier = modifier.fillMaxSize().tvDpadList(listState),
         contentPadding = paddingValues,
         content = content
     )

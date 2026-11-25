@@ -2,6 +2,7 @@ package org.breezyweather.ui.common.widgets
 
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -12,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -97,6 +99,54 @@ fun Modifier.tvDpadScroll(state: ScrollableState): Modifier = composed {
             true
         }
         .focusable()
+}
+
+/**
+ * Android TV remote on a list of focusable rows (settings, about): unlike [tvDpadScroll], the list itself is
+ * never a focus target, only a focus group, so coming from the top bar the focus enters the nearest row instead
+ * of stopping on an invisible list (which left Up/Down without effect in 0.1.26).
+ *
+ * - Up/Down move the focus row by row; the focused row is brought into view (smooth scroll), so the focus never
+ *   stays off screen.
+ * - When there is no row further in that direction but the list can still scroll (titles, credits), it scrolls
+ *   by a step so every part can be read; while the list can still scroll that way the focus does not leave it
+ *   (the top of the screen is shown before reaching the back button).
+ * - Left/Right and OK keep their default behaviour (top bar buttons, switches, clickable rows).
+ *
+ * No effect on phones and tablets.
+ */
+fun Modifier.tvDpadList(state: ScrollableState): Modifier = composed {
+    if (!rememberIsTelevisionUi()) return@composed this
+    val scope = rememberCoroutineScope()
+    val step = with(LocalDensity.current) { 240.dp.toPx() }
+    val focusManager = LocalFocusManager.current
+
+    this
+        .onKeyEvent { event ->
+            if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+            val forward = when (event.key) {
+                Key.DirectionDown -> true
+                Key.DirectionUp -> false
+                else -> return@onKeyEvent false
+            }
+            if (focusManager.moveFocus(if (forward) FocusDirection.Down else FocusDirection.Up)) {
+                return@onKeyEvent true
+            }
+            if (!(if (forward) state.canScrollForward else state.canScrollBackward)) return@onKeyEvent false
+            scope.launch { state.animateScrollBy(if (forward) step else -step) }
+            true
+        }
+        .focusProperties {
+            onExit = {
+                val leavingWhileScrollable = when (requestedFocusDirection) {
+                    FocusDirection.Up -> state.canScrollBackward
+                    FocusDirection.Down -> state.canScrollForward
+                    else -> false
+                }
+                if (leavingWhileScrollable) cancelFocusChange()
+            }
+        }
+        .focusGroup()
 }
 
 private class TvListFocus {

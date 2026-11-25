@@ -1,0 +1,3 @@
+📺 Corrección del control remoto: en Configuración y Acerca de, ARRIBA y ABAJO ahora recorren todas las opciones y la lista baja sola.
+💠 Foco neón cian en cada opción en Smart TV y TV Box, sin fondo morado.
+⬅️➡️ Izquierda, derecha y OK siguen funcionando en cada fila.

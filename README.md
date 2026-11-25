@@ -2,7 +2,7 @@
 
 Alertas de clima, lluvia y riesgos para Ecuador, en celular, Smart TV y TV Box. Paquete `com.clicktvdigital.alertaec` (versión de pruebas `.debug`), rama de trabajo `alerta-ec`.
 
-> 🆕 **Novedades del 25-11-2026 · v0.1.26 (128):** control remoto completo en Configuración y Acerca de (foco neón, sin fondo morado), alertas del inicio que se cierran deslizando a izquierda/derecha o con X, y Release de GitHub/Obtainium al día. Notas completas en [docs/releases/v0.1.26.md](docs/releases/v0.1.26.md).
+> 🆕 **Novedades del 25-11-2026 · v0.1.27 (129):** corrección real del control remoto: ARRIBA/ABAJO recorren todas las opciones de Configuración y Acerca de en Smart TV y TV Box, con foco neón y desplazamiento automático. Notas completas en [docs/releases/v0.1.27.md](docs/releases/v0.1.27.md).
 
 ## Descargas directas
 
@@ -30,7 +30,7 @@ Página con los 4 perfiles: https://clicktvdigital.github.io/Alerta-EC/ · Sumas
 | 📺 Smart TV Full HD | `^alertaec-tv-fhd-armeabi-v7a\.apk$` |
 | 📦 TV Box HD | `^alertaec-tvbox-hd-armeabi-v7a\.apk$` |
 
-3. Deja **desactivadas** «Incluir prereleases» y «Usar la fecha como versión». Obtainium toma la versión de la etiqueta (`v0.1.26` → `0.1.26`) y Android compara el `versionCode` (128).
+3. Deja **desactivadas** «Incluir prereleases» y «Usar la fecha como versión». Obtainium toma la versión de la etiqueta (`v0.1.27` → `0.1.27`) y Android compara el `versionCode` (129).
 4. Firma de producción (SHA-256 del certificado): `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`.
 
 Cada Release estable de GitHub (`vX.Y.Z`) adjunta el APK universal `Alerta-EC-vX.Y.Z.apk` (primero, para las apps 0.1.23 o anteriores) y los 4 perfiles con los mismos nombres que la página de descargas, más `SHA256SUMS.txt`.

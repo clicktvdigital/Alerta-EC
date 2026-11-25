@@ -80,7 +80,7 @@ import org.breezyweather.ui.common.widgets.insets.bottomInsetItem
 import org.breezyweather.ui.settings.preference.SmallSeparatorItem
 import org.breezyweather.ui.settings.preference.largeSeparatorItem
 import org.breezyweather.ui.theme.compose.themeRipple
-import org.breezyweather.ui.common.widgets.tvDpadScroll
+import org.breezyweather.ui.common.widgets.tvDpadList
 
 internal class AboutAppLinkItem(
     @DrawableRes val iconId: Int,
@@ -181,7 +181,7 @@ internal fun AboutScreen(
         val tvListState = androidx.compose.foundation.lazy.rememberLazyListState()
         LazyColumn(
             state = tvListState,
-            modifier = Modifier.fillMaxHeight().tvDpadScroll(tvListState),
+            modifier = Modifier.fillMaxHeight().tvDpadList(tvListState),
             contentPadding = it.plus(
                 PaddingValues(horizontal = dimensionResource(R.dimen.normal_margin))
             )

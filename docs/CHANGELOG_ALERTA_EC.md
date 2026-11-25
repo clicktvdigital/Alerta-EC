@@ -23,6 +23,15 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
   - Guía de instalación en 2 pasos (Compartir → «Agregar a inicio»), funcionamiento a pantalla completa y caché básica sin conexión.
   - Se publica con el mismo workflow de descargas; los 4 APK y `version.json` no cambian.
 
+## v0.1.27 (129) · 25-11-2026
+
+- **Corrección real del control remoto en Configuración y Acerca de (Smart TV y TV Box):** en la v0.1.26 ARRIBA/ABAJO seguían sin moverse por las opciones; solo funcionaban Atrás, la `i` e IZQUIERDA/DERECHA.
+  - Causa: `tvDpadScroll` añadía `.focusable()` al contenedor de la lista. Al bajar desde la barra superior, Compose enfocaba la lista entera (invisible) en lugar de la primera opción, y desde ahí `moveFocus` no encontraba ninguna fila.
+  - Solución: nuevo modificador `tvDpadList` (en `TvDpadScroll.kt`) que convierte la lista en `focusGroup()` sin ser destino de foco. El foco entra directo a la fila más cercana, ARRIBA/ABAJO van fila por fila y la fila enfocada se desplaza a la vista con animación. Si ya no hay filas pero queda contenido, la lista baja o sube por pasos. Mientras la lista todavía puede subir, `focusProperties { onExit }` impide que el foco salte a la barra superior.
+  - Se aplica a todas las pantallas de Configuración (`PreferenceScreen`), Autosoporte y Acerca de. Detalles y Alertas mantienen `tvDpadScroll` sin cambios.
+  - IZQUIERDA/DERECHA y OK/ENTER mantienen su comportamiento; el foco neón cian sin fondo morado de la v0.1.26 se conserva.
+- Firma de producción, iconos y los 4 perfiles de APK sin cambios.
+
 ## v0.1.26 (128) · 25-11-2026
 
 - **Control remoto en Configuración y Acerca de (Smart TV y TV Box):**
