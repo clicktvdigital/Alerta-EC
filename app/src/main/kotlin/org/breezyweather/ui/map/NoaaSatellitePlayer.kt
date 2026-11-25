@@ -177,9 +177,16 @@ internal class NoaaSatellitePlayer(context: Context, private var galapagosTime: 
         }
         // Comenzar en el modo Nubes sin depender de selección de Spinner.
         loadSelectedMode(selectedMode)
+        timeline.keyProgressIncrement = 1
         timeline.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
+                    // Scrubbing (touch or ←/→ on the TV remote) stops the animation on the chosen frame.
+                    if (playing) {
+                        playing = false
+                        handler.removeCallbacks(advance)
+                        playButton.text = "▶ Reproducir"
+                    }
                     index = progress
                     showFrame()
                 }

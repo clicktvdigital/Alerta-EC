@@ -46,6 +46,7 @@ import org.breezyweather.ui.main.adapters.main.holder.PollenViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.PrecipitationNowcastViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.PrecipitationViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.PressureViewHolder
+import org.breezyweather.ui.main.adapters.main.holder.RainNowViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.SunViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.UvViewHolder
 import org.breezyweather.ui.main.adapters.main.holder.VisibilityViewHolder
@@ -109,6 +110,8 @@ class MainAdapter(
                 mViewTypeList.add(ViewType.ALERT)
             }
             mViewTypeList.add(ViewType.HEADER)
+            // Light nowcasting card right under the header (map + support shortcuts).
+            mViewTypeList.add(VIEW_TYPE_RAIN_NOW)
             val enabledCardDisplayList = mutableListOf<CardDisplay>()
             for (c in cardDisplayList) {
                 if (c === CardDisplay.CARD_NOWCAST &&
@@ -194,6 +197,9 @@ class MainAdapter(
         }
     }
 
+    /** Adapter position of the support (Colaborar) block, or -1. */
+    fun supportPosition(): Int = mViewTypeList.indexOf(VIEW_TYPE_DONATIONS)
+
     fun setNullWeather() {
         mViewHasAnimatedList.clear()
         mViewTypeList.clear()
@@ -218,6 +224,7 @@ class MainAdapter(
         ViewType.CLOCK -> ClockViewHolder(parent)
         VIEW_TYPE_INAMHI_MAP -> InamhiMapViewHolder(ComposeView(parent.context))
         VIEW_TYPE_DONATIONS -> DonationsViewHolder(ComposeView(parent.context))
+        VIEW_TYPE_RAIN_NOW -> RainNowViewHolder(ComposeView(parent.context))
         ViewType.FOOTER -> FooterViewHolder(ComposeView(parent.context))
         else -> FooterViewHolder(ComposeView(parent.context))
     }
@@ -364,6 +371,7 @@ class MainAdapter(
     companion object {
         private const val VIEW_TYPE_INAMHI_MAP = -3
         private const val VIEW_TYPE_DONATIONS = -2
+        private const val VIEW_TYPE_RAIN_NOW = -4
 
         private fun getViewType(cardDisplay: CardDisplay): Int = when (cardDisplay) {
             CardDisplay.CARD_NOWCAST -> ViewType.PRECIPITATION_NOWCAST
