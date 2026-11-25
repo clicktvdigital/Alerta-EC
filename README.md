@@ -18,6 +18,23 @@ Enlaces fijos para compartir por WhatsApp o redes. Cada uno abre una página cor
 
 Página con los 4 perfiles: https://clicktvdigital.github.io/Alerta-EC/ · Sumas SHA-256: `/apk/SHA256SUMS.txt` · Versión publicada: `/version.json`.
 
+### 📦 Actualizar con Obtainium
+
+1. **Agregar app** → URL de origen: `https://github.com/clicktvdigital/Alerta-EC` (fuente **GitHub**).
+2. Activa **«Filtrar APK por expresión regular»** con el perfil de tu equipo:
+
+| Equipo | Filtro de APK (regex) |
+| --- | --- |
+| 📱 Celular (64 bits) | `^alertaec-phone-arm64-v8a\.apk$` |
+| 📱 Celular antiguo (32 bits) | `^alertaec-phone-armeabi-v7a\.apk$` |
+| 📺 Smart TV Full HD | `^alertaec-tv-fhd-armeabi-v7a\.apk$` |
+| 📦 TV Box HD | `^alertaec-tvbox-hd-armeabi-v7a\.apk$` |
+
+3. Deja **desactivadas** «Incluir prereleases» y «Usar la fecha como versión». Obtainium toma la versión de la etiqueta (`v0.1.25` → `0.1.25`) y Android compara el `versionCode` (127).
+4. Firma de producción (SHA-256 del certificado): `06badd26afa4dfe2653209d6d4e9431ef4cffbd535c9d55297aa24f8df7a125e`.
+
+Cada Release estable de GitHub (`vX.Y.Z`) adjunta el APK universal `Alerta-EC-vX.Y.Z.apk` (primero, para las apps 0.1.23 o anteriores) y los 4 perfiles con los mismos nombres que la página de descargas, más `SHA256SUMS.txt`.
+
 Las novedades de la landing están en `docs/descargas/novedades.txt`. El historial completo de cambios está en [docs/CHANGELOG_ALERTA_EC.md](docs/CHANGELOG_ALERTA_EC.md).
 
 ## Herramientas del flujo de trabajo

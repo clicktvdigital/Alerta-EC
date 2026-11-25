@@ -120,6 +120,25 @@ jobs:
           (cd release-assets && sha256sum "Alerta-EC-v${EXPECTED_VERSION}.apk" > "Alerta-EC-v${EXPECTED_VERSION}.apk.sha256")
           echo "apk=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk" >> "$GITHUB_OUTPUT"
           echo "checksum=release-assets/Alerta-EC-v${EXPECTED_VERSION}.apk.sha256" >> "$GITHUB_OUTPUT"
+          # Los 4 perfiles con los mismos nombres que GitHub Pages (Obtainium filtra por nombre).
+          out=app/build/outputs/apk/basic/release
+          v7="$out/app-basic-armeabi-v7a-release.apk"
+          a64="$out/app-basic-arm64-v8a-release.apk"
+          test -s "$v7" && test -s "$a64" || { ls -la "$out"; echo "Faltan los splits ABI de Release." >&2; exit 1; }
+          for split in "$v7" "$a64"; do
+            "$apksigner" verify "$split" >/dev/null
+            cert="$("$apksigner" verify --print-certs "$split" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+            test "$cert" = "$EXPECTED_CERT_SHA256" || { echo "Certificado distinto al de produccion en $split" >&2; exit 1; }
+            line="$("$aapt" dump badging "$split" | sed -n '1p')"
+            printf '%s\n' "$line" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null || { echo "applicationId inesperado en $split" >&2; exit 1; }
+            printf '%s\n' "$line" | grep -F "versionCode='$EXPECTED_VERSION_CODE'" >/dev/null || { echo "versionCode inesperado en $split" >&2; exit 1; }
+            printf '%s\n' "$line" | grep -F "versionName='$EXPECTED_VERSION'" >/dev/null || { echo "versionName inesperado en $split" >&2; exit 1; }
+          done
+          cp "$a64" release-assets/alertaec-phone-arm64-v8a.apk
+          cp "$v7"  release-assets/alertaec-phone-armeabi-v7a.apk
+          cp "$v7"  release-assets/alertaec-tv-fhd-armeabi-v7a.apk
+          cp "$v7"  release-assets/alertaec-tvbox-hd-armeabi-v7a.apk
+          (cd release-assets && sha256sum alertaec-phone-arm64-v8a.apk alertaec-phone-armeabi-v7a.apk alertaec-tv-fhd-armeabi-v7a.apk alertaec-tvbox-hd-armeabi-v7a.apk > SHA256SUMS.txt)
 
       - name: Preparar notas del Release
         env:
@@ -139,3 +158,8 @@ jobs:
           files: |
             ${{ steps.apk.outputs.apk }}
             ${{ steps.apk.outputs.checksum }}
+            release-assets/alertaec-phone-arm64-v8a.apk
+            release-assets/alertaec-phone-armeabi-v7a.apk
+            release-assets/alertaec-tv-fhd-armeabi-v7a.apk
+            release-assets/alertaec-tvbox-hd-armeabi-v7a.apk
+            release-assets/SHA256SUMS.txt
