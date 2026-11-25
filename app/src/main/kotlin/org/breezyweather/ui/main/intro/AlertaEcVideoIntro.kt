@@ -34,8 +34,9 @@ import androidx.core.view.updateLayoutParams
  * detrás del video.
  * - Android TV: logo 16:9 1920×1080 a sangre + video horizontal nativo 1920×1080 (FIT_CENTER = pantalla llena).
  * - TV Box (o TV con pocos recursos): el mismo logo + video horizontal nativo 1280×720.
- * - Celular: logo vertical completo 1080×1920 + video vertical completo 720×1280, ambos FIT_CENTER: nada se
- *   recorta ni se difumina; si la pantalla es más alta que 9:16 el resto es el azul institucional [BRAND_BG].
+ * - Celular: logos verticales completos 1080×1920 (FIT_CENTER, nunca se recortan) y video vertical 720×1280 a
+ *   pantalla completa: escala uniforme de cobertura (sin deformar, sin relleno ni difuminado), que en pantallas
+ *   más altas que 9:16 recorta solo los laterales del video.
  * Ver [IntroPlaybackPolicy] para la detección del perfil y el respaldo si falta un recurso.
  *
  * Logs con la etiqueta [TAG] mediante Log.println: R8 elimina Log.v/d/i/w/e en release (proguard-rules.pro).
@@ -77,6 +78,26 @@ internal object AlertaEcVideoIntro {
         val navigationBarColor: Int,
         val navigationBarContrastEnforced: Boolean?,
     )
+
+    /**
+     * Celular: el video cubre toda la pantalla de arriba a abajo y de lado a lado. VideoView se mide con la
+     * proporción del video; se escala de forma uniforme por el factor mayor (recorta laterales, no deforma).
+     * TV: escala 1 (el video 16:9 ya llena la pantalla 16:9).
+     */
+    private fun applyPhoneVideoCover(view: VideoView, container: View, profile: IntroDeviceProfile) {
+        view.scaleX = 1f
+        view.scaleY = 1f
+        if (profile != IntroDeviceProfile.PHONE) return
+        view.post {
+            val vw = view.width.toFloat()
+            val vh = view.height.toFloat()
+            if (vw <= 0f || vh <= 0f || container.width <= 0 || container.height <= 0) return@post
+            val scale = maxOf(container.width / vw, container.height / vh, 1f)
+            view.scaleX = scale
+            view.scaleY = scale
+            log("Video celular a pantalla completa: escala $scale (${vw.toInt()}x${vh.toInt()} en ${container.width}x${container.height})")
+        }
+    }
 
     private fun log(message: String) {
         Log.println(Log.INFO, TAG, message)
@@ -292,9 +313,8 @@ internal object AlertaEcVideoIntro {
                     pendingAudioFallback = audioFallback
                     handler.postDelayed(audioFallback, LOGO_HOLD_MS + AUDIO_FALLBACK_MS)
                 }
-                // Sin escalado artificial: VideoView conserva la proporción y muestra el encuadre completo.
-                view.scaleX = 1f
-                view.scaleY = 1f
+                player.setOnVideoSizeChangedListener { _, _, _ -> applyPhoneVideoCover(view, frame, profile) }
+                applyPhoneVideoCover(view, frame, profile)
                 videoDurationMs = player.duration.takeIf { it > 0 }?.toLong()
                 videoPrepared = true
                 log("Video preparado (${player.videoWidth}x${player.videoHeight}, ${videoDurationMs ?: "?"} ms, sonido=$soundEnabled)")
