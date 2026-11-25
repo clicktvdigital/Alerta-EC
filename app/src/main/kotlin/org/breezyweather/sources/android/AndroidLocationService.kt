@@ -19,6 +19,7 @@ package org.breezyweather.sources.android
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
@@ -58,8 +59,21 @@ class AndroidLocationService @Inject constructor() : LocationSource {
         }.filter { it in manager.allProviders && manager.isProviderEnabled(it) }
         if (providers.isEmpty()) throw LocationException()
 
+        // Android TV has no GPS and does not move: a last known fix (Wi-Fi/IP based) up to TV_MAX_AGE old is used
+        // right away, so "current location" refreshes immediately instead of waiting for a new fix that never comes.
+        val television = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        if (television) {
+            providers.mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
+                .filter { ageMillis(it) in 0..TV_MAX_AGE_MILLIS }
+                .maxWithOrNull(LOCATION_COMPARATOR)
+                ?.let { known ->
+                    send(known.toWrapper())
+                    return@rxObservable
+                }
+        }
+
         var callbackBest: Location? = null
-        val measured = withTimeoutOrNull(TIMEOUT_MILLIS) {
+        val measured = withTimeoutOrNull(if (television) TV_TIMEOUT_MILLIS else TIMEOUT_MILLIS) {
             suspendCancellableCoroutine<Location?> { continuation ->
                 val requestedProviders = providers.toMutableSet()
                 val respondedProviders = mutableSetOf<String>()
@@ -114,17 +128,24 @@ class AndroidLocationService @Inject constructor() : LocationSource {
             .maxWithOrNull(LOCATION_COMPARATOR)
             ?: throw LocationException()
 
-        send(
-            LocationPositionWrapper(
-                latitude = selected.latitude,
-                longitude = selected.longitude,
-                altitude = if (selected.hasAltitude()) selected.altitude else null,
-                accuracy = if (selected.hasAccuracy()) selected.accuracy else null,
-                timestampMillis = selected.time,
-                provider = selected.provider
-            )
-        )
+        send(selected.toWrapper())
     }
+
+    private fun Location.toWrapper() = LocationPositionWrapper(
+        latitude = latitude,
+        longitude = longitude,
+        altitude = if (hasAltitude()) altitude else null,
+        accuracy = if (hasAccuracy()) accuracy else null,
+        timestampMillis = time,
+        provider = provider
+    )
+
+    private fun ageMillis(location: Location): Long =
+        if (location.elapsedRealtimeNanos > 0L) {
+            (SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos) / 1_000_000L
+        } else {
+            System.currentTimeMillis() - location.time
+        }
 
     override val permissions: Array<String>
         get() = arrayOf(
@@ -134,6 +155,8 @@ class AndroidLocationService @Inject constructor() : LocationSource {
 
     companion object {
         private val TIMEOUT_MILLIS = 15.seconds.inWholeMilliseconds
+        private val TV_TIMEOUT_MILLIS = 6.seconds.inWholeMilliseconds
+        private const val TV_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000
 
         private val LOCATION_COMPARATOR = Comparator<Location> { first, second ->
             val firstElapsed = first.elapsedRealtimeNanos

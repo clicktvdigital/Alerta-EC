@@ -17,6 +17,8 @@
 package org.breezyweather.ui.main.layouts
 
 import android.content.Context
+import android.view.FocusFinder
+import android.view.View
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -30,6 +32,35 @@ class MainLayoutManager(
 
     init {
         recycleChildrenOnDetach = true
+    }
+
+    private var attachedRecyclerView: RecyclerView? = null
+
+    override fun onAttachedToWindow(view: RecyclerView) {
+        super.onAttachedToWindow(view)
+        attachedRecyclerView = view
+    }
+
+    override fun onDetachedFromWindow(view: RecyclerView, recycler: RecyclerView.Recycler) {
+        super.onDetachedFromWindow(view, recycler)
+        attachedRecyclerView = null
+    }
+
+    /**
+     * Remote control / D-pad: when ↓/↑ finds no further focusable view inside the list, scroll the list instead of
+     * letting focus escape to the toolbar, so every block (also long text-only blocks) can be reached and read.
+     */
+    override fun onInterceptFocusSearch(focused: View, direction: Int): View? {
+        val list = attachedRecyclerView ?: return null
+        val sign = when (direction) {
+            View.FOCUS_DOWN -> 1
+            View.FOCUS_UP -> -1
+            else -> return null
+        }
+        if (FocusFinder.getInstance().findNextFocus(list, focused, direction) != null) return null
+        if (!list.canScrollVertically(sign)) return null
+        list.smoothScrollBy(0, sign * list.height * 2 / 3)
+        return focused
     }
 
     override fun onAdapterChanged(oldAdapter: RecyclerView.Adapter<*>?, newAdapter: RecyclerView.Adapter<*>?) {

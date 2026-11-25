@@ -241,24 +241,7 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
         setContentView(binding.root)
 
         if (isLaunch) {
-            AlertaEcIntroController.play(
-                findViewById(R.id.alerta_ec_intro_layer),
-                findViewById(R.id.alerta_ec_intro_terrain),
-                findViewById(R.id.alerta_ec_intro_volcano),
-                findViewById(R.id.alerta_ec_intro_wildfire),
-                findViewById(R.id.alerta_ec_intro_water_hazard),
-                findViewById(R.id.alerta_ec_intro_landslide),
-                findViewById(R.id.alerta_ec_intro_storm),
-                findViewById(R.id.alerta_ec_intro_seismic_ring),
-                findViewById(R.id.alerta_ec_intro_flash),
-                findViewById(R.id.alerta_ec_intro_condor),
-                findViewById(R.id.alerta_ec_intro_logo),
-                findViewById(R.id.alerta_ec_intro_title),
-                findViewById(R.id.alerta_ec_intro_brand),
-                findViewById(R.id.alerta_ec_intro_skip),
-                findViewById(R.id.alerta_ec_intro_motion),
-                findViewById(R.id.alerta_ec_intro_sound)
-            )
+            playAlertaEcIntro()
         } else {
             findViewById<android.view.View>(R.id.alerta_ec_intro_layer).visibility = android.view.View.GONE
         }
@@ -331,6 +314,45 @@ class MainActivity : BreezyActivity(), HomeFragment.Callback, ManagementFragment
                 )
             }
         }
+    }
+
+    /** Intro (logo → video → logo). Same views on first launch and when re-entering on Android TV. */
+    private fun playAlertaEcIntro() {
+        AlertaEcIntroController.play(
+            findViewById(R.id.alerta_ec_intro_layer),
+            findViewById(R.id.alerta_ec_intro_terrain),
+            findViewById(R.id.alerta_ec_intro_volcano),
+            findViewById(R.id.alerta_ec_intro_wildfire),
+            findViewById(R.id.alerta_ec_intro_water_hazard),
+            findViewById(R.id.alerta_ec_intro_landslide),
+            findViewById(R.id.alerta_ec_intro_storm),
+            findViewById(R.id.alerta_ec_intro_seismic_ring),
+            findViewById(R.id.alerta_ec_intro_flash),
+            findViewById(R.id.alerta_ec_intro_condor),
+            findViewById(R.id.alerta_ec_intro_logo),
+            findViewById(R.id.alerta_ec_intro_title),
+            findViewById(R.id.alerta_ec_intro_brand),
+            findViewById(R.id.alerta_ec_intro_skip),
+            findViewById(R.id.alerta_ec_intro_motion),
+            findViewById(R.id.alerta_ec_intro_sound)
+        )
+    }
+
+    /** Set when the user leaves the app (HOME / launcher), not when opening another screen of the app. */
+    private var leftAppByUser = false
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        leftAppByUser = true
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        // Android TV keeps the activity alive behind the launcher: replay the intro when the user comes back.
+        if (leftAppByUser && packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+            playAlertaEcIntro()
+        }
+        leftAppByUser = false
     }
 
     override fun onResume() {
