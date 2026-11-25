@@ -31,7 +31,52 @@ class ReleaseService @Inject constructor(
     @Named("JsonClient") val client: Retrofit.Builder,
 ) {
 
-    suspend fun latest(org: String, repository: String): Release {
+    /**
+     * ALERTA EC publishes every signed build on its download site (GitHub Pages, version.json), not as a
+     * GitHub Release, so that is the source of truth; GitHub Releases is only the fallback.
+     */
+    suspend fun latest(org: String, repository: String): Release =
+        runCatching { fromDownloadSite() }.getOrElse { fromGithub(org, repository) }
+
+    private fun fromDownloadSite(): Release {
+        val connection = (java.net.URL("$DOWNLOAD_SITE_URL/version.json").openConnection() as java.net.HttpURLConnection)
+            .apply {
+                connectTimeout = 10_000
+                readTimeout = 10_000
+                setRequestProperty("Accept", "application/json")
+                useCaches = false
+            }
+        val body = try {
+            check(connection.responseCode == 200) { "version.json HTTP ${connection.responseCode}" }
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection.disconnect()
+        }
+        val json = org.json.JSONObject(body)
+        val version = json.getString("version")
+        val profiles = json.getJSONArray("perfiles")
+        val pages = (0 until profiles.length()).associate {
+            profiles.getJSONObject(it).let { p -> p.getString("perfil") to p.getString("pagina") }
+        }
+        val apks = (0 until profiles.length()).map { profiles.getJSONObject(it).getString("apk") }
+        val isTv = runCatching {
+            org.breezyweather.BreezyWeather.instance.packageManager
+                .hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+        }.getOrDefault(false)
+        val profile = when {
+            isTv -> "tv"
+            android.os.Build.SUPPORTED_ABIS.firstOrNull() == "arm64-v8a" -> "celular"
+            else -> "celular-v7"
+        }
+        return Release(
+            version = version,
+            info = "",
+            releaseLink = pages[profile] ?: "$DOWNLOAD_SITE_URL/",
+            assets = apks,
+        )
+    }
+
+    private suspend fun fromGithub(org: String, repository: String): Release {
         return client
             .baseUrl("https://api.github.com/")
             .build()
@@ -40,5 +85,9 @@ class ReleaseService @Inject constructor(
             .firstOrNull { !it.draft }
             ?.let(releaseMapper)
             ?: error("No hay publicaciones disponibles en GitHub")
+    }
+
+    companion object {
+        const val DOWNLOAD_SITE_URL = "https://clicktvdigital.github.io/Alerta-EC"
     }
 }

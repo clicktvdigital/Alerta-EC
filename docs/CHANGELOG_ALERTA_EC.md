@@ -3,6 +3,16 @@
 Registro en español de las compilaciones de ALERTA EC (rama `alerta-ec`). Lo más reciente va arriba.
 Los 4 perfiles de APK de cada compilación se describen en [README.md](../README.md#descargas-directas).
 
+## v0.1.24 (126) · 25-11-2026
+
+- **Alertas en el inicio:**
+  - La tarjeta de alertas meteorológicas se cierra deslizándola a la izquierda o a la derecha, o con su botón X. El botón se puede enfocar con el control remoto (D-pad + OK) y tocar en el celular.
+  - Vuelve sola cuando llega una alerta nueva.
+  - Un botón «Mover abajo / Mover arriba» dentro de la tarjeta cambia su posición, y el ajuste «Pantalla principal → Alertas en el inicio» deja elegir Arriba, Abajo u Ocultas.
+- **Versión alineada:**
+  - El buscador de actualizaciones y el enlace «Novedades» ahora usan el sitio de descargas (`version.json`), que siempre tiene la compilación actual.
+  - Antes consultaban GitHub Releases, donde la última publicación sigue siendo v0.1.22. Eso hacía aparecer la 0.1.22 estando en la 0.1.23, y además el enlace de novedades llevaba a una página inexistente.
+
 ## v0.1.23 (125) · 25-11-2026
 
 - Nueva versión para que Android y los usuarios reconozcan la actualización respecto a v0.1.22 (124). Incluye todos los cambios listados abajo y las descargas directas firmadas.

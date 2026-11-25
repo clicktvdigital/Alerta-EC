@@ -306,6 +306,28 @@ class SettingsManager private constructor(
         }
         get() = config.getString("iconProvider", BreezyWeather.instance.packageName) ?: ""
 
+    /** Where the weather alerts card goes on the home screen: "top", "bottom" or "hidden". */
+    var homeAlertsPosition: String
+        set(value) {
+            config.edit().putString("home_alerts_position", value).apply()
+            notifySettingsChanged()
+        }
+        get() = config.getString("home_alerts_position", "top")
+            ?.takeIf { it in listOf("top", "bottom", "hidden") } ?: "top"
+
+    /** Same as [homeAlertsPosition] without reloading the home screen (the card moves itself). */
+    fun saveHomeAlertsPositionQuietly(value: String) {
+        config.edit().putString("home_alerts_position", value).apply()
+    }
+
+    /** Alerts closed from the home card ("locationId|alertId"); a new alert shows the card again. */
+    var dismissedHomeAlerts: Set<String>
+        set(value) {
+            config.edit().putString("home_alerts_dismissed", value.toList().takeLast(200).joinToString("\n")).apply()
+        }
+        get() = config.getString("home_alerts_dismissed", "")
+            ?.split("\n")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+
     var cardDisplayList: List<CardDisplay>
         set(value) {
             config

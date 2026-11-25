@@ -67,5 +67,5 @@ class AppUpdateChecker @Inject constructor(
     }
 }
 
-val RELEASE_URL =
-    "https://github.com/${BuildConfig.GITHUB_ORG}/${BuildConfig.GITHUB_REPO}/releases/tag/v${BuildConfig.VERSION_NAME}"
+// "What's new": the download site always lists the notes of the current build (no GitHub Release per build).
+val RELEASE_URL = "${org.breezyweather.background.updater.data.ReleaseService.DOWNLOAD_SITE_URL}/"

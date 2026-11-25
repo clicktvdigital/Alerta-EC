@@ -1392,4 +1392,5 @@
     <string name="active_location_evidence_address_title">Address returned by geocoder</string>
     <string name="active_location_evidence_address_loading">Address not available yet.</string>
     <string name="active_location_evidence_address_unavailable">Address unavailable.</string>
+    <string name="alertaec_home_alerts_position">Alertas en el inicio</string>
 </resources>

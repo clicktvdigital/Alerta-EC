@@ -1,0 +1,3 @@
+• Alertas en el inicio: desliza la tarjeta o toca su X para cerrarla; vuelve sola con una alerta nueva.
+• Elige si las alertas van arriba, abajo u ocultas (también desde la misma tarjeta).
+• Buscador de actualizaciones y «Novedades» alineados a la versión actual.

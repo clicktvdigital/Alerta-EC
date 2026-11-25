@@ -1,3 +1,5 @@
+Alertas en el inicio: desliza la tarjeta o toca su X para cerrarla, y elige si van arriba, abajo u ocultas.
+Buscador de actualizaciones y «Novedades» alineados a la versión actual.
 Tono y voz propios de ALERTA EC cuando cambia el clima (una sola vez), sin el tono genérico de Android.
 Índice de riesgo de lluvia 0-100 con sus razones: pronóstico, pluviómetros EPMAPS, INAMHI y comunidad.
 Reportes de la comunidad con severidad, lista de reportes cercanos y denuncias.

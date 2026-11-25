@@ -42,6 +42,7 @@ import org.breezyweather.ui.common.widgets.insets.FitStatusBarTopAppBar
 import org.breezyweather.ui.settings.preference.bottomInsetItem
 import org.breezyweather.ui.settings.preference.clickablePreferenceItem
 import org.breezyweather.ui.settings.preference.composables.ListPreferenceView
+import org.breezyweather.ui.settings.preference.composables.ListPreferenceViewWithCard
 import org.breezyweather.ui.settings.preference.composables.PreferenceScreen
 import org.breezyweather.ui.settings.preference.composables.PreferenceViewWithCard
 import org.breezyweather.ui.settings.preference.composables.SwitchPreferenceView
@@ -111,13 +112,31 @@ fun MainScreenSettingsScreen(
             ) {
                 PreferenceViewWithCard(
                     title = stringResource(it),
-                    summary = HourlyTrendDisplay.getSummary(context, hourlyTrendDisplayList),
-                    isLast = true
+                    summary = HourlyTrendDisplay.getSummary(context, hourlyTrendDisplayList)
                 ) {
                     (context as? Activity)?.let { a ->
                         IntentHelper.startHourlyTrendDisplayManageActivity(a)
                     }
                 }
+            }
+            smallSeparatorItem()
+            listPreferenceItem(R.string.alertaec_home_alerts_position) { id ->
+                val values = arrayOf("top", "bottom", "hidden")
+                val names = arrayOf("Arriba, antes del clima actual", "Abajo, después de las tarjetas", "Ocultas en el inicio")
+                ListPreferenceViewWithCard(
+                    title = stringResource(id),
+                    summary = { _, value ->
+                        names[values.indexOf(value).coerceAtLeast(0)] +
+                            "\nTambién puedes deslizar la tarjeta de alertas o tocar su X para cerrarla; vuelve sola cuando llega una alerta nueva."
+                    },
+                    selectedKey = SettingsManager.getInstance(context).homeAlertsPosition,
+                    valueArray = values,
+                    nameArray = names,
+                    isLast = true,
+                    onValueChanged = {
+                        SettingsManager.getInstance(context).homeAlertsPosition = it
+                    }
+                )
             }
             sectionFooterItem(R.string.settings_main_section_displayed_data)
 

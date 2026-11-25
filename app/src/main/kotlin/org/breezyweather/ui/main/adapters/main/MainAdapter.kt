@@ -106,7 +106,9 @@ class MainAdapter(
         mItemAnimationEnabled = itemAnimationEnabled
         location?.weather?.let { weather ->
             val cardDisplayList = SettingsManager.getInstance(activity).cardDisplayList
-            if (weather.currentAlertList.isNotEmpty()) {
+            val alertsPosition = SettingsManager.getInstance(activity).homeAlertsPosition
+            val showAlerts = alertsPosition != "hidden" && hasUndismissedAlerts(activity, location)
+            if (showAlerts && alertsPosition == "top") {
                 mViewTypeList.add(ViewType.ALERT)
             }
             mViewTypeList.add(ViewType.HEADER)
@@ -187,6 +189,10 @@ class MainAdapter(
                 .filterNot { it == CardDisplay.CARD_HOURLY_FORECAST || it == CardDisplay.CARD_DAILY_FORECAST }
                 .forEach { card -> mViewTypeList.add(getViewType(card)) }
 
+            // Alertas abajo: después de las tarjetas y antes de la información complementaria.
+            if (showAlerts && alertsPosition == "bottom") {
+                mViewTypeList.add(ViewType.ALERT)
+            }
             // La información complementaria y los aportes quedan después de todas las tarjetas.
             mViewTypeList.add(VIEW_TYPE_INAMHI_MAP)
             mViewTypeList.add(VIEW_TYPE_DONATIONS)
@@ -195,6 +201,48 @@ class MainAdapter(
         for (i in 0..mViewTypeList.size) {
             mViewHasAnimatedList.add(false)
         }
+    }
+
+    private fun alertKeys(location: Location): List<String> =
+        location.weather?.currentAlertList.orEmpty().map { "${location.formattedId}|${it.alertId}" }
+
+    private fun hasUndismissedAlerts(context: android.content.Context, location: Location): Boolean {
+        val keys = alertKeys(location)
+        if (keys.isEmpty()) return false
+        val dismissed = SettingsManager.getInstance(context).dismissedHomeAlerts
+        return keys.any { it !in dismissed }
+    }
+
+    /** Closes the alerts card (swipe or X). It comes back when a new alert arrives. */
+    fun dismissAlerts() {
+        val location = mLocation ?: return
+        val settings = SettingsManager.getInstance(mActivity)
+        settings.dismissedHomeAlerts = settings.dismissedHomeAlerts + alertKeys(location)
+        val position = mViewTypeList.indexOf(ViewType.ALERT)
+        if (position >= 0) {
+            mViewTypeList.removeAt(position)
+            if (position < mViewHasAnimatedList.size) mViewHasAnimatedList.removeAt(position)
+            notifyItemRemoved(position)
+        }
+    }
+
+    /** Moves the alerts card between the top and the bottom of the home screen. */
+    fun toggleAlertsPosition() {
+        val settings = SettingsManager.getInstance(mActivity)
+        val toBottom = settings.homeAlertsPosition != "bottom"
+        settings.saveHomeAlertsPositionQuietly(if (toBottom) "bottom" else "top")
+        val from = mViewTypeList.indexOf(ViewType.ALERT)
+        if (from < 0) return
+        mViewTypeList.removeAt(from)
+        val to = if (toBottom) {
+            mViewTypeList.indexOf(VIEW_TYPE_INAMHI_MAP).takeIf { it >= 0 } ?: (mViewTypeList.size - 1).coerceAtLeast(0)
+        } else {
+            0
+        }
+        mViewTypeList.add(to, ViewType.ALERT)
+        notifyItemMoved(from, to)
+        notifyItemChanged(to)
+        mHost?.post { mHost?.scrollToPosition(to) }
     }
 
     /** Adapter position of the support (Colaborar) block, or -1. */
@@ -230,6 +278,11 @@ class MainAdapter(
     }
 
     override fun onBindViewHolder(holder: AbstractMainViewHolder, position: Int) {
+        if (holder is AlertViewHolder) {
+            holder.onDismiss = { dismissAlerts() }
+            holder.onTogglePosition = { toggleAlertsPosition() }
+            holder.isAtBottom = SettingsManager.getInstance(mActivity).homeAlertsPosition == "bottom"
+        }
         mLocation?.let {
             if (holder is AbstractMainCardViewHolder) {
                 if (holder is DailyViewHolder || holder is HourlyViewHolder) {
@@ -349,7 +402,12 @@ class MainAdapter(
                 } else {
                     0
                 },
-                0
+                if (getItemViewType(viewHolder.layoutPosition) == ViewType.ALERT) {
+                    // Swipe the alerts card left or right to close it.
+                    ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                } else {
+                    0
+                }
             )
         }
 
@@ -365,7 +423,9 @@ class MainAdapter(
             return onItemMove(viewHolder.layoutPosition, target.layoutPosition)
         }
 
-        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            if (viewHolder is AlertViewHolder) dismissAlerts()
+        }
     })
 
     companion object {
