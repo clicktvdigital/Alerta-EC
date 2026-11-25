@@ -23,6 +23,15 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
   - Guía de instalación en 2 pasos (Compartir → «Agregar a inicio»), funcionamiento a pantalla completa y caché básica sin conexión.
   - Se publica con el mismo workflow de descargas; los 4 APK y `version.json` no cambian.
 
+## v0.1.28 (130) · 25-11-2026
+
+- **Control remoto en Configuración y Acerca de, verificado en Android TV:** la v0.1.27 compilaba pero en el TV real ABAJO seguía sin salir de la barra superior (Atrás / `i`), aunque todas las filas eran enfocables (comprobado con `uiautomator`).
+  - Causa real: en el TV, la búsqueda geométrica de foco de Compose no cruza de la barra superior a las filas de la lista, así que `DPAD_DOWN` quedaba sin manejar.
+  - `tvDpadList` registra un `OnUnhandledKeyEventListener` en la vista de Compose: si ABAJO llega sin manejar y el foco está fuera de la lista, entra a la primera fila visible mediante `FocusRequester` sobre el `focusGroup`.
+  - Dentro de la lista, ARRIBA/ABAJO usan la búsqueda geométrica y, si falla, el orden de las filas (`Next`/`Previous`). Si no hay más filas, la lista se desplaza por pasos. La fila enfocada siempre se desplaza a la vista.
+  - `focusProperties { onExit }`: el foco nunca sale de la lista hacia abajo y solo sube a la barra superior cuando ya se ve el inicio de la lista.
+- Firma de producción, iconos y los 4 perfiles de APK sin cambios.
+
 ## v0.1.27 (129) · 25-11-2026
 
 - **Corrección real del control remoto en Configuración y Acerca de (Smart TV y TV Box):** en la v0.1.26 ARRIBA/ABAJO seguían sin moverse por las opciones; solo funcionaban Atrás, la `i` e IZQUIERDA/DERECHA.
@@ -30,6 +39,7 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
   - Solución: nuevo modificador `tvDpadList` (en `TvDpadScroll.kt`) que convierte la lista en `focusGroup()` sin ser destino de foco. El foco entra directo a la fila más cercana, ARRIBA/ABAJO van fila por fila y la fila enfocada se desplaza a la vista con animación. Si ya no hay filas pero queda contenido, la lista baja o sube por pasos. Mientras la lista todavía puede subir, `focusProperties { onExit }` impide que el foco salte a la barra superior.
   - Se aplica a todas las pantallas de Configuración (`PreferenceScreen`), Autosoporte y Acerca de. Detalles y Alertas mantienen `tvDpadScroll` sin cambios.
   - IZQUIERDA/DERECHA y OK/ENTER mantienen su comportamiento; el foco neón cian sin fondo morado de la v0.1.26 se conserva.
+- *Nota (v0.1.28): esta corrección no bastó en el Android TV real; ver v0.1.28.*
 - Firma de producción, iconos y los 4 perfiles de APK sin cambios.
 
 ## v0.1.26 (128) · 25-11-2026

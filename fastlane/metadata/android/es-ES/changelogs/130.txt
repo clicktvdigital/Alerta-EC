@@ -1,0 +1,3 @@
+📺 Control remoto corregido y probado en Android TV: ABAJO entra desde la barra superior y recorre todas las opciones de Configuración y Acerca de.
+💠 Foco neón cian en cada opción, sin fondo morado; la lista baja sola.
+⬅️➡️ Izquierda, derecha y OK siguen funcionando en cada fila.

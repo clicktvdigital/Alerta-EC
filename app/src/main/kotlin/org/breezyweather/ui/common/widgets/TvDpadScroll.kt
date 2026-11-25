@@ -2,11 +2,13 @@ package org.breezyweather.ui.common.widgets
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -25,7 +27,9 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.ViewCompat
 import kotlinx.coroutines.launch
 
 /** Neon cyan of the Alerta EC focus ring (same tone as [NeonButton]). */
@@ -120,6 +124,26 @@ fun Modifier.tvDpadList(state: ScrollableState): Modifier = composed {
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 240.dp.toPx() }
     val focusManager = LocalFocusManager.current
+    val group = remember { FocusRequester() }
+    val focus = remember { TvListFocus() }
+    val view = LocalView.current
+
+    // On the TV, Compose's two-dimensional search does not cross from the top bar (back, about) to the rows below,
+    // so DOWN from the top bar used to do nothing. That key then reaches the view system unhandled: catch it there
+    // and enter the list (its first visible row).
+    DisposableEffect(view) {
+        val listener = ViewCompat.OnUnhandledKeyEventListenerCompat { _, event ->
+            if (event.action != AndroidKeyEvent.ACTION_DOWN ||
+                event.keyCode != AndroidKeyEvent.KEYCODE_DPAD_DOWN ||
+                focus.inside
+            ) {
+                return@OnUnhandledKeyEventListenerCompat false
+            }
+            runCatching { group.requestFocus() }.isSuccess && focus.inside
+        }
+        ViewCompat.addOnUnhandledKeyEventListener(view, listener)
+        onDispose { ViewCompat.removeOnUnhandledKeyEventListener(view, listener) }
+    }
 
     this
         .onKeyEvent { event ->
@@ -129,21 +153,28 @@ fun Modifier.tvDpadList(state: ScrollableState): Modifier = composed {
                 Key.DirectionUp -> false
                 else -> return@onKeyEvent false
             }
-            if (focusManager.moveFocus(if (forward) FocusDirection.Down else FocusDirection.Up)) {
+            // Geometric search first, then the order of the rows (works even where the geometric one does not).
+            if (focusManager.moveFocus(if (forward) FocusDirection.Down else FocusDirection.Up) ||
+                focusManager.moveFocus(if (forward) FocusDirection.Next else FocusDirection.Previous)
+            ) {
                 return@onKeyEvent true
             }
             if (!(if (forward) state.canScrollForward else state.canScrollBackward)) return@onKeyEvent false
             scope.launch { state.animateScrollBy(if (forward) step else -step) }
             true
         }
+        .focusRequester(group)
+        .onFocusChanged { focus.inside = it.hasFocus }
         .focusProperties {
             onExit = {
-                val leavingWhileScrollable = when (requestedFocusDirection) {
-                    FocusDirection.Up -> state.canScrollBackward
-                    FocusDirection.Down -> state.canScrollForward
+                // Never leave downwards (nothing below a full screen list); leave upwards (top bar) only once the
+                // top of the list is shown.
+                val cancel = when (requestedFocusDirection) {
+                    FocusDirection.Down, FocusDirection.Next -> true
+                    FocusDirection.Up, FocusDirection.Previous -> state.canScrollBackward
                     else -> false
                 }
-                if (leavingWhileScrollable) cancelFocusChange()
+                if (cancel) cancelFocusChange()
             }
         }
         .focusGroup()

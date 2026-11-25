@@ -1,4 +1,4 @@
-Control remoto corregido: ARRIBA y ABAJO recorren todas las opciones de Configuración y Acerca de en Smart TV y TV Box.
+Control remoto probado en Android TV: ABAJO entra desde la barra superior y recorre todas las opciones de Configuración y Acerca de.
 Control remoto completo en Configuración y Acerca de, con foco neón en Smart TV y TV Box.
 Un solo sonido por fenómeno, tono propio para la niebla y voz cuando va a llover pronto.
 Una sola notificación sonora por actualización, sin ráfagas repetidas.
