@@ -70,7 +70,8 @@ class SettingsManager private constructor(
             "&visibility" +
             "&pressure" +
             "&sun" +
-            "&moon"
+            "&moon" +
+            "&clock"
         const val DEFAULT_DAILY_TREND_DISPLAY = "temperature" +
             "&air_quality" +
             "&wind" +
@@ -457,7 +458,7 @@ class SettingsManager private constructor(
             config.edit().putBoolean("notification_widget_switch", value).apply()
             notifySettingsChanged()
         }
-        get() = config.getBoolean("notification_widget_switch", false)
+        get() = config.getBoolean("notification_widget_switch", true)
 
     var isWidgetNotificationPersistent: Boolean
         set(value) {
@@ -472,7 +473,7 @@ class SettingsManager private constructor(
             notifySettingsChanged()
         }
         get() = NotificationStyle.getInstance(
-            config.getString("notification_widget_style", "daily") ?: ""
+            config.getString("notification_widget_style", "hourly") ?: ""
         )
 
     var isWidgetNotificationTemperatureIconEnabled: Boolean

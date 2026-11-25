@@ -67,7 +67,7 @@ internal class InamhiMapOverlay(private val style: Style) {
             style.addSource(RasterSource(entry.source, tiles, 256))
             // Visible over the base map: rain stronger, temperature/wind lighter so streets still read.
             val opacity = when (layer) {
-                InamhiLayers.PRECIPITATION_3H, InamhiLayers.PRECIPITATION_24H -> 0.65f
+                InamhiLayers.PRECIPITATION_3H -> 0.65f
                 else -> 0.45f
             }
             val overlay = RasterLayer(entry.layer, entry.source).withProperties(rasterOpacity(opacity))

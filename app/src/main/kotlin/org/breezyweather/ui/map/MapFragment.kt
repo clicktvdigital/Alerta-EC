@@ -204,6 +204,7 @@ class MapFragment : MainModuleFragment() {
                         .putString("postal", codigo)
                         .putString("sector", nombre)
                         .apply()
+                    mostrarCapaZona(centrar = true)
                     addressLabel?.text = "✏️ Datos aportados por ti · GPS cercano\n" +
                         "Sector: $nombre · Código postal: $codigo\n" +
                         "Pulsa para ampliar la dirección"
@@ -356,6 +357,7 @@ class MapFragment : MainModuleFragment() {
         })
         panel.addView(player, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
+        neonAll(panel)
         player.selectMode(mode)
         // Garantiza la primera consulta aunque aún no haya una selección.
         player.resume()
@@ -512,6 +514,7 @@ class MapFragment : MainModuleFragment() {
     }
 
     private fun renderInamhiStatus() {
+        actualizarLeyenda()
         val now = Instant.now()
         inamhiStatusLabel?.text = buildList {
             if (!styleReady) add(styleMessage)
@@ -675,6 +678,145 @@ class MapFragment : MainModuleFragment() {
         val map = currentMap ?: return false
         map.scrollBy(dx, dy, 250L)
         return true
+    }
+
+    private var okZoomIn = true
+
+    private fun zoomWithOk(): Boolean {
+        val zoom = currentMap?.cameraPosition?.zoom ?: return false
+        if (zoom >= 15.0) okZoomIn = false
+        if (zoom <= 6.5) okZoomIn = true
+        android.widget.Toast.makeText(
+            requireContext(),
+            if (okZoomIn) "🔍 Acercando (OK)" else "🔍 Alejando (OK)",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+        return zoomMap(okZoomIn)
+    }
+
+    /** Neon frame on every button / switch of the map when it has D-pad focus (Android TV) or is pressed. */
+    private fun neonAll(view: View) {
+        if (view is android.widget.CompoundButton || view is android.widget.Button) {
+            view.isFocusable = true
+            neonFocus(view)
+        }
+        if (view is ViewGroup) for (i in 0 until view.childCount) neonAll(view.getChildAt(i))
+    }
+
+    // Capa zona: the sector the user registered with "Zona", drawn as a 1 km circle with its name.
+    private var zonaPolygon: org.maplibre.android.annotations.Polygon? = null
+    private var zonaMarker: org.maplibre.android.annotations.Marker? = null
+
+    private fun mostrarCapaZona(centrar: Boolean): Boolean {
+        val mapa = currentMap ?: return false
+        val prefs = requireContext().getSharedPreferences("alerta_ec_direccion_usuario", 0)
+        val lat = prefs.getString("lat", null)?.toDoubleOrNull() ?: return false
+        val lon = prefs.getString("lon", null)?.toDoubleOrNull() ?: return false
+        val nombre = prefs.getString("sector", null).orEmpty()
+        val codigo = prefs.getString("postal", null).orEmpty()
+        zonaPolygon?.let { mapa.removePolygon(it) }
+        zonaMarker?.let { mapa.removeMarker(it) }
+        val radioGrados = 1.0 / 111.0
+        val puntos = (0..48).map { i ->
+            val a = Math.toRadians(i * 7.5)
+            LatLng(lat + radioGrados * Math.sin(a), lon + radioGrados * Math.cos(a) / Math.cos(Math.toRadians(lat)))
+        }
+        zonaPolygon = mapa.addPolygon(
+            org.maplibre.android.annotations.PolygonOptions()
+                .addAll(puntos)
+                .fillColor(android.graphics.Color.argb(60, 0, 229, 255))
+                .strokeColor(android.graphics.Color.rgb(0, 229, 255))
+        )
+        zonaMarker = mapa.addMarker(
+            org.maplibre.android.annotations.MarkerOptions()
+                .position(LatLng(lat, lon))
+                .title("Mi zona: $nombre")
+                .snippet("Código postal $codigo · aportado por ti")
+        )
+        if (centrar) {
+            mapa.cameraPosition = CameraPosition.Builder().target(LatLng(lat, lon)).zoom(13.5).build()
+        }
+        return true
+    }
+
+    private fun accionZona() {
+        val contexto = requireContext()
+        val tieneZona = contexto.getSharedPreferences("alerta_ec_direccion_usuario", 0).contains("sector")
+        if (!tieneZona) {
+            editarMiSector()
+            return
+        }
+        android.app.AlertDialog.Builder(contexto)
+            .setTitle("Capa zona")
+            .setItems(arrayOf("🗺️ Ver mi zona en el mapa", "✏️ Corregir mi zona", "🚫 Ocultar la capa zona")) { _, opcion ->
+                when (opcion) {
+                    0 -> mostrarCapaZona(centrar = true)
+                    1 -> editarMiSector()
+                    else -> {
+                        zonaPolygon?.let { currentMap?.removePolygon(it) }
+                        zonaMarker?.let { currentMap?.removeMarker(it) }
+                        zonaPolygon = null
+                        zonaMarker = null
+                    }
+                }
+            }.show()
+    }
+
+    // Colour legend of the active INAMHI layer, at the left edge.
+    private var legendPanel: android.widget.LinearLayout? = null
+    private var legendLayer: String? = null
+
+    private fun actualizarLeyenda() {
+        val panel = legendPanel ?: return
+        val activas = InamhiLayers.all.filter(inamhiSelection::enabled)
+        val capa = activas.firstOrNull()
+        if (capa == null) {
+            panel.visibility = View.GONE
+            legendLayer = null
+            return
+        }
+        if (capa == legendLayer && panel.childCount > 0) return
+        legendLayer = capa
+        viewLifecycleOwner.lifecycleScope.launch {
+            val leyenda = InamhiLegend.load(capa) ?: return@launch
+            if (legendPanel !== panel || legendLayer != capa) return@launch
+            val contexto = panel.context
+            val d = resources.displayMetrics.density
+            panel.removeAllViews()
+            panel.addView(android.widget.TextView(contexto).apply {
+                text = leyenda.title + if (leyenda.unit.isNotEmpty()) " (${leyenda.unit})" else ""
+                textSize = 11f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(android.graphics.Color.WHITE)
+                setPadding(0, 0, 0, (4 * d).toInt())
+            })
+            // Highest values on top, like a statistical scale bar.
+            leyenda.entries.asReversed().forEach { entrada ->
+                panel.addView(android.widget.LinearLayout(contexto).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    addView(View(contexto).apply {
+                        setBackgroundColor(entrada.color)
+                    }, android.widget.LinearLayout.LayoutParams((14 * d).toInt(), (10 * d).toInt()))
+                    addView(android.widget.TextView(contexto).apply {
+                        text = "≥ " + entrada.value
+                        textSize = 10f
+                        setTextColor(android.graphics.Color.rgb(225, 232, 242))
+                        setPadding((6 * d).toInt(), 0, 0, 0)
+                    })
+                })
+            }
+            if (activas.size > 1) {
+                panel.addView(android.widget.TextView(contexto).apply {
+                    text = "También: " + activas.drop(1).joinToString { InamhiLayers.title(it) }
+                    textSize = 9f
+                    maxWidth = (120 * d).toInt()
+                    setTextColor(android.graphics.Color.rgb(180, 190, 205))
+                    setPadding(0, (4 * d).toInt(), 0, 0)
+                })
+            }
+            panel.visibility = View.VISIBLE
+        }
     }
 
     private fun zoomMap(zoomIn: Boolean): Boolean {
@@ -885,7 +1027,7 @@ class MapFragment : MainModuleFragment() {
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
                 addView(android.widget.Button(context).apply {
                     text = "✏️ Zona"
-                    setOnClickListener { editarMiSector() }
+                    setOnClickListener { accionZona() }
                 }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
             }
             // Quick access to the GOES satellite: clouds and lightning one press away.
@@ -925,6 +1067,35 @@ class MapFragment : MainModuleFragment() {
             addView(panel, android.widget.FrameLayout.LayoutParams(
                 -1, -2, android.view.Gravity.BOTTOM
             ))
+            val d = resources.displayMetrics.density
+            legendPanel = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                visibility = android.view.View.GONE
+                setPadding((8 * d).toInt(), (8 * d).toInt(), (8 * d).toInt(), (8 * d).toInt())
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 8 * d
+                    setColor(android.graphics.Color.argb(200, 20, 30, 42))
+                }
+                importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES
+                contentDescription = "Leyenda de colores de la capa INAMHI activa"
+            }
+            addView(legendPanel, android.widget.FrameLayout.LayoutParams(
+                -2, -2, android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+            ).apply { leftMargin = (6 * d).toInt() })
+            // D-pad: neon focus on every control; Up from the satellite row reaches the zoom buttons.
+            neonAll(panel)
+            neonAll(zoomColumn)
+            val zoomOut = zoomColumn.getChildAt(1).apply { id = android.view.View.generateViewId() }
+            val zoomIn = zoomColumn.getChildAt(0).apply { id = android.view.View.generateViewId() }
+            gpsMap.id = android.view.View.generateViewId()
+            zoomIn.nextFocusLeftId = gpsMap.id
+            zoomOut.nextFocusLeftId = gpsMap.id
+            zoomOut.nextFocusDownId = accesosSatelite.getChildAt(2).apply {
+                id = android.view.View.generateViewId()
+            }.id
+            for (i in 0 until accesosSatelite.childCount) {
+                accesosSatelite.getChildAt(i).nextFocusUpId = zoomOut.id
+            }
         }
     }
 
@@ -961,11 +1132,13 @@ class MapFragment : MainModuleFragment() {
                 if (event.action != android.view.KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 val step = 160f * resources.displayMetrics.density
                 when (keyCode) {
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> panMap(-step, 0f)
-                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> panMap(step, 0f)
-                    android.view.KeyEvent.KEYCODE_DPAD_UP -> panMap(0f, -step)
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> panMap(0f, step)
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+                    // scrollBy moves the map content: the view travels the opposite way, as the arrow points.
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> panMap(step, 0f)
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> panMap(-step, 0f)
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> panMap(0f, step)
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> panMap(0f, -step)
+                    // OK zooms in until street level, then back out to the whole country, and so on.
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER -> zoomWithOk()
                     android.view.KeyEvent.KEYCODE_PLUS, android.view.KeyEvent.KEYCODE_ZOOM_IN,
                     android.view.KeyEvent.KEYCODE_CHANNEL_UP -> zoomMap(true)
                     android.view.KeyEvent.KEYCODE_MINUS, android.view.KeyEvent.KEYCODE_ZOOM_OUT,
@@ -1050,6 +1223,9 @@ class MapFragment : MainModuleFragment() {
                     styleReady = true
                     alertaGpsMarker = null
                     latestMapLocation()?.let(::mostrarPuntoGps)
+                    zonaPolygon = null
+                    zonaMarker = null
+                    runCatching { mostrarCapaZona(centrar = false) }
                     lastInamhiAttemptAt = -300_000L
                     renderInamhiStatus()
                     loadInamhiOverlay()
@@ -1188,6 +1364,10 @@ class MapFragment : MainModuleFragment() {
         inamhiStep = 0
         inamhiPlayButton = null
         rootLayout = null
+        legendPanel = null
+        legendLayer = null
+        zonaPolygon = null
+        zonaMarker = null
         satellitePanel = null
         layersPanel = null
         layersButton = null

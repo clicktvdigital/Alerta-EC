@@ -23,12 +23,12 @@ class InamhiWmsCapabilitiesTest {
     fun inheritsTimeWithoutLeakingSiblingOrStyleName() {
         val result = parse("<Layer>${dimension(time)}" +
             "<Layer><Name>$rain</Name><Style><Name>$temperature</Name></Style></Layer>" +
-            layer(InamhiLayers.PRECIPITATION_24H, dimension("2026-10-18T15:00:00Z")) +
+            layer(InamhiLayers.HUMIDITY_1H, dimension("2026-10-18T15:00:00Z")) +
             layer(temperature) + "</Layer>")
         assertEquals(listOf(Instant.parse(time)), result.times[rain])
         assertEquals(listOf(Instant.parse(time)), result.times[temperature])
         assertEquals(listOf(Instant.parse("2026-10-18T15:00:00Z")),
-            result.times[InamhiLayers.PRECIPITATION_24H])
+            result.times[InamhiLayers.HUMIDITY_1H])
         assertTrue(result.errors.isEmpty())
     }
 

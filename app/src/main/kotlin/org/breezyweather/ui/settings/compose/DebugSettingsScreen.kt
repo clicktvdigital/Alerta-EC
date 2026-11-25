@@ -124,11 +124,15 @@ fun DebugSettingsScreen(
                 clickablePreferenceItem(R.string.settings_debug_force_weather_update) { id ->
                     PreferenceViewWithCard(
                         title = stringResource(id),
-                        summary = "Execute job for debugging purpose",
-                        enabled = hasNotificationPermission,
+                        summary = "Actualiza ahora el clima y la ubicación de todas las ciudades " +
+                            "(la ubicación actual se vuelve a pedir al GPS o la red)",
                         isLast = true
                     ) {
                         WeatherUpdateJob.startNow(context)
+                        SnackbarHelper.showSnackbar(
+                            "Actualización forzada en curso: el resultado aparece en la pantalla principal " +
+                                "y, si falla, en Notificaciones."
+                        )
                     }
                 }
 

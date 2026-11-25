@@ -254,7 +254,7 @@ internal object InamhiWmsTimes {
         InamhiLayers.PRECIPITATION_3H,
         InamhiLayers.TEMPERATURE_3H,
         InamhiLayers.WIND_3H -> 6L
-        InamhiLayers.TEMPERATURE_1H -> 2L
+        InamhiLayers.TEMPERATURE_1H, InamhiLayers.HUMIDITY_1H -> 2L
         else -> throw IllegalArgumentException("Unsupported INAMHI layer: $layerName")
     }
 

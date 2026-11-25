@@ -8,8 +8,10 @@ internal object InamhiLayers {
     // INAMHI publishes no 1 h precipitation layer; its hourly WRF layers are temperature, wind and humidity.
     const val TEMPERATURE_1H = "inamhi:wrf_1h_temperatura_rafk"
     const val WIND_3H = "inamhi:wrf_3h_vientos"
+    const val HUMIDITY_1H = "inamhi:wrf_1h_humedad_rafk"
 
-    val all = listOf(PRECIPITATION_3H, PRECIPITATION_24H, TEMPERATURE_3H, TEMPERATURE_1H, WIND_3H)
+    // The 24 h precipitation layer rarely has a time inside the next hours, so it is replaced by hourly humidity.
+    val all = listOf(PRECIPITATION_3H, HUMIDITY_1H, TEMPERATURE_3H, TEMPERATURE_1H, WIND_3H)
 
     fun title(layer: String): String = when (layer) {
         PRECIPITATION_3H -> "Precipitación 3 h"
@@ -17,6 +19,7 @@ internal object InamhiLayers {
         TEMPERATURE_3H -> "Temperatura 3 h"
         TEMPERATURE_1H -> "Temperatura 1 h"
         WIND_3H -> "Viento 3 h"
+        HUMIDITY_1H -> "Humedad 1 h"
         else -> throw IllegalArgumentException("Unsupported INAMHI layer: $layer")
     }
 
