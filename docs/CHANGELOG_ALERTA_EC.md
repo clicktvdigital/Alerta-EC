@@ -15,6 +15,12 @@ Jornada de tres versiones (**v0.1.23 → v0.1.25**) centrada en que cada aviso s
 - 🚀 Release v0.1.25 en GitHub con notas completas ([docs/releases/v0.1.25.md](releases/v0.1.25.md)), así las versiones anteriores que consultan GitHub Releases también la ven.
 - 🛠️ Mantenimiento: la prueba de Release firmada (`alerta-ec-release-test.yml`) lee la versión desde Gradle en lugar de exigir v0.1.11. La firma de producción y los 4 perfiles de APK no cambian.
 - 🧹 Se cerraron los PR #1 y #2 (v0.1.15 y README antiguo), ya reemplazados por la línea actual.
+- 🍏 **Nueva Web App oficial para iPhone** en https://clicktvdigital.github.io/Alerta-EC/iphone/ (PWA para Safari iOS, fuentes en `docs/web-iphone/`):
+  - Clima actual, sensación térmica, lluvia, pronóstico por horas y 7 días (Open-Meteo, con respaldo de MET Norway), por GPS, ciudad o sector de Ecuador.
+  - Índice de riesgo de lluvia 0-100 (🟢 Tranquilo, 🟡 Atento, 🟠 Precaución, 🔴 Peligro) con la misma fórmula que la app de Android.
+  - Mapa ligero de Ecuador y reportes de la comunidad (Supabase, clave pública `anon` inyectada en el despliegue): ver, enviar y denunciar.
+  - Guía de instalación en 2 pasos (Compartir → «Agregar a inicio»), funcionamiento a pantalla completa y caché básica sin conexión.
+  - Se publica con el mismo workflow de descargas; los 4 APK y `version.json` no cambian.
 
 ## v0.1.25 (127) · 25-11-2026
 

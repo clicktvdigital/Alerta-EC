@@ -7,13 +7,18 @@ La carpeta de salida debe contener ya apk/ con los 4 perfiles. Cada perfil tiene
 página corta (p. ej. /celular/) con metadatos Open Graph para la vista previa de WhatsApp
 y redes, que inicia la descarga de su APK automáticamente.
 """
+import base64
 import hashlib
 import html
 import json
+import os
+import shutil
 import sys
 from pathlib import Path
 
 BASE_URL = "https://clicktvdigital.github.io/Alerta-EC"
+SUPABASE_URL = "https://bnnpdwrduktchmgbwlha.supabase.co"
+WEB_IPHONE_DIR = Path(__file__).resolve().parent.parent / "docs" / "web-iphone"
 
 PROFILES = [
     ("celular", "alertaec-phone-arm64-v8a.apk", "Celular (recomendado)",
@@ -50,6 +55,46 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def is_public_supabase_key(value: str) -> bool:
+    """Igual que AlertaEcCommunity.isPublicKey: solo anon JWT o sb_publishable_, nunca service_role/sb_secret_."""
+    if not value or value.startswith("sb_secret_"):
+        return False
+    if value.startswith("sb_publishable_"):
+        return True
+    parts = value.split(".")
+    if len(parts) != 3:
+        return False
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)))
+    except (ValueError, TypeError):
+        return False
+    return isinstance(payload, dict) and payload.get("role") == "anon"
+
+
+def build_web_iphone(out: Path, version: str) -> bool:
+    """Copia la Web App para iPhone (PWA) en <out>/iphone/ con la versión y la clave pública de Supabase."""
+    if not (WEB_IPHONE_DIR / "index.html").is_file():
+        return False
+    dest = out / "iphone"
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(WEB_IPHONE_DIR, dest)
+    for name in ("index.html", "service-worker.js"):
+        target = dest / name
+        target.write_text(target.read_text(encoding="utf-8").replace("__ALERTAEC_VERSION__", version), encoding="utf-8")
+    key = os.environ.get("ALERTAEC_SUPABASE_ANON_KEY", "").strip()
+    if not is_public_supabase_key(key):
+        if key:
+            print("AVISO: la clave de Supabase no es pública (anon/publishable); la Web App queda sin reportes.")
+        key = ""
+    config = {"version": version, "supabaseUrl": SUPABASE_URL if key else "", "supabaseKey": key}
+    (dest / "config.js").write_text(
+        "window.ALERTA_EC_CONFIG = " + json.dumps(config, ensure_ascii=False) + ";\n", encoding="utf-8"
+    )
+    print(f"Web App iPhone: {dest} (comunidad {'activa' if key else 'sin clave'})")
+    return True
 
 
 def head(title: str, description: str, url: str, extra: str = "") -> str:
@@ -128,14 +173,20 @@ def main() -> None:
         f'<a class="btn" href="{slug}/">Descargar</a><small>{BASE_URL}/{slug}/</small></div>'
         for slug, _, label, about in PROFILES
     )
+    if build_web_iphone(out, version):
+        cards += (
+            '<div class="card"><h2>iPhone · Web App oficial</h2><p>Para iPhone y iPad: clima, índice de riesgo de lluvia, '
+            'mapa y reportes de la comunidad desde Safari. Se instala con Compartir → «Agregar a inicio».</p>'
+            f'<a class="btn" href="iphone/">Abrir en iPhone</a><small>{BASE_URL}/iphone/</small></div>'
+        )
     index = head(
         f"ALERTA EC {version} · Descargas",
-        "Descarga ALERTA EC para celular, Smart TV o TV Box. Alertas de clima y riesgos de Ecuador.",
+        "Descarga ALERTA EC para celular, Smart TV o TV Box, o úsala en iPhone. Alertas de clima y riesgos de Ecuador.",
         f"{BASE_URL}/",
     ) + f"""
 <img class="hero" src="og-alertaec.jpg" alt="ALERTA EC">
 <h1>Descargar ALERTA EC {html.escape(version)}</h1>
-<p>Elige tu equipo. Si no sabes cuál, usa «Celular (recomendado)».</p>
+<p>Elige tu equipo. Si no sabes cuál, usa «Celular (recomendado)». En iPhone, abre la Web App.</p>
 {cards}
 {news}
 {STEPS}

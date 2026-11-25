@@ -1,0 +1,20 @@
+{
+  "name": "ALERTA EC · Clima y riesgos de Ecuador",
+  "short_name": "ALERTA EC",
+  "description": "Edición Web App oficial de ALERTA EC: clima, lluvia, índice de riesgo y reportes de la comunidad en Ecuador.",
+  "lang": "es-EC",
+  "id": "/Alerta-EC/iphone/",
+  "start_url": "/Alerta-EC/iphone/?fuente=inicio",
+  "scope": "/Alerta-EC/iphone/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07131f",
+  "theme_color": "#07131f",
+  "categories": ["weather", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

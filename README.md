@@ -14,6 +14,7 @@ Enlaces fijos para compartir por WhatsApp o redes. Cada uno abre una página cor
 | Celular antiguo (32 bits) | https://clicktvdigital.github.io/Alerta-EC/celular-v7/ | `alertaec-phone-armeabi-v7a.apk` |
 | Smart TV Full HD | https://clicktvdigital.github.io/Alerta-EC/tv/ | `alertaec-tv-fhd-armeabi-v7a.apk` |
 | TV Box HD | https://clicktvdigital.github.io/Alerta-EC/tvbox/ | `alertaec-tvbox-hd-armeabi-v7a.apk` |
+| 🍏 iPhone / iPad (Web App oficial) | https://clicktvdigital.github.io/Alerta-EC/iphone/ | Sin APK: se abre en Safari y se instala con Compartir → «Agregar a inicio» |
 
 Página con los 4 perfiles: https://clicktvdigital.github.io/Alerta-EC/ · Sumas SHA-256: `/apk/SHA256SUMS.txt` · Versión publicada: `/version.json`.
 

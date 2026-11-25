@@ -1,0 +1,124 @@
+:root {
+  color-scheme: dark;
+  --bg: #07131f;
+  --card: #0d1f30;
+  --line: #1f3a50;
+  --text: #e8f1f8;
+  --muted: #8fa6b8;
+  --accent: #00e5ff;
+  --calm: #2ecc71;
+  --watch: #f1c40f;
+  --caution: #ff8c1a;
+  --danger: #ff3b30;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Roboto, sans-serif;
+  padding-bottom: var(--safe-bottom);
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.top {
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(10px + var(--safe-top)) 16px 10px;
+  background: rgba(7, 19, 31, .92);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.top img { border-radius: 9px; }
+.top div { display: flex; flex-direction: column; line-height: 1.15; flex: 1; }
+.top strong { letter-spacing: .02em; }
+.top small { color: var(--muted); font-size: .78rem; }
+main { max-width: 640px; margin: 0 auto; padding: 12px 14px 32px; }
+h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.chip, .btn {
+  font: inherit; color: var(--text); background: transparent; cursor: pointer;
+  border: 1.5px solid var(--accent); border-radius: 999px; padding: 7px 12px; white-space: nowrap;
+}
+.btn { display: block; width: 100%; border-radius: 12px; padding: 13px; font-weight: 700; margin-top: 8px; }
+.chip:active, .btn:active { background: rgba(0, 229, 255, .15); }
+select, input, textarea {
+  font: inherit; color: var(--text); background: #0a1928; border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+textarea { resize: vertical; }
+.place { display: grid; gap: 8px; }
+.search { display: flex; gap: 8px; }
+.results { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.results li button { all: unset; display: block; width: 100%; padding: 11px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.results li:last-child button { border-bottom: 0; }
+
+/* Clima actual */
+.now .head { display: flex; align-items: center; gap: 14px; }
+.now .icon { font-size: 3.2rem; line-height: 1; }
+.now .temp { font-size: 3rem; font-weight: 700; line-height: 1; }
+.now .where { font-weight: 600; margin: 0 0 2px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.grid div { background: #0a1928; border-radius: 12px; padding: 9px; text-align: center; }
+.grid b { display: block; font-size: 1.05rem; }
+.grid span { color: var(--muted); font-size: .75rem; }
+.offline { color: var(--watch); font-size: .85rem; margin-top: 8px; }
+
+/* Índice de riesgo */
+.risk { border-width: 2px; }
+.risk .row { display: flex; align-items: center; gap: 14px; }
+.risk .score { font-size: 2.6rem; font-weight: 800; min-width: 3.2ch; text-align: center; }
+.risk .level { font-size: 1.2rem; font-weight: 700; }
+.bar { height: 10px; border-radius: 99px; margin: 12px 0 6px;
+  background: linear-gradient(90deg, var(--calm) 0 25%, var(--watch) 25% 50%, var(--caution) 50% 75%, var(--danger) 75%); position: relative; }
+.bar i { position: absolute; top: -4px; width: 4px; height: 18px; border-radius: 2px; background: #fff; transform: translateX(-2px); }
+.scale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
+.risk ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }
+.lv-CALM { border-color: var(--calm); } .lv-WATCH { border-color: var(--watch); }
+.lv-CAUTION { border-color: var(--caution); } .lv-DANGER { border-color: var(--danger); }
+
+/* Horas y días */
+.hours { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.hours div { flex: 0 0 64px; scroll-snap-align: start; text-align: center; background: #0a1928; border-radius: 12px; padding: 8px 4px; font-size: .85rem; }
+.hours .e { font-size: 1.4rem; display: block; }
+.hours .p { color: var(--accent); font-size: .75rem; }
+.days div { display: grid; grid-template-columns: 5.2em 1.8em 1fr auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.days div:last-child { border-bottom: 0; }
+.days .p { color: var(--accent); font-size: .85rem; }
+.days .t { text-align: right; white-space: nowrap; }
+.days .t span { color: var(--muted); }
+
+/* Mapa y reportes */
+.map { height: 300px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #0a1928; }
+.leaflet-container { font: inherit; }
+.reports { margin-top: 10px; }
+.report { border-top: 1px solid var(--line); padding: 10px 0; }
+.report p { margin: 4px 0; overflow-wrap: anywhere; }
+.report details { font-size: .85rem; color: var(--muted); }
+.report details select { margin: 6px 0; }
+.form { display: grid; gap: 10px; }
+.form label { display: grid; gap: 4px; font-size: .9rem; color: var(--muted); }
+.form .check { display: flex; align-items: center; gap: 8px; }
+.form .check input { width: auto; }
+.ok { color: var(--calm); } .err { color: var(--danger); }
+
+/* Guía de instalación */
+.install {
+  position: relative; margin: 12px 14px 0; padding: 16px 16px 12px;
+  border: 2px solid var(--accent); border-radius: 16px;
+  background: linear-gradient(160deg, rgba(0, 229, 255, .12), rgba(13, 31, 48, .95));
+}
+.install h2 { margin-right: 28px; }
+.install ol { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.install li { display: flex; align-items: center; gap: 10px; }
+.install .step { flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #002b33; font-weight: 800; display: grid; place-items: center; }
+.install .share-icon { display: inline-block; border: 1.5px solid var(--text); border-radius: 6px; padding: 0 5px; font-size: .9rem; }
+.install p { margin: 6px 0; font-size: .9rem; color: #c5d6e3; }
+.install .warn { color: var(--watch); }
+.install .close { position: absolute; top: 8px; right: 10px; all: unset; position: absolute; top: 10px; right: 12px; font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
+.foot { color: var(--muted); font-size: .78rem; text-align: center; margin-top: 18px; }
+.foot a { color: var(--accent); }

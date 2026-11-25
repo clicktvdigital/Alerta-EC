@@ -18,6 +18,7 @@ on:
       - "domain/**"
       - "data/**"
       - "docs/descargas/**"
+      - "docs/web-iphone/**"
       - "scripts/build_download_site.py"
       - ".github/workflows/alerta-ec-descargas.yml"
 
@@ -110,8 +111,12 @@ jobs:
           cp docs/descargas/og-alertaec.jpg site/
           rm -f app/alerta-ec-release.jks
 
-      - name: Generar paginas de descarga
-        run: python3 -I scripts/build_download_site.py site "$VERSION" "$GITHUB_SHA" "$VERSION_CODE"
+      - name: Generar paginas de descarga y Web App iPhone
+        env:
+          ALERTAEC_SUPABASE_ANON_KEY: ${{ secrets.ALERTAEC_SUPABASE_ANON_KEY }}
+        run: |
+          python3 -I scripts/build_download_site.py site "$VERSION" "$GITHUB_SHA" "$VERSION_CODE"
+          test -s site/iphone/index.html && test -s site/iphone/config.js && test -s site/iphone/manifest.webmanifest
 
       - name: Preparar Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

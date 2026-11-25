@@ -13,3 +13,8 @@ These applications were developed by people outside the project. They are not ac
 Want to write your own app? Have a look at our [content provider](https://github.com/breezy-weather/breezy-weather/discussions/2089).
 
 Want to see your app listed here? [Write a post in the Show & Tell section](https://github.com/breezy-weather/breezy-weather/discussions/categories/show-and-tell)
+
+## Web App ALERTA EC para iPhone (`docs/web-iphone/`)
+
+- [Leaflet](https://leafletjs.com/) 1.9.4 · BSD-2-Clause · copia en `docs/web-iphone/vendor/leaflet/` con su licencia.
+- Datos: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0), [MET Norway](https://api.met.no/) (CC BY 4.0), mapa © [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL), búsqueda con Nominatim.

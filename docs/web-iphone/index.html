@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ALERTA EC para iPhone · Clima, lluvia y riesgos de Ecuador</title>
+<meta name="description" content="Edición Web App oficial de ALERTA EC para iPhone: clima actual, lluvia, índice de riesgo 0-100, mapa y reportes de la comunidad en Ecuador.">
+<meta name="theme-color" content="#07131f">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+
+<!-- PWA en Safari iOS -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ALERTA EC">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Vista previa en WhatsApp y redes -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ALERTA EC">
+<meta property="og:title" content="ALERTA EC para iPhone · Web App oficial">
+<meta property="og:description" content="Clima, lluvia, índice de riesgo y reportes de la comunidad en Ecuador. Ábrela en Safari y agrégala a tu pantalla de inicio.">
+<meta property="og:url" content="https://clicktvdigital.github.io/Alerta-EC/iphone/">
+<meta property="og:image" content="https://clicktvdigital.github.io/Alerta-EC/og-alertaec.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_EC">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="app.css?v=__ALERTAEC_VERSION__">
+</head>
+<body>
+<header class="top">
+  <img src="icons/icon-192.png" alt="" width="36" height="36">
+  <div>
+    <strong>ALERTA EC</strong>
+    <small>Web App oficial · iPhone</small>
+  </div>
+  <button id="btn-gps" class="chip" type="button" aria-label="Usar mi ubicación">📍 Mi ubicación</button>
+</header>
+
+<section id="install" class="install" hidden>
+  <button class="close" type="button" aria-label="Cerrar guía de instalación">✕</button>
+  <h2>Instálala en tu iPhone en 2 pasos</h2>
+  <ol>
+    <li><span class="step">1</span> En <b>Safari</b>, toca <b>Compartir</b> <span class="share-icon" aria-hidden="true">⬆︎</span> en la barra inferior.</li>
+    <li><span class="step">2</span> Elige <b>«Agregar a inicio»</b> y confirma con <b>Agregar</b>.</li>
+  </ol>
+  <p>Es la <b>edición Web App oficial de ALERTA EC</b>. La usarás mientras sale la app nativa para iOS.</p>
+  <p id="install-safari" class="warn" hidden>Abre este enlace en <b>Safari</b>: desde WhatsApp o Chrome no aparece «Agregar a inicio».</p>
+</section>
+
+<main>
+  <section class="place">
+    <label for="city" class="sr">Ciudad o sector</label>
+    <select id="city"></select>
+    <form id="search" class="search" autocomplete="off">
+      <input id="q" type="search" placeholder="Buscar sector o ciudad de Ecuador" enterkeyhint="search">
+      <button type="submit" class="chip">Buscar</button>
+    </form>
+    <ul id="results" class="results" hidden></ul>
+  </section>
+
+  <section id="now" class="card now" aria-live="polite">
+    <p class="muted">Cargando el clima…</p>
+  </section>
+
+  <section id="risk" class="card risk" aria-live="polite" hidden></section>
+
+  <section class="card">
+    <h2>Próximas horas</h2>
+    <div id="hours" class="hours" role="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>Próximos días</h2>
+    <div id="days" class="days" role="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>Mapa y reportes de la comunidad</h2>
+    <p class="muted small">Toca el mapa para ver el clima de ese punto. Los puntos de color son reportes de las últimas 24 horas.</p>
+    <div id="map" class="map" role="region" aria-label="Mapa de Ecuador"></div>
+    <div id="reports" class="reports"></div>
+  </section>
+
+  <section class="card">
+    <h2>Enviar un reporte</h2>
+    <form id="report-form" class="form">
+      <label>Qué pasa
+        <select id="r-category" required>
+          <option>Lluvia intensa</option><option>Inundación</option><option>Deslizamiento</option>
+          <option>Rayos</option><option>Granizo</option><option>Otro fenómeno</option>
+        </select>
+      </label>
+      <label>Gravedad
+        <select id="r-severity" required>
+          <option>Leve</option><option>Moderada</option><option>Alta</option><option>Crítica</option>
+        </select>
+      </label>
+      <label>Descripción
+        <textarea id="r-text" minlength="5" maxlength="1000" rows="3" required placeholder="Ej.: calle inundada frente al mercado"></textarea>
+      </label>
+      <label class="check"><input id="r-gps" type="checkbox" checked> Incluir la ubicación aproximada (redondeada a ~1 km)</label>
+      <button type="submit" class="btn">Enviar reporte</button>
+      <p id="r-status" class="small" role="status"></p>
+    </form>
+    <p class="muted small">Sin cuenta ni nombre. No compartas rostros, placas ni documentos. En emergencias llama al <b>911</b> y sigue a la SNGR e INAMHI.</p>
+  </section>
+
+  <footer class="foot">
+    <p>Datos: Open-Meteo (respaldo MET Norway) · Mapa © OpenStreetMap · Reportes: comunidad ALERTA EC.</p>
+    <p>¿Tienes Android? <a href="../">Descarga la app</a> · v__ALERTAEC_VERSION__ · CLICK TV DIGITAL</p>
+  </footer>
+</main>
+
+<script src="config.js?v=__ALERTAEC_VERSION__"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="app.js?v=__ALERTAEC_VERSION__"></script>
+</body>
+</html>
